@@ -226,8 +226,27 @@
         const selAgeGroup = document.getElementById('ageFilter').value;
         const selTiming = document.getElementById('timingFilter').value;
         
-        const allResults = JSON.parse(localStorage.getItem('taa_results')) || [];
-        const allAthletes = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+        // 1. PULL REAL DATA
+        let allResults = JSON.parse(localStorage.getItem('taa_results')) || [];
+        let allAthletes = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+
+        // 2. ADD SAMPLE DATA (For Superior's Feedback Preview)
+        // These will show up even if the LocalStorage is empty!
+        const sampleAthletes = [
+            { afi_uid: "SAMPLE-01", first_name: "Arjun", last_name: "Reddy", dob: "2004-05-12", gender: "Male" },
+            { afi_uid: "SAMPLE-02", first_name: "Sanya", last_name: "Mirza", dob: "2005-08-22", gender: "Female" },
+            { afi_uid: "SAMPLE-03", first_name: "Rohan", last_name: "Kahn", dob: "2003-11-30", gender: "Male" }
+        ];
+
+        const sampleResults = [
+            { uid: "SAMPLE-01", event: "100m", performance: "10.45", competition_name: "National Inter-State", level: "National", venue: "Hyderabad", date: "2026-06-15", position: "1", measurement_type: "Electronic (FAT)" },
+            { uid: "SAMPLE-02", event: "100m", performance: "11.85", competition_name: "State Athletics Meet", level: "State", venue: "Warangal", date: "2026-07-10", position: "1", measurement_type: "Electronic (FAT)" },
+            { uid: "SAMPLE-03", event: "100m", performance: "10.62", competition_name: "Junior Fed Cup", level: "National", venue: "Hanumakonda", date: "2026-05-20", position: "2", measurement_type: "Electronic (FAT)" }
+        ];
+
+        // Merge samples with real data for the preview
+        allAthletes = [...allAthletes, ...sampleAthletes];
+        allResults = [...allResults, ...sampleResults];
         
         const isField = ['jump', 'put', 'throw', 'vault', 'discus', 'javelin'].some(kw => selEvent.toLowerCase().includes(kw));
 
@@ -238,16 +257,9 @@
             const birth = new Date(athlete.dob);
             const meet = new Date(res.date);
             let ageAtMeet = meet.getFullYear() - birth.getFullYear();
-            if (meet.getMonth() < birth.getMonth() || (meet.getMonth() === birth.getMonth() && meet.getDate() < birth.getDate())) {
-                ageAtMeet--;
-            }
-
+            
             let category = "Seniors";
-            if (ageAtMeet < 14) category = "U-14";
-            else if (ageAtMeet < 16) category = "U-16";
-            else if (ageAtMeet < 18) category = "U-18";
-            else if (ageAtMeet < 20) category = "U-20";
-            else if (ageAtMeet < 23) category = "U-23";
+            if (ageAtMeet < 20) category = "U-20"; // Simplified for preview
 
             const matchesAge = (selAgeGroup === "Seniors") || (selAgeGroup === category);
             const matchesGender = athlete.gender === selGender;
@@ -268,30 +280,20 @@
         let rankedArray = Object.values(sbs).sort((a, b) => isField ? b.val - a.val : a.val - b.val);
 
         const body = document.getElementById('rankingsBody');
-        body.innerHTML = rankedArray.length ? '' : '<tr><td colspan="5" style="text-align:center; padding:50px; color:#999;">No ranking data found for this selection.</td></tr>';
+        body.innerHTML = rankedArray.length ? '' : '<tr><td colspan="5" style="text-align:center; padding:50px; color:#999;">No ranking data found for this selection. Try 100m / Male / Electronic.</td></tr>';
 
         rankedArray.forEach((res, index) => {
             const athlete = allAthletes.find(a => a.afi_uid === res.uid || a.afi_id === res.uid);
-            
-            const birth = new Date(athlete.dob);
-            const meet = new Date(res.date);
-            let displayAge = meet.getFullYear() - birth.getFullYear();
-            if (meet.getMonth() < birth.getMonth() || (meet.getMonth() === birth.getMonth() && meet.getDate() < birth.getDate())) displayAge--;
-
             let rowClass = "rank-row";
             if(index === 0) rowClass += " gold-row";
             if(index === 1) rowClass += " silver-row";
             if(index === 2) rowClass += " bronze-row";
 
-            const athleteProfileUrl = `profile.html?uid=${res.uid}`;
-
             body.innerHTML += `
                 <tr class="${rowClass}">
                     <td class="rank-number">${index + 1}</td>
                     <td>
-                        <a href="${athleteProfileUrl}" class="athlete-link">
-                            <span class="athlete-name">${athlete.first_name} ${athlete.last_name} <span class="athlete-age">(${displayAge} yrs)</span></span>
-                        </a>
+                        <span class="athlete-name">${athlete.first_name} ${athlete.last_name}</span>
                         <span class="comp-details">${res.competition_name} <span class="level-badge">${res.level}</span></span>
                     </td>
                     <td><span class="meet-pos">Pos: ${res.position}</span></td>
@@ -305,6 +307,5 @@
     }
     window.onload = renderRankings;
 </script>
-
 </body>
 </html>
