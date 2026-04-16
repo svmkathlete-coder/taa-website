@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - TAA Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Open Sans', sans-serif; background: #f4f7f6; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; border-top: 6px solid #0056b3; text-align: center; }
+        .logo { width: 80px; margin-bottom: 20px; }
+        h2 { font-family: 'Montserrat', sans-serif; color: #333; margin-bottom: 10px; text-transform: uppercase; font-size: 1.2em; }
+        p { color: #666; font-size: 0.9em; margin-bottom: 25px; }
+        .input-group { text-align: left; margin-bottom: 15px; }
+        label { display: block; font-weight: 700; font-size: 0.8em; color: #555; margin-bottom: 5px; text-transform: uppercase; }
+        input { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 8px; outline: none; transition: 0.3s; }
+        input:focus { border-color: #35CAFE; }
+        .btn-login { width: 100%; background: #0056b3; color: white; padding: 15px; border: none; border-radius: 8px; font-family: 'Montserrat', sans-serif; font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-login:hover { background: #FF8C00; }
+        .error { color: #e63946; font-size: 0.85em; margin-top: 15px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <a href="index.html"><img src="LOGO.jfif" alt="TAA Logo" class="logo"></a>
+    <h2>Member Login</h2>
+    <p>Enter your credentials to access your profile</p>
+
+    <form id="loginForm">
+        <div class="input-group">
+            <label>AFI ID / UID</label>
+            <input type="text" id="loginID" placeholder="e.g. AFI-12345" required>
+        </div>
+        <div class="input-group">
+            <label>Date of Birth</label>
+            <input type="date" id="loginDOB" required>
+        </div>
+        <button type="submit" class="btn-login">SIGN IN</button>
+        <p id="errorMessage" class="error">Invalid ID or Date of Birth. Please check again.</p>
+    </form>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const inputID = document.getElementById('loginID').value.trim();
+        const inputDOB = document.getElementById('loginDOB').value;
+
+        // 1. Get both local lists
+        const masterList = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+        const oldOfficials = JSON.parse(localStorage.getItem('taa_officials')) || [];
+        const combined = [...masterList, ...oldOfficials];
+
+        // 2. Search for the user
+        const user = combined.find(u => 
+            (u.afi_id === inputID || u.afi_uid === inputID || u.aadhaar === inputID) && 
+            u.dob === inputDOB
+        );
+
+        if (user) {
+            // 3. Save the "Logged In" session locally so the next page knows who it is
+            sessionStorage.setItem('currentUser', JSON.stringify(user));
+            
+            // 4. Redirect to Profile Page
+            window.location.href = "profile.html";
+        } else {
+            document.getElementById('errorMessage').style.display = 'block';
+        }
+    });
+</script>
+
+</body>
+</html>

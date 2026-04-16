@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Athlete Portfolio - TAA Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --wa-blue: #0056b3;
+            --wa-light: #35CAFE;
+            --wa-orange: #FF8C00;
+            --bg-dark: #121212;
+            --text-on-dark: #eaeaea;
+        }
+
+        body { 
+            font-family: 'Open Sans', sans-serif; 
+            background: #101010; /* Main Page Background */
+            margin: 0; 
+            padding: 20px; 
+            color: #333; 
+        }
+
+        /* Modern Container: Card Based */
+        .profile-container { 
+            max-width: 1000px; 
+            margin: 40px auto; 
+            background: white; 
+            border-radius: 24px; 
+            overflow: hidden; 
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3); 
+        }
+        
+        /* Modern Header: Premium Background and Layout */
+        .profile-header { 
+            background: linear-gradient(135deg, var(--wa-blue) 0%, var(--wa-light) 100%); 
+            color: white; 
+            padding: 60px 40px; 
+            text-align: center; 
+            position: relative; 
+        }
+        .profile-pic { width: 160px; height: 160px; background: white; border-radius: 50%; border: 6px solid rgba(255,255,255,0.2); margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 4.5em; color: var(--wa-blue); font-weight: 800; font-family: 'Montserrat'; }
+        .profile-header h1 { font-family: 'Montserrat'; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 1px; font-size: 2.5em; }
+        .status-badge { display: inline-block; background: rgba(255,255,255,0.2); color: white; padding: 6px 20px; border-radius: 30px; font-size: 0.85em; font-weight: 700; margin-top: 15px; border: 1px solid rgba(255,255,255,0.4); text-transform: uppercase; }
+
+        /* Modern Stats Grid: Key performance indicators */
+        .wa-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; padding: 30px 40px; background: #fff; border-bottom: 1px solid #eee; }
+        .stat-card { background: #fdfdfd; padding: 20px; border-radius: 16px; border: 1px solid #f0f0f0; text-align: center; transition: 0.3s; }
+        .stat-card:hover { border-color: var(--wa-light); transform: translateY(-3px); }
+        .stat-card h4 { margin: 0; font-size: 0.75em; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-card p { margin: 8px 0 0; font-family: 'Montserrat'; font-weight: 800; color: var(--wa-blue); font-size: 1.5em; }
+
+        /* Modern PB & Info Section: Split layout */
+        .profile-main { padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .section-title { font-family: 'Montserrat'; font-weight: 800; font-size: 1em; color: #444; border-left: 4px solid var(--wa-orange); padding-left: 12px; margin-bottom: 20px; text-transform: uppercase; }
+        
+        .pb-card { background: #fff; padding: 15px; border-radius: 12px; border: 1px solid #eee; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .pb-val { font-family: 'Montserrat'; font-weight: 800; color: var(--wa-orange); font-size: 1.2em; }
+
+        .info-item { margin-bottom: 20px; }
+        .info-item label { display: block; font-size: 0.7em; font-weight: 700; color: #999; text-transform: uppercase; }
+        .info-item p { margin: 4px 0 0; font-weight: 600; font-size: 1.1em; color: #333; }
+
+        /* Modern History Table */
+        .results-section { padding: 0 40px 40px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 15px; background: #f8f9fa; color: #888; font-size: 0.75em; text-transform: uppercase; border-bottom: 2px solid #eee; }
+        td { padding: 15px; border-bottom: 1px solid #f0f0f0; font-size: 0.9em; }
+        .mark-cell { font-family: 'Montserrat'; font-weight: 700; color: var(--wa-orange); }
+
+        /* Modern Action Buttons */
+        .btn-action { display: block; width: 220px; margin: 0 auto 50px; padding: 14px; border: none; border-radius: 12px; font-family: 'Montserrat'; font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; text-transform: uppercase; font-size: 0.9em; transition: 0.3s; }
+        .btn-logout { background: #fee2e2; color: #dc2626; }
+        .btn-logout:hover { background: #fecaca; }
+        .btn-back { background: var(--wa-blue); color: white; box-shadow: 0 10px 20px rgba(0,86,179,0.2); }
+
+        @media (max-width: 768px) { .profile-main { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="profile-pic" id="userInitial">?</div>
+        <h1 id="userName">Athlete Portfolio</h1>
+        <div id="userType" class="status-badge">Professional Athlete</div>
+        <div class="achievements-container" id="achievementsContainer" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;"></div>
+    </div>
+
+    <div class="wa-stats-grid">
+        <div class="stat-card"><h4>Personal Best</h4><p id="statPB">--</p></div>
+        <div class="stat-card"><h4>Season Best '26</h4><p id="statSB">--</p></div>
+        <div class="stat-card"><h4>Top Meet Pos</h4><p id="statPos">--</p></div>
+    </div>
+
+    <div class="profile-main">
+        <div>
+            <h3 class="section-title">Personal Bests</h3>
+            <div id="pbContainer">
+                <p style="color:#aaa; font-style:italic;">No records synced yet.</p>
+            </div>
+        </div>
+
+        <div>
+            <h3 class="section-title">Athlete Bio</h3>
+            <div class="info-item"><label>AFI UID / ID</label><p id="userID">-</p></div>
+            <div class="info-item"><label>Birth Date</label><p id="userDOB">-</p></div>
+            <div class="info-item"><label>District / Region</label><p id="userDistrict">-</p></div>
+            <div class="info-item"><label>Specialty / Discipline</label><p id="userDetail">-</p></div>
+        </div>
+    </div>
+
+    <div class="results-section">
+        <h3 class="section-title">Competition History</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Meet / Level</th>
+                    <th>Discipline</th>
+                    <th>Result</th>
+                    <th>Pos</th>
+                </tr>
+            </thead>
+            <tbody id="resultsTableBody"></tbody>
+        </table>
+    </div>
+
+    <div id="actionArea"></div>
+</div>
+
+<script>
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const viewUID = urlParams.get('uid');
+        let user;
+
+        if (viewUID) {
+            // PUBLIC VIEW MODE (Fetch from master data)
+            const portalData = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+            user = portalData.find(a => (a.afi_uid === viewUID || a.afi_id === viewUID));
+            document.getElementById('actionArea').innerHTML = `<a href="ranking.html" class="btn-action btn-back">Back to Rankings</a>`;
+        } else {
+            // PRIVATE MODE (Logged-in user)
+            user = JSON.parse(sessionStorage.getItem('currentUser'));
+            if (!user) { window.location.href = "login.html"; return; }
+            document.getElementById('actionArea').innerHTML = `<button class="btn-action btn-logout" onclick="logout()">Logout My Account</button>`;
+        }
+
+        if (!user) { alert("Profile not found."); window.location.href = "ranking.html"; return; }
+
+        // Populate Static Information
+        const uid = user.afi_id || user.afi_uid;
+        document.getElementById('userName').innerText = `${user.first_name} ${user.last_name}`;
+        document.getElementById('userInitial').innerText = user.first_name.charAt(0);
+        document.getElementById('userID').innerText = uid;
+        document.getElementById('userDOB').innerText = user.dob;
+        document.getElementById('userDistrict').innerText = user.district || "N/A";
+        document.getElementById('userDetail').innerText = user.level || user.event || "Professional Athlete";
+
+        loadEnhancedData(uid, user.event);
+    };
+
+    function loadEnhancedData(uid, mainEvent) {
+        const allResults = JSON.parse(localStorage.getItem('taa_results')) || [];
+        const myResults = allResults.filter(r => r.uid === uid).sort((a,b) => new Date(b.date) - new Date(a.date));
+        
+        const pbContainer = document.getElementById('pbContainer');
+        const tableBody = document.getElementById('resultsTableBody');
+        const fieldKeywords = ['jump', 'put', 'throw', 'vault', 'discus', 'javelin'];
+
+        if (myResults.length === 0) return;
+
+        // 1. Calculate and Group PBs by Event
+        const pbs = {};
+        myResults.forEach(res => {
+            const isField = fieldKeywords.some(kw => res.event.toLowerCase().includes(kw));
+            const val = parseFloat(res.performance);
+            if (!pbs[res.event]) {
+                pbs[res.event] = res;
+            } else {
+                const currentBest = parseFloat(pbs[res.event].performance);
+                if (isField ? val > currentBest : val < currentBest) pbs[res.event] = res;
+            }
+        });
+
+        // Display PBs (World Athletics Style Sidebar)
+        pbContainer.innerHTML = '';
+        Object.values(pbs).forEach(pb => {
+            const unit = fieldKeywords.some(kw => pb.event.toLowerCase().includes(kw)) ? 'm' : 's';
+            const pbDate = new Date(pb.date);
+            const displayDate = `${pb.venue} '${pbDate.getFullYear().toString().substr(-2)}`;
+
+            pbContainer.innerHTML += `
+                <div class="pb-card">
+                    <div><b>${pb.event}</b><br><small style="color:#aaa">${displayDate}</small></div>
+                    <div class="pb-val">${pb.performance}${unit}</div>
+                </div>`;
+        });
+
+        // 2. Summary Stats (WA Top Cards)
+        const currentYear = "2026";
+        const seasonResults = myResults.filter(r => r.date.includes(currentYear));
+        
+        // PB for main discipline
+        const allMarks = myResults.map(r => parseFloat(r.performance));
+        const isMainField = fieldKeywords.some(kw => (mainEvent||"").toLowerCase().includes(kw));
+        const bestAllTime = isMainField ? Math.max(...allMarks) : Math.min(...allMarks);
+        document.getElementById('statPB').innerText = bestAllTime + (isMainField ? 'm' : 's');
+
+        // SB for main discipline
+        if(seasonResults.length > 0) {
+            const sMarks = seasonResults.map(r => parseFloat(r.performance));
+            const sb = isMainField ? Math.max(...sMarks) : Math.min(...sMarks);
+            document.getElementById('statSB').innerText = sb + (isMainField ? 'm' : 's');
+        }
+
+        // Top meet position
+        const bestPos = Math.min(...myResults.map(r => parseInt(r.position) || 99));
+        document.getElementById('statPos').innerText = bestPos === 99 ? "N/A" : `#${bestPos}`;
+
+        // 3. Populate Full History Table
+        tableBody.innerHTML = '';
+        myResults.forEach(res => {
+            tableBody.innerHTML += `
+                <tr>
+                    <td><b>${res.competition_name}</b><br><small style="color:var(--wa-blue)">${res.level}</small></td>
+                    <td>${res.event}<br><small>${res.venue}</small></td>
+                    <td><span class="mark-cell">${res.performance}</span><br><small style="color:#aaa">${res.measurement_type}</small></td>
+                    <td><b>#${res.position}</b></td>
+                </tr>`;
+        });
+    }
+
+    function logout() { sessionStorage.clear(); window.location.href = "login.html"; }
+</script>
+
+</body>
+</html>

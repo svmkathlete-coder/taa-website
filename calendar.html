@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Competition Calendar - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Open Sans', sans-serif; background-color: #f4f7f6; color: #333; line-height: 1.6; }
+
+        /* --- Floating Home Logo --- */
+        .home-logo-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1100;
+            transition: transform 0.3s ease;
+        }
+        .home-logo-link:hover { transform: scale(1.1); }
+        .floating-logo {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 50%;
+            padding: 5px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            object-fit: contain;
+        }
+
+        /* --- Navigation Bar --- */
+        nav { background-color: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        nav ul { display: flex; justify-content: center; list-style: none; padding: 15px 0; }
+        nav ul li { margin: 0 15px; position: relative; }
+        nav ul li a { text-decoration: none; color: #1a1a1a; font-weight: 600; font-family: 'Montserrat'; text-transform: uppercase; font-size: 0.85em; transition: color 0.3s ease; }
+        nav ul li a:hover { color: #FF8C00; }
+
+        .dropdown-content { display: none; position: absolute; background-color: #ffffff; min-width: 200px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); z-index: 1000; top: 100%; left: 0; border-radius: 0 0 8px 8px; padding: 10px 0; }
+        .dropdown-content a { color: #333 !important; padding: 12px 20px; display: block; text-transform: none; text-decoration: none; font-size: 0.8em; }
+        .dropdown-content a:hover { background-color: #f4f7f6; color: #FF8C00 !important; }
+        nav ul li:hover .dropdown-content { display: block; }
+
+        .rank-link { color: #FF8C00 !important; font-weight: 800 !important; position: relative; }
+        .rank-link::after { content: 'LIVE'; position: absolute; top: -12px; right: -18px; background: #FF8C00; color: white; font-size: 0.55em; padding: 2px 5px; border-radius: 4px; animation: blink 1.5s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* --- Hero Section with Logo --- */
+        .hero { 
+            background: linear-gradient(135deg, #35CAFE 0%, #0056b3 100%); 
+            color: white; 
+            padding: 50px 20px; 
+            text-align: center; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .hero-brand-logo {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 50%;
+            padding: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        .hero h1 { font-family: 'Montserrat'; font-size: 2.5em; text-transform: uppercase; margin-bottom: 5px; }
+
+        /* --- Calendar Container --- */
+        .calendar-container { max-width: 1000px; margin: 50px auto; padding: 0 20px; }
+
+        .event-card { display: flex; background: white; margin-bottom: 25px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: transform 0.3s ease; border: 1px solid #eee; }
+        .event-card:hover { transform: translateY(-3px); }
+
+        .event-date-box { 
+            background: rgba(255, 140, 0, 0.8); /* 80% Opacity Orange */
+            color: white; width: 140px; min-width: 140px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            font-family: 'Montserrat'; text-transform: uppercase; 
+        }
+        .event-date-box .month { font-size: 1.2em; font-weight: 600; }
+        .event-date-box .year { font-size: 1.6em; font-weight: 800; line-height: 1; margin-top: 5px; }
+
+        .event-details { padding: 30px; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
+        .event-title { font-family: 'Montserrat'; font-size: 1.2em; color: #0056b3; margin-bottom: 12px; font-weight: 700; }
+        .event-meta { display: flex; gap: 25px; font-size: 0.95em; color: #555; }
+        .venue-link { text-decoration: none; color: #333; font-weight: 600; display: flex; align-items: center; }
+        .pin-icon { color: #FF8C00; margin-right: 8px; }
+
+        @media (max-width: 768px) {
+            .home-logo-link { top: 10px; left: 10px; }
+            .floating-logo { width: 50px; height: 50px; }
+            .event-card { flex-direction: column; }
+            .event-date-box { width: 100%; padding: 15px; flex-direction: row; gap: 10px; }
+            .event-meta { flex-direction: column; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="home-logo-link">
+        <img src="LOGO.jfif" alt="TAA Logo" class="floating-logo">
+    </a>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About Us</a></li>
+            <li>
+                <a href="#" style="color:#FF8C00">Events</a>
+                <div class="dropdown-content">
+                    <a href="calendar.html">Competition Calendar</a>
+                    <a href="results.html">Full Meet Results</a>
+                </div>
+            </li>
+            <li><a href="ranking.html" class="rank-link">Rankings</a></li>
+            <li><a href="profiles.html">Profiles</a></li>
+            <li><a href="education.html">Education</a></li>
+            <li><a href="registrations.html">Registrations</a></li>
+            <li><a href="contact.html">Contact Us</a></li>
+        </ul>
+    </nav>
+
+    <header class="hero">
+        <img src="LOGO.jfif" alt="TAA Brand" class="hero-brand-logo">
+        <h1>Competition Calendar 2026-27</h1>
+        <p>Official Tentative Schedule of Telangana Athletics Association</p>
+    </header>
+
+    <div class="calendar-container">
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">MAR</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">1. State Meet for Relay Teams</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Hanumakonda</span><span>🗓️ March 15, 2026</span></div></div>
+        </div>
+
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">APR</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">2. State Athletics Championships for Federation Cup (U-20, Men, Women & Combined Events)</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Mulugu/Hanumakonda</span><span>🗓️ April 11 - 12, 2026</span></div></div>
+        </div>
+
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">MAY</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">3. State Athletics Championship for All Age Groups(Jumps and Throws)</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Jangaon</span><span>🗓️ May 10, 2026</span></div></div>
+        </div>
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">MAY</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">4. State Athletics Sub-Jr, Juniors & All Age Group Athletics Championships</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Gaudium School , Hyderabad</span><span>🗓️ May 31, 2026</span></div></div>
+        </div>
+
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">JUN</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">5. State Sub-Jr, Juniors (U12 to U20) & Men Athletics Championships</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Badradri Kothagudem</span><span>🗓️ June 06 - 07, 2026</span></div></div>
+        </div>
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">JUN</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">6. State Championships for Inter-State Nationals(Men & Women) & U16, U18, U20</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Osmania University, Hyderabad</span><span>🗓️ June 27 - 28, 2026</span></div></div>
+        </div>
+
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">JUL</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">7. State All Age Groups Middle & Long Distance Championship and Triathlon A,B,C</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Medak</span><span>🗓️ July 19, 2026</span></div></div>
+        </div>
+
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">AUG</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">8. National Javelin Day & South Zone Junior Championship & Youth Championship</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Hanumakonda/Khammam</span><span>🗓️ August 07 - 08, 2026</span></div></div>
+        </div>
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">AUG</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">9. Indian Athletics Series-13 (Seniors & Juniors)</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Hanumakonda</span><span>🗓️ August 14, 2026</span></div></div>
+        </div>
+
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">SEP</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">10. Telangana State Junior Athletics Championships & Men and Women Athletics Championship & U23 Athletics Championship</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> WGL at JNS</span><span>🗓️ September 19 - 21, 2026</span></div></div>
+        </div>
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">SEP</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">11. Coaching Camp for Jr.Nationals, Open Nationals and U-23 Men & Women</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Hanumakonda</span><span>🗓️ September 27 - October 21, 2026 (Tentative)</span></div></div>
+        </div>
+
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">OCT</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">12. State Sub-Jr Athletics Championships (10, 12, 14 Age groups)</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Komurambheem Asifabad</span><span>🗓️ October 04, 2026</span></div></div>
+        </div>
+
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">NOV</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">13. State Sub-Jr & Juniors Open Athletics Championships</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Nizamabad</span><span>🗓️ November 21 - 22, 2026</span></div></div>
+        </div>
+
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">DEC</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">14. State Sub Jr. and Junior Athletics Championships(8, 10, 12, 14, 16, 18, 20 Age groups)</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Bhupalapally</span><span>🗓️ December 6 - 7, 2026</span></div></div>
+        </div>
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">DEC</span><span class="year">2026</span></div>
+            <div class="event-details"><div class="event-title">15. State Selection Trials for Cross Country Nationals</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Narayanpet</span><span>🗓️ December 20, 2026</span></div></div>
+        </div>
+
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">JAN</span><span class="year">2027</span></div>
+            <div class="event-details"><div class="event-title">16. State Relay Championships for All Age groups (4x100, 4x400, 4x100 Mixed, 4x400 Mixed)</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> IIT Hyderabad</span><span>🗓️ January 10, 2027</span></div></div>
+        </div>
+
+        <div class="event-card">
+            <div class="event-date-box"><span class="month">FEB</span><span class="year">2027</span></div>
+            <div class="event-details"><div class="event-title">17. State Sub Juniors and Juniors Athletics Championship</div><div class="event-meta"><span class="venue-link"><span class="pin-icon">📍</span> Karimnagar</span><span>🗓️ February 07, 2027</span></div></div>
+        </div>
+
+    </div>
+</body>
+</html>

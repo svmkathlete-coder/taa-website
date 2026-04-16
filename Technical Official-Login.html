@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Official Login - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Use the same CSS from your About/Home page for the Header & Nav */
+        /* ... (Keep your existing Header, Nav, and Hero styles here) ... */
+
+        .login-container {
+            max-width: 400px;
+            margin: 60px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-top: 5px solid #FF8C00; /* Orange accent for login */
+            text-align: center;
+        }
+
+        .login-container h2 {
+            font-family: 'Montserrat', sans-serif;
+            margin-bottom: 25px;
+            color: #0056b3;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .login-btn:hover {
+            background-color: #003d80;
+        }
+
+        .register-link {
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        .register-link a {
+            color: #FF8C00;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h2>Technical Official Login</h2>
+        <form>
+            <div class="input-group">
+                <label>Email or UID</label>
+                <input type="text" placeholder="Enter your ID">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" placeholder="Enter password">
+            </div>
+            <button type="submit" class="login-btn">Login to Dashboard</button>
+        </form>
+        
+        <div class="register-link">
+            <p>New Technical Official? <a href="technical official-registration.html">Register Here</a></p>
+        </div>
+    </div>
+
+</body>
+</html>

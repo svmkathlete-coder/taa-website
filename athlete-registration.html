@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Athlete Registration - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Gold Standard Layout */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Open Sans', sans-serif; background: #f4f7f6 url('https://www.transparenttextures.com/patterns/cubes.png'); color: #333; line-height: 1.6; }
+        
+        /* --- Updated Navigation Bar --- */
+        nav { 
+            background-color: #ffffff; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            position: sticky; 
+            top: 0; 
+            z-index: 1000; 
+        }
+        nav ul { 
+            display: flex; 
+            justify-content: center; 
+            list-style: none; 
+            padding: 15px 0; 
+        }
+        nav ul li { margin: 0 15px; position: relative; }
+        nav ul li a { 
+            text-decoration: none; 
+            color: #1a1a1a; 
+            font-weight: 600; 
+            font-family: 'Montserrat', sans-serif; 
+            text-transform: uppercase; 
+            font-size: 0.85em; 
+            transition: color 0.3s ease; 
+        }
+        nav ul li a:hover { color: #FF8C00; } 
+
+        /* Rankings Live Badge */
+        .rank-link { color: #FF8C00 !important; font-weight: 800 !important; position: relative; }
+        .rank-link::after {
+            content: 'LIVE';
+            position: absolute;
+            top: -12px;
+            right: -18px;
+            background: #FF8C00;
+            color: white;
+            font-size: 0.55em;
+            padding: 2px 5px;
+            border-radius: 4px;
+            animation: blink 1.5s infinite;
+        }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* Dropdown Logic */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #ffffff;
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            z-index: 1000;
+            border-radius: 0 0 8px 8px;
+            padding: 10px 0;
+            top: 100%;
+            left: 0;
+        }
+        .dropdown-content a {
+            color: #333 !important;
+            padding: 12px 20px;
+            text-decoration: none;
+            display: block;
+            font-size: 0.8em;
+            text-transform: none;
+            transition: background 0.3s ease;
+        }
+        .dropdown-content a:hover {
+            background-color: #f4f7f6;
+            color: #FF8C00 !important;
+        }
+        nav ul li:hover .dropdown-content { display: block; }
+
+        /* Hero Styling */
+        .hero { background: linear-gradient(135deg, #35CAFE 0%, #0056b3 100%); color: white; padding: 40px 20px; text-align: center; }
+        .hero-content { display: flex; align-items: center; justify-content: center; max-width: 1200px; margin: 0 auto; gap: 30px; }
+        .hero-logo { width: 120px; height: 120px; background: white; border-radius: 50%; padding: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); object-fit: contain; }
+        .hero-text h1 { font-family: 'Montserrat', sans-serif; font-size: 2.2em; text-transform: uppercase; margin: 0; }
+
+        /* Stepper UI */
+        .stepper-container { position: relative; max-width: 400px; margin: 40px auto; }
+        .progress-line { position: absolute; top: 50%; left: 0; right: 0; height: 4px; background: #ddd; transform: translateY(-50%); z-index: 1; }
+        .progress-line-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: #28a745; transition: 0.4s ease; }
+        .stepper { display: flex; justify-content: space-between; position: relative; z-index: 2; }
+        .step { width: 45px; height: 45px; border-radius: 50%; background: #fff; border: 3px solid #ddd; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: 0.4s; color: #888; }
+        .step.active { border-color: #FF8C00; color: #FF8C00; }
+        .step.completed { background: #28a745; border-color: #28a745; color: white; }
+
+        /* Form Styling */
+        .reg-container { max-width: 900px; margin: 0 auto 50px; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-top: 6px solid #FF8C00; }
+        .form-section { display: none; }
+        .form-section.active { display: block; }
+        
+        h3 { font-family: 'Montserrat', sans-serif; color: #0056b3; margin-bottom: 20px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-top: 20px; text-transform: uppercase; font-size: 1.1em; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 700; font-size: 0.8em; margin-bottom: 8px; color: #555; text-transform: uppercase; }
+        input, select, textarea { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 8px; outline: none; transition: 0.3s; font-size: 0.95em; }
+        input:focus { border-color: #35CAFE; box-shadow: 0 0 8px rgba(53, 202, 254, 0.1); }
+
+        .disclaimer-box { background: #fef9e7; padding: 25px; border-radius: 10px; margin-top: 20px; border-left: 5px solid #f1c40f; }
+        .disclaimer-item { display: flex; align-items: flex-start; margin-bottom: 15px; font-size: 0.9em; line-height: 1.5; }
+        .disclaimer-item input { width: 20px; height: 20px; margin-right: 15px; cursor: pointer; flex-shrink: 0; }
+
+        .btn-row { display: flex; justify-content: space-between; margin-top: 40px; }
+        .btn { padding: 16px 45px; border: none; border-radius: 8px; font-family: 'Montserrat', sans-serif; font-weight: 700; cursor: pointer; transition: 0.4s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-next { background: #0056b3; color: white; }
+        .btn-next:hover { background: #FF8C00; transform: translateY(-2px); }
+        .btn-prev { background: #888; color: white; }
+        .btn-prev:hover { background: #555; }
+
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <header class="hero">
+        <div class="hero-content">
+            <a href="index.html"><img src="LOGO.jfif" alt="TAA Logo" class="hero-logo"></a>
+            <div class="hero-text">
+                <h1>Athlete Registration</h1>
+                <p>Telangana Athletics Association</p>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About Us</a></li>
+            <li>
+                <a href="#">Events</a>
+                <div class="dropdown-content">
+                    <a href="calendar.html">Competition Calendar</a>
+                    <a href="results.html">Full Meet Results</a>
+                </div>
+            </li>
+            <li><a href="ranking.html" class="rank-link">Rankings</a></li>
+            <li>
+                <a href="profiles.html">Profiles</a>
+                <div class="dropdown-content">
+                    <a href="athlete-profiles.html">Athlete Profiles</a>
+                    <a href="coach-profiles.html">Coach Profiles</a>
+                    <a href="technical-officials.html">Technical Officials</a>
+                </div>
+            </li>
+            <li><a href="education.html">Education</a></li>
+            <li>
+                <a href="registrations.html">ORS Login</a>
+                <div class="dropdown-content">
+                    <a href="athlete-login.html">Athlete Login</a>
+                    <a href="coach-login.html">Coach Login</a>
+                    <a href="official-login.html">Technical Official Login</a>
+                </div>
+            </li>
+            <li><a href="contact.html">Contact Us</a></li>
+        </ul>
+    </nav>
+
+    <div class="stepper-container">
+        <div class="progress-line"><div class="progress-line-fill" id="line-fill"></div></div>
+        <div class="stepper">
+            <div class="step active" id="s1">1</div>
+            <div class="step" id="s2">2</div>
+        </div>
+    </div>
+
+    <div class="reg-container">
+        <form id="regForm">
+            <div class="form-section active" id="step1">
+                <h3>Personal Information</h3>
+                <div class="grid">
+                    <div class="input-group"><label>First Name*</label><input type="text" name="first_name" required></div>
+                    <div class="input-group"><label>Last Name*</label><input type="text" name="last_name" required></div>
+                    <div class="input-group"><label>Date of Birth*</label><input type="date" name="dob" required></div>
+                    <div class="input-group">
+                        <label>Gender*</label>
+                        <select name="gender" required><option value="">Select</option><option>Male</option><option>Female</option></select>
+                    </div>
+                    <div class="input-group">
+                        <label>Blood Group*</label>
+                        <select name="blood_group" required><option value="">Select</option><option>O+</option><option>O-</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option></select>
+                    </div>
+                    <div class="input-group"><label>Aadhaar Number*</label><input type="text" name="aadhaar" maxlength="12" placeholder="12 Digit Number" required></div>
+                </div>
+
+                <h3>Contact Information</h3>
+                <div class="grid">
+                    <div class="input-group"><label>Mobile Number*</label><input type="tel" name="mobile" maxlength="10" required></div>
+                    <div class="input-group"><label>Email Address*</label><input type="email" name="email" required></div>
+                </div>
+
+                <h3>Communication Address</h3>
+                <div class="input-group"><label>Full Address*</label><textarea name="address" rows="2" required></textarea></div>
+                <div class="grid">
+                    <div class="input-group"><label>District*</label><input type="text" name="district" required></div>
+                    <div class="input-group"><label>Pincode*</label><input type="text" name="pincode" maxlength="6" required></div>
+                </div>
+
+                <div class="btn-row">
+                    <div></div>
+                    <button type="button" class="btn btn-next" onclick="nextStep()">Next Step</button>
+                </div>
+            </div>
+
+            <div class="form-section" id="step2">
+                <h3>Athletic Details</h3>
+                <div class="grid">
+                    <div class="input-group"><label>AFI UID (Username)*</label><input type="text" name="afi_uid" placeholder="AFI-XXXX" required></div>
+                    <div class="input-group"><label>Primary Event*</label><input type="text" name="event" placeholder="e.g. 100m Sprint" required></div>
+                    <div class="input-group"><label>Height (cm)</label><input type="number" name="height"></div>
+                    <div class="input-group"><label>Weight (kg)</label><input type="number" name="weight"></div>
+                </div>
+
+                <h3>Document Uploads</h3>
+                <div class="grid">
+                    <div class="input-group"><label>Photograph*</label><input type="file" name="photo" accept="image/*" required></div>
+                    <div class="input-group"><label>Aadhaar Proof*</label><input type="file" name="doc" accept="image/*" required></div>
+                </div>
+
+                <div class="disclaimer-box">
+                    <div class="disclaimer-item"><input type="checkbox" required><span>I certify that all information is true to the best of my knowledge.</span></div>
+                    <div class="disclaimer-item"><input type="checkbox" required><span>I agree to TAA Rules and Regulations.</span></div>
+                </div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn btn-prev" onclick="prevStep()">Previous</button>
+                    <button type="submit" class="btn btn-next">Submit</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+<script>
+    function nextStep() {
+        const step1 = document.getElementById('step1');
+        const required = step1.querySelectorAll('[required]');
+        let valid = true;
+        required.forEach(field => {
+            if (!field.value) {
+                field.style.borderColor = 'red';
+                valid = false;
+            } else {
+                field.style.borderColor = '#eee';
+            }
+        });
+        if (valid) {
+            step1.classList.remove('active');
+            document.getElementById('step2').classList.add('active');
+            document.getElementById('s1').classList.add('completed');
+            document.getElementById('s2').classList.add('active');
+            document.getElementById('line-fill').style.width = '100%';
+            window.scrollTo(0, 0);
+        } else {
+            alert("Please fill in all required fields marked with *");
+        }
+    }
+    function prevStep() {
+        document.getElementById('step2').classList.remove('active');
+        document.getElementById('step1').classList.add('active');
+        document.getElementById('s1').classList.remove('completed');
+        document.getElementById('s2').classList.remove('active');
+        document.getElementById('line-fill').style.width = '0%';
+        window.scrollTo(0, 0);
+    }
+    document.getElementById('regForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const data = {};
+        formData.forEach((value, key) => {
+            data[key] = (value instanceof File) ? value.name : value;
+        });
+        data.regType = "Athlete";
+        data.timestamp = new Date().toLocaleString();
+        let list = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+        list.push(data);
+        localStorage.setItem('taa_portal_data', JSON.stringify(list));
+        alert("Athlete Registration Successful!");
+        window.location.href = "index.html"; 
+    });
+</script>
+</body>
+</html>

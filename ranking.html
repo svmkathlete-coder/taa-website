@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>State Rankings - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0056b3;
+            --secondary: #35CAFE;
+            --accent: #FF8C00;
+            --bg-gradient: radial-gradient(circle at top right, #1a1a2e, #16213e, #0f3460);
+            --card-bg: rgba(255, 255, 255, 0.98);
+            --white: #ffffff;
+            --text-dark: #1a1a1a;
+            --text-light: #666;
+        }
+
+        body { 
+            font-family: 'Open Sans', sans-serif; 
+            background: var(--bg-gradient); 
+            background-attachment: fixed;
+            margin: 0; 
+            padding: 20px; 
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        /* --- Floating Home Logo --- */
+        .home-logo-link {
+            position: fixed;
+            top: 25px;
+            left: 25px;
+            z-index: 1001;
+            transition: transform 0.3s ease;
+        }
+        .home-logo-link:hover {
+            transform: scale(1.1);
+        }
+        .floating-logo {
+            width: 70px;
+            height: 70px;
+            background: white;
+            border-radius: 50%;
+            padding: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            object-fit: contain;
+        }
+
+        .ranking-container { 
+            max-width: 1200px; 
+            margin: 60px auto; 
+            background: var(--card-bg); 
+            padding: 40px; 
+            border-radius: 24px; 
+            box-shadow: 0 40px 100px rgba(0,0,0,0.5); 
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .rank-header { 
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        /* --- Header Brand Logo --- */
+        .header-brand-logo {
+            width: 100px;
+            margin-bottom: 15px;
+        }
+
+        h1 { 
+            font-family: 'Montserrat'; 
+            font-weight: 800;
+            color: var(--primary); 
+            margin: 0 0 25px 0; 
+            text-transform: uppercase; 
+            letter-spacing: -1px;
+            font-size: 2.5em;
+        }
+
+        /* Modern Filter Bar */
+        .filters { 
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: #f1f4f9;
+            padding: 25px;
+            border-radius: 18px;
+            border: 1px solid #e0e6ed;
+        }
+
+        select { 
+            padding: 14px 18px; 
+            border-radius: 12px; 
+            border: 2px solid #d1d9e6; 
+            font-family: 'Montserrat'; 
+            font-weight: 600; 
+            cursor: pointer; 
+            background: white; 
+            font-size: 0.9em;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+            color: #333;
+        }
+
+        select:hover { border-color: var(--secondary); }
+        select:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 86, 179, 0.15); }
+
+        /* Table Styling */
+        table { width: 100%; border-collapse: separate; border-spacing: 0 15px; margin-top: 20px; }
+        th { text-align: left; padding: 15px 25px; color: var(--text-light); text-transform: uppercase; font-size: 0.8em; letter-spacing: 2px; font-weight: 800; }
+        
+        tr.rank-row { 
+            background: white; 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
+        }
+
+        tr.rank-row:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 12px 35px rgba(0,0,0,0.1);
+        }
+
+        td { padding: 25px; vertical-align: middle; }
+        td:first-child { border-radius: 15px 0 0 15px; }
+        td:last-child { border-radius: 0 15px 15px 0; }
+
+        .rank-number { font-family: 'Montserrat'; font-weight: 800; font-size: 1.8em; color: #dee2e6; width: 60px; }
+        .gold-row .rank-number { color: #FFD700; text-shadow: 0 0 15px rgba(255, 215, 0, 0.3); } 
+        .silver-row .rank-number { color: #ADB5BD; text-shadow: 0 0 15px rgba(173, 181, 189, 0.3); } 
+        .bronze-row .rank-number { color: #CD7F32; text-shadow: 0 0 15px rgba(205, 127, 50, 0.3); } 
+
+        .athlete-link { text-decoration: none; color: inherit; display: block; }
+        .athlete-link:hover .athlete-name { color: var(--primary); }
+
+        .athlete-name { font-family: 'Montserrat'; font-weight: 700; font-size: 1.2em; color: var(--text-dark); margin-bottom: 4px; transition: color 0.2s; }
+        .athlete-age { font-weight: 400; color: var(--text-light); font-size: 0.8em; margin-left: 5px; }
+        
+        .comp-details { display: block; font-size: 0.85em; color: #7f8c8d; margin-top: 6px; }
+        .level-badge { background: var(--primary); color: white; padding: 3px 10px; border-radius: 6px; font-size: 0.7em; font-weight: 800; margin-left: 8px; vertical-align: middle; }
+
+        .meet-pos { background: #f8f9fa; border: 1px solid #e9ecef; padding: 6px 14px; border-radius: 10px; font-weight: 700; font-size: 0.85em; color: #495057; }
+
+        .performance-mark { 
+            font-family: 'Montserrat'; 
+            font-weight: 800; 
+            color: var(--accent); 
+            text-align: right; 
+            font-size: 1.6em; 
+            line-height: 1;
+        }
+        .timing-label { display: block; font-size: 0.55em; color: #95a5a6; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 6px; }
+
+        @media (max-width: 992px) {
+            .filters { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 768px) {
+            .home-logo-link { top: 15px; left: 15px; }
+            .floating-logo { width: 50px; height: 50px; }
+            .filters { grid-template-columns: 1fr; }
+            th:nth-child(3), td:nth-child(3) { display: none; } 
+            .ranking-container { padding: 20px; margin-top: 80px; }
+            h1 { font-size: 1.8em; }
+        }
+    </style>
+</head>
+<body>
+
+<a href="index.html" class="home-logo-link">
+    <img src="LOGO.jfif" alt="TAA Logo" class="floating-logo">
+</a>
+
+<div class="ranking-container">
+    <div class="rank-header">
+        <img src="LOGO.jfif" alt="TAA Brand" class="header-brand-logo">
+        <h1>State Rankings 2026</h1>
+        <div class="filters">
+            <select id="eventFilter" onchange="renderRankings()">
+                <option value="100m">100m Sprint</option>
+                <option value="200m">200m Sprint</option>
+                <option value="Long Jump">Long Jump</option>
+                <option value="Shot Put">Shot Put</option>
+            </select>
+            
+            <select id="genderFilter" onchange="renderRankings()">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+            </select>
+
+            <select id="ageFilter" onchange="renderRankings()">
+                <option value="Seniors">Seniors (All Open)</option>
+                <option value="U-23">U-23 (Senior Overlap)</option>
+                <option value="U-20">U-20</option>
+                <option value="U-18">U-18</option>
+                <option value="U-16">U-16</option>
+                <option value="U-14">U-14</option>
+            </select>
+
+            <select id="timingFilter" onchange="renderRankings()">
+                <option value="Manual (Hand-held)">Manual (Hand-held)</option>
+                <option value="Electronic (FAT)">Electronic (FAT)</option>
+            </select>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Athlete & Competition</th>
+                <th>Meet Pos</th>
+                <th>Venue / Date</th>
+                <th style="text-align: right;">Result</th>
+            </tr>
+        </thead>
+        <tbody id="rankingsBody"></tbody>
+    </table>
+</div>
+
+<script>
+    function renderRankings() {
+        const selEvent = document.getElementById('eventFilter').value;
+        const selGender = document.getElementById('genderFilter').value;
+        const selAgeGroup = document.getElementById('ageFilter').value;
+        const selTiming = document.getElementById('timingFilter').value;
+        
+        const allResults = JSON.parse(localStorage.getItem('taa_results')) || [];
+        const allAthletes = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+        
+        const isField = ['jump', 'put', 'throw', 'vault', 'discus', 'javelin'].some(kw => selEvent.toLowerCase().includes(kw));
+
+        const filtered = allResults.filter(res => {
+            const athlete = allAthletes.find(a => a.afi_uid === res.uid || a.afi_id === res.uid);
+            if (!athlete) return false;
+
+            const birth = new Date(athlete.dob);
+            const meet = new Date(res.date);
+            let ageAtMeet = meet.getFullYear() - birth.getFullYear();
+            if (meet.getMonth() < birth.getMonth() || (meet.getMonth() === birth.getMonth() && meet.getDate() < birth.getDate())) {
+                ageAtMeet--;
+            }
+
+            let category = "Seniors";
+            if (ageAtMeet < 14) category = "U-14";
+            else if (ageAtMeet < 16) category = "U-16";
+            else if (ageAtMeet < 18) category = "U-18";
+            else if (ageAtMeet < 20) category = "U-20";
+            else if (ageAtMeet < 23) category = "U-23";
+
+            const matchesAge = (selAgeGroup === "Seniors") || (selAgeGroup === category);
+            const matchesGender = athlete.gender === selGender;
+            const matchesEvent = res.event.toLowerCase().includes(selEvent.toLowerCase());
+            const matchesTiming = res.measurement_type === selTiming;
+
+            return matchesEvent && matchesGender && matchesTiming && matchesAge;
+        });
+
+        const sbs = {};
+        filtered.forEach(res => {
+            const val = parseFloat(res.performance);
+            if (!sbs[res.uid] || (isField ? val > sbs[res.uid].val : val < sbs[res.uid].val)) {
+                sbs[res.uid] = { ...res, val: val };
+            }
+        });
+
+        let rankedArray = Object.values(sbs).sort((a, b) => isField ? b.val - a.val : a.val - b.val);
+
+        const body = document.getElementById('rankingsBody');
+        body.innerHTML = rankedArray.length ? '' : '<tr><td colspan="5" style="text-align:center; padding:50px; color:#999;">No ranking data found for this selection.</td></tr>';
+
+        rankedArray.forEach((res, index) => {
+            const athlete = allAthletes.find(a => a.afi_uid === res.uid || a.afi_id === res.uid);
+            
+            const birth = new Date(athlete.dob);
+            const meet = new Date(res.date);
+            let displayAge = meet.getFullYear() - birth.getFullYear();
+            if (meet.getMonth() < birth.getMonth() || (meet.getMonth() === birth.getMonth() && meet.getDate() < birth.getDate())) displayAge--;
+
+            let rowClass = "rank-row";
+            if(index === 0) rowClass += " gold-row";
+            if(index === 1) rowClass += " silver-row";
+            if(index === 2) rowClass += " bronze-row";
+
+            const athleteProfileUrl = `profile.html?uid=${res.uid}`;
+
+            body.innerHTML += `
+                <tr class="${rowClass}">
+                    <td class="rank-number">${index + 1}</td>
+                    <td>
+                        <a href="${athleteProfileUrl}" class="athlete-link">
+                            <span class="athlete-name">${athlete.first_name} ${athlete.last_name} <span class="athlete-age">(${displayAge} yrs)</span></span>
+                        </a>
+                        <span class="comp-details">${res.competition_name} <span class="level-badge">${res.level}</span></span>
+                    </td>
+                    <td><span class="meet-pos">Pos: ${res.position}</span></td>
+                    <td><small style="color:#2c3e50; font-weight:700;">${res.venue}</small><br><small style="color:#7f8c8d;">${res.date}</small></td>
+                    <td class="performance-mark">
+                        ${res.performance}${isField?'m':'s'}
+                        <span class="timing-label">${res.measurement_type}</span>
+                    </td>
+                </tr>`;
+        });
+    }
+    window.onload = renderRankings;
+</script>
+
+</body>
+</html>
