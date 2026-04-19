@@ -3,73 +3,264 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - TAA Portal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <title>Secure Unified Login - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Open Sans', sans-serif; background: #f4f7f6; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .login-card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; border-top: 6px solid #0056b3; text-align: center; }
-        .logo { width: 80px; margin-bottom: 20px; }
-        h2 { font-family: 'Montserrat', sans-serif; color: #333; margin-bottom: 10px; text-transform: uppercase; font-size: 1.2em; }
-        p { color: #666; font-size: 0.9em; margin-bottom: 25px; }
-        .input-group { text-align: left; margin-bottom: 15px; }
-        label { display: block; font-weight: 700; font-size: 0.8em; color: #555; margin-bottom: 5px; text-transform: uppercase; }
-        input { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 8px; outline: none; transition: 0.3s; }
-        input:focus { border-color: #35CAFE; }
-        .btn-login { width: 100%; background: #0056b3; color: white; padding: 15px; border: none; border-radius: 8px; font-family: 'Montserrat', sans-serif; font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-        .btn-login:hover { background: #FF8C00; }
-        .error { color: #e63946; font-size: 0.85em; margin-top: 15px; display: none; }
+        :root { --primary: #0056b3; --accent: #FF8C00; --bg: #f8fafc; --text: #334155; --white: #ffffff; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: 'Open Sans', sans-serif; 
+            background: linear-gradient(135deg, rgba(0,26,53,0.95), rgba(0,86,179,0.9)), 
+                        url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Standard TAA Navigation Styles for navbar.js --- */
+        .navbar { background: var(--white); box-shadow: 0 4px 20px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 9999; padding: 5px 0; }
+        .nav-container { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo img { width: 55px; height: 55px; }
+        .logo-text { display: flex; flex-direction: column; }
+        .main-title { color: var(--primary); font-weight: 800; font-size: 1.1em; line-height: 1; font-family: 'Montserrat'; }
+        .sub-title { color: #64748b; font-weight: 600; font-size: 0.75em; letter-spacing: 1px; }
+        .nav-menu { display: flex; list-style: none; gap: 15px; align-items: center; margin: 0; padding: 0; }
+        .nav-menu li { position: relative; } 
+        .nav-menu a { text-decoration: none; color: #1a1a1a; font-weight: 700; font-size: 0.82em; transition: 0.3s; padding: 15px 5px; font-family: 'Montserrat'; text-transform: uppercase; display: block; }
+        .nav-menu a:hover { color: var(--accent); }
+        .dropdown-content { display: none; position: absolute; background-color: var(--white); min-width: 220px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); z-index: 1; top: 100%; left: 0; border-top: 3px solid var(--accent); }
+        .dropdown-content a { color: #333; padding: 12px 16px; text-transform: none; font-size: 0.85em; border-bottom: 1px solid #f1f1f1; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .ors-btn { background: var(--primary) !important; color: white !important; padding: 10px 22px !important; border-radius: 50px; margin-left: 10px; }
+        @media (max-width: 768px) { .nav-menu { display: none; } }
+
+        /* --- LOGIN CONTAINER --- */
+        .login-page-container { flex-grow: 1; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+        .login-wrapper { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); width: 100%; max-width: 420px; text-align: center; position: relative; overflow: hidden; }
+        .logo { width: 70px; margin-bottom: 15px; }
+        h2 { font-family: 'Montserrat'; color: #0f172a; font-size: 1.4em; margin-bottom: 5px; text-transform: uppercase; }
+        p.subtitle { color: #64748b; font-size: 0.85em; margin-bottom: 25px; line-height: 1.4; }
+
+        .form-group { text-align: left; margin-bottom: 18px; }
+        .form-group label { display: block; font-weight: 700; font-size: 0.75em; color: #475569; margin-bottom: 6px; text-transform: uppercase; }
+        .form-control { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: 'Open Sans'; font-size: 0.95em; outline: none; transition: 0.2s; font-weight: 600; color: #1e293b; }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,86,179,0.1); }
+
+        /* --- PASSWORD TOGGLE STYLES --- */
+        .password-wrapper { position: relative; display: flex; align-items: center; }
+        .password-wrapper .form-control { padding-right: 45px; }
+        .toggle-password-btn { 
+            position: absolute; right: 10px; background: none; border: none; 
+            color: #94a3b8; cursor: pointer; outline: none; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center; padding: 4px;
+        }
+        .toggle-password-btn:hover { color: var(--primary); }
+        .toggle-password-btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+        .captcha-box { display: flex; gap: 10px; align-items: center; }
+        .captcha-display { background: #f1f5f9; padding: 10px 20px; border-radius: 8px; font-family: 'Courier New', monospace; font-weight: 800; font-size: 1.2em; color: var(--primary); letter-spacing: 4px; user-select: none; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.05) 5px, rgba(0,0,0,0.05) 10px); }
+        .refresh-btn { background: none; border: none; font-size: 1.2em; cursor: pointer; color: #64748b; transition: 0.2s; }
+        .refresh-btn:hover { color: var(--accent); transform: rotate(45deg); }
+
+        .btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: 800; font-family: 'Montserrat'; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
+        .btn-primary:hover { background: #004494; transform: translateY(-2px); }
+
+        .links-grid { display: flex; justify-content: space-between; margin-top: 20px; font-size: 0.8em; font-weight: 700; }
+        .links-grid a { color: var(--primary); text-decoration: none; }
+        .links-grid a:hover { color: var(--accent); text-decoration: underline; }
+
+        .error-msg { color: #ef4444; font-size: 0.8em; margin-top: 15px; font-weight: 700; display: none; background: #fee2e2; padding: 10px; border-radius: 6px; }
+
+        #step-otp { display: none; }
+        .otp-msg { background: #e0f2fe; color: #0369a1; padding: 12px; border-radius: 8px; font-size: 0.85em; font-weight: 600; margin-bottom: 20px; line-height: 1.4; }
     </style>
 </head>
 <body>
 
-<div class="login-card">
-    <a href="index.html"><img src="LOGO.jfif" alt="TAA Logo" class="logo"></a>
-    <h2>Member Login</h2>
-    <p>Enter your credentials to access your profile</p>
+    <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
 
-    <form id="loginForm">
-        <div class="input-group">
-            <label>AFI ID / UID</label>
-            <input type="text" id="loginID" placeholder="e.g. AFI-12345" required>
-        </div>
-        <div class="input-group">
-            <label>Date of Birth</label>
-            <input type="date" id="loginDOB" required>
-        </div>
-        <button type="submit" class="btn-login">SIGN IN</button>
-        <p id="errorMessage" class="error">Invalid ID or Date of Birth. Please check again.</p>
-    </form>
-</div>
-
-<script>
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const inputID = document.getElementById('loginID').value.trim();
-        const inputDOB = document.getElementById('loginDOB').value;
-
-        // 1. Get both local lists
-        const masterList = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-        const oldOfficials = JSON.parse(localStorage.getItem('taa_officials')) || [];
-        const combined = [...masterList, ...oldOfficials];
-
-        // 2. Search for the user
-        const user = combined.find(u => 
-            (u.afi_id === inputID || u.afi_uid === inputID || u.aadhaar === inputID) && 
-            u.dob === inputDOB
-        );
-
-        if (user) {
-            // 3. Save the "Logged In" session locally so the next page knows who it is
-            sessionStorage.setItem('currentUser', JSON.stringify(user));
+    <div class="login-page-container">
+        <div class="login-wrapper">
+            <img src="LOGO.jfif" alt="TAA Logo" class="logo">
             
-            // 4. Redirect to Profile Page
-            window.location.href = "profile.html";
-        } else {
-            document.getElementById('errorMessage').style.display = 'block';
-        }
-    });
-</script>
+            <div id="step-login">
+                <h2>Secure Portal</h2>
+                <p class="subtitle">Unified Login for Athletes, Coaches, Officials, Districts & Admin</p>
 
+                <div class="form-group">
+                    <label>User ID / AFI UID</label>
+                    <input type="text" id="userId" class="form-control" placeholder="e.g. AFI20261001" autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" class="form-control" placeholder="••••••••">
+                        <button type="button" class="toggle-password-btn" id="togglePasswordBtn" onclick="togglePasswordVisibility()" title="Show Password">
+                            <svg viewBox="0 0 24 24" id="eyeIcon">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Security CAPTCHA</label>
+                    <div class="captcha-box">
+                        <div class="captcha-display" id="captchaText">XYZ99</div>
+                        <button class="refresh-btn" onclick="generateCaptcha()" title="Refresh CAPTCHA">🔄</button>
+                        <input type="text" id="captchaInput" class="form-control" placeholder="Enter text">
+                    </div>
+                </div>
+
+                <div id="loginError" class="error-msg">Invalid Credentials or CAPTCHA.</div>
+
+                <button class="btn-primary" onclick="verifyCredentials()">Login</button>
+
+                <div class="links-grid">
+                    <a href="recovery.html?tab=uid">Forgot User ID?</a>
+                    <a href="recovery.html?tab=pass">Forgot Password?</a>
+                </div>
+            </div>
+
+            <div id="step-otp">
+                <h2>2-Step Verification</h2>
+                <p class="subtitle">Authentication Required</p>
+                <div class="otp-msg">A 6-digit One Time Password (OTP) has been sent to your registered mobile <strong id="maskedMobile">XXXX</strong> and email <strong id="maskedEmail">XXXX</strong>.</div>
+                <div class="form-group">
+                    <label>Enter 6-Digit OTP</label>
+                    <input type="text" id="otpInput" class="form-control" placeholder="0 0 0 0 0 0" maxlength="6" style="text-align: center; font-size: 1.2em; letter-spacing: 8px;">
+                </div>
+                <div id="otpError" class="error-msg">Incorrect OTP. (Hint: Use 123456)</div>
+                <button class="btn-primary" onclick="verifyOTP()">Verify & Login</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let targetUrl = "";
+        let currentCaptcha = "";
+
+        // SVG Strings for the professional icons
+        const eyeOpenSVG = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
+        const eyeClosedSVG = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+
+        // --- TOGGLE PASSWORD VISIBILITY ---
+        function togglePasswordVisibility() {
+            const passInput = document.getElementById('password');
+            const iconElement = document.getElementById('eyeIcon');
+            const toggleBtn = document.getElementById('togglePasswordBtn');
+            
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                iconElement.innerHTML = eyeClosedSVG;
+                toggleBtn.title = "Hide Password";
+            } else {
+                passInput.type = 'password';
+                iconElement.innerHTML = eyeOpenSVG;
+                toggleBtn.title = "Show Password";
+            }
+        }
+
+        function generateCaptcha() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
+            let captcha = '';
+            for (let i = 0; i < 5; i++) captcha += chars.charAt(Math.floor(Math.random() * chars.length));
+            currentCaptcha = captcha;
+            document.getElementById('captchaText').innerText = captcha;
+        }
+
+        function verifyCredentials() {
+            // Case-insensitive input formatting for UID
+            const uid = document.getElementById('userId').value.trim().toUpperCase();
+            const pass = document.getElementById('password').value.trim();
+            const userCaptcha = document.getElementById('captchaInput').value.trim().toUpperCase();
+            const errorBox = document.getElementById('loginError');
+
+            errorBox.style.display = 'none';
+
+            if (userCaptcha !== currentCaptcha) {
+                errorBox.innerText = "Incorrect CAPTCHA. Please try again.";
+                errorBox.style.display = 'block';
+                generateCaptcha(); 
+                return;
+            }
+
+            let roleFound = false;
+            let maskPhone = "******0000"; 
+            let maskEmail = "use****@email.com";
+
+            // 1. MASTER ADMIN ROUTING
+            if (uid === "TAA_ADMIN" && pass === "admin123") {
+                roleFound = true;
+                targetUrl = "taa-admin.html"; 
+                maskPhone = "******8899"; 
+                maskEmail = "sec****@taa.in";
+            
+            // 2. DISTRICT ADMIN ROUTING
+            } else if (uid.startsWith("DIST_") && pass === "hyd123") {
+                roleFound = true;
+                targetUrl = "district-dashboard.html"; 
+                maskPhone = "******1122"; 
+                maskEmail = "hyd****@gmail.com";
+                localStorage.setItem('taa_current_district', JSON.stringify({id: uid, name: "Hyderabad"}));
+            
+            // 3. SMART PORTAL ROUTING (Athlete, Coach, Official, Chairman)
+            } else {
+                const db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+                const member = db.find(u => (u.afi_uid || "").toUpperCase() === uid && u.password === pass);
+                
+                if (member) {
+                    roleFound = true;
+                    const userRole = member.role || member.regType;
+                    
+                    // Route based on role
+                    if (userRole === "Technical Chairman") {
+                        targetUrl = "technical-chairman.html";
+                        // Save to session for the security shield on the chairman page
+                        sessionStorage.setItem('taa_logged_user', JSON.stringify(member));
+                    } else if (userRole === "Athlete") {
+                        targetUrl = `athlete-dashboard.html?uid=${member.afi_uid}`;
+                    } else if (userRole === "Coach") {
+                        targetUrl = `coach-dashboard.html?uid=${member.afi_uid}`;
+                    } else if (userRole === "Official") {
+                        targetUrl = `official-dashboard.html?uid=${member.afi_uid}`;
+                    } else {
+                        targetUrl = `athlete-dashboard.html?uid=${member.afi_uid}`; // Fallback
+                    }
+                    
+                    maskPhone = "******" + (member.mobile ? member.mobile.slice(-4) : "0000");
+                    maskEmail = member.email ? member.email.substring(0,3) + "****@email.com" : "use****@email.com";
+                }
+            }
+
+            if (roleFound) {
+                document.getElementById('maskedMobile').innerText = maskPhone;
+                document.getElementById('maskedEmail').innerText = maskEmail;
+                document.getElementById('step-login').style.display = 'none';
+                document.getElementById('step-otp').style.display = 'block';
+            } else {
+                errorBox.innerText = "Invalid User ID or Password.";
+                errorBox.style.display = 'block';
+                generateCaptcha();
+            }
+        }
+
+        function verifyOTP() {
+            const otp = document.getElementById('otpInput').value.trim();
+            const errorBox = document.getElementById('otpError');
+            if (otp === "123456") {
+                errorBox.style.display = 'none'; window.location.href = targetUrl;
+            } else {
+                errorBox.style.display = 'block';
+            }
+        }
+
+        window.onload = generateCaptcha;
+    </script>
 </body>
 </html>

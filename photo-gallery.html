@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Gallery - Telangana Athletics Association</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #0056b3;
+            --accent: #FF8C00;
+            --white: #ffffff;
+            --bg-light: #f8fafc;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: 'Open Sans', sans-serif; 
+            background: var(--bg-light); 
+            color: var(--text-dark); 
+            line-height: 1.6;
+        }
+
+        /* --- Page Header --- */
+        .page-header {
+            background: linear-gradient(rgba(0, 26, 53, 0.8), rgba(0, 86, 179, 0.9)), url('https://images.unsplash.com/photo-1461896836934-ffe607ba8211?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80') center/cover;
+            padding: 80px 20px;
+            text-align: center;
+            color: var(--white);
+            border-bottom: 5px solid var(--accent);
+        }
+        .page-header h1 {
+            font-family: 'Montserrat';
+            font-weight: 800;
+            font-size: 3em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .page-header p {
+            font-size: 1.1em;
+            font-weight: 600;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* --- Gallery Grid --- */
+        .gallery-container {
+            max-width: 1300px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        /* --- Filter Dropdown --- */
+        .filter-container {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .year-dropdown {
+            font-family: 'Montserrat';
+            font-weight: 700;
+            font-size: 1.1em;
+            color: var(--primary);
+            padding: 12px 30px;
+            border: 2px solid var(--primary);
+            border-radius: 50px;
+            background: white;
+            cursor: pointer;
+            outline: none;
+            transition: 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%230056b3%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px top 50%;
+            background-size: 12px auto;
+            padding-right: 40px;
+        }
+        .year-dropdown:hover, .year-dropdown:focus {
+            border-color: var(--accent);
+            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.2);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .album-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
+            cursor: pointer;
+            border: 1px solid #e2e8f0;
+        }
+
+        .album-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .album-img-wrapper {
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+            position: relative;
+            background: #e2e8f0;
+        }
+
+        .album-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s;
+        }
+
+        .album-card:hover .album-img-wrapper img {
+            transform: scale(1.1);
+        }
+
+        .album-img-wrapper::after {
+            content: '📸 View Album';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 86, 179, 0.7);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Montserrat';
+            font-weight: 700;
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .album-card:hover .album-img-wrapper::after {
+            opacity: 1;
+        }
+
+        .album-info {
+            padding: 20px;
+        }
+
+        .album-info h3 {
+            font-family: 'Montserrat';
+            font-size: 1.1em;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .album-info p {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .level-tag {
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 4px;
+            color: var(--accent);
+            font-weight: 800;
+            font-size: 0.85em;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
+
+    <header class="page-header">
+        <h1>Photo Gallery</h1>
+        <p>Capturing the speed, strength, and spirit of Telangana's finest athletes.</p>
+    </header>
+
+    <div class="gallery-container">
+        <div class="filter-container">
+            <select id="galleryYearFilter" class="year-dropdown" onchange="filterGallery()">
+                </select>
+        </div>
+
+        <div class="grid" id="galleryGrid">
+            </div>
+    </div>
+
+    <script>
+        // Mock Database of Photo Albums synced to Calendar Years
+        const albums = [
+            { 
+                title: "State Meet for Relay Teams", 
+                date: "March 2026", 
+                categoryYear: "2026", 
+                level: "State",
+                img: "https://images.unsplash.com/photo-1552674605-15c2145f8ca4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                photosCount: 142
+            },
+            { 
+                title: "Junior Athletics Championships", 
+                date: "February 2026", 
+                categoryYear: "2026", 
+                level: "State",
+                img: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                photosCount: 85
+            },
+            { 
+                title: "National Inter-State Seniors", 
+                date: "December 2025", 
+                categoryYear: "2025", 
+                level: "National",
+                img: "https://images.unsplash.com/photo-1530549387634-e797ca3501a3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                photosCount: 210
+            },
+            { 
+                title: "State Cross Country Trials", 
+                date: "November 2025", 
+                categoryYear: "2025", 
+                level: "State",
+                img: "https://images.unsplash.com/photo-1571008887538-b361663f4f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                photosCount: 64
+            },
+            { 
+                title: "South Zone Junior Athletics", 
+                date: "August 2025", 
+                categoryYear: "2025", 
+                level: "National",
+                img: "https://images.unsplash.com/photo-1502014822147-1aedfb0676e0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                photosCount: 175
+            },
+            { 
+                title: "Javelin Day Celebrations", 
+                date: "August 2025", 
+                categoryYear: "2025", 
+                level: "State",
+                img: "https://images.unsplash.com/photo-1551269901-5c5e14c25df7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                photosCount: 45
+            }
+        ];
+
+        // Populate the 2000-2100 dropdown
+        function populateGalleryYears() {
+            let options = "";
+            const currentYear = 2026; 
+            for (let yr = 2000; yr <= 2100; yr++) {
+                const selected = (yr === currentYear) ? "selected" : "";
+                options += `<option value="${yr}" ${selected}>Season: ${yr}</option>`;
+            }
+            document.getElementById('galleryYearFilter').innerHTML = options;
+        }
+
+        // Filter Grid based on selected year
+        function filterGallery() {
+            const selectedYear = document.getElementById('galleryYearFilter').value;
+            const grid = document.getElementById('galleryGrid');
+            grid.innerHTML = '';
+
+            const filteredAlbums = albums.filter(album => album.categoryYear === selectedYear);
+
+            if (filteredAlbums.length === 0) {
+                grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #64748b; font-weight: 700; font-size: 1.2em; padding: 40px 0;">No albums published for this season yet.</p>';
+                return;
+            }
+
+            filteredAlbums.forEach(album => {
+                grid.innerHTML += `
+                    <div class="album-card" onclick="alert('Opening ${album.title} gallery view...')">
+                        <div class="album-img-wrapper">
+                            <img src="${album.img}" alt="${album.title}" onerror="this.src='https://via.placeholder.com/800x600?text=Image+Unavailable'">
+                        </div>
+                        <div class="album-info">
+                            <h3>${album.title}</h3>
+                            <p>
+                                <span>📅 ${album.date} &nbsp; • &nbsp; 📸 ${album.photosCount}</span>
+                                <span class="level-tag">${album.level}</span>
+                            </p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Initialize Page
+        window.onload = () => {
+            populateGalleryYears();
+            filterGallery();
+        };
+
+    </script>
+</body>
+</html>

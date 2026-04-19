@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meet Results - TAA Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0056b3;
+            --accent: #FF8C00;
+            --white: #ffffff;
+            --dark-blue: #001a35;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: 'Open Sans', sans-serif; 
+            background: #f4f7f6;
+            color: #333; 
+            line-height: 1.6; 
+        }
+
+        /* --- Navigation Styles for navbar.js --- */
+        .navbar {
+            background: var(--white);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 9999;
+            padding: 5px 0;
+        }
+        .nav-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo img { width: 55px; height: 55px; }
+        .logo-text { display: flex; flex-direction: column; }
+        .main-title { color: var(--primary); font-weight: 800; font-size: 1.1em; line-height: 1; font-family: 'Montserrat'; }
+        .sub-title { color: #64748b; font-weight: 600; font-size: 0.75em; letter-spacing: 1px; }
+
+        .nav-menu { display: flex; list-style: none; gap: 15px; align-items: center; margin: 0; padding: 0; }
+        .nav-menu li { position: relative; }
+        .nav-menu a { 
+            text-decoration: none; color: #1a1a1a; font-weight: 700; 
+            font-size: 0.82em; transition: 0.3s; padding: 10px 5px;
+            font-family: 'Montserrat'; text-transform: uppercase;
+        }
+        .nav-menu a:hover, .nav-menu a.active { color: var(--accent); }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: var(--white);
+            min-width: 220px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            top: 100%; left: 0;
+            border-top: 3px solid var(--accent);
+        }
+        .dropdown:hover .dropdown-content { display: block; }
+        .dropdown-content a { color: #333; padding: 12px 16px; display: block; text-transform: none; font-size: 0.85em; }
+
+        .ors-btn { background: var(--primary) !important; color: white !important; padding: 10px 22px !important; border-radius: 50px; margin-left: 10px; }
+
+        /* --- Header & Filter --- */
+        .header-bg { 
+            background: linear-gradient(135deg, var(--primary) 0%, var(--dark-blue) 100%); 
+            padding: 50px 20px; text-align: center; color: white; 
+        }
+        .header-bg h1 { font-family: 'Montserrat'; font-size: 2.2em; text-transform: uppercase; margin-bottom: 5px; }
+
+        .filter-section {
+            max-width: 1100px;
+            margin: 20px auto 0;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .filter-label { font-family: 'Montserrat'; font-weight: 800; color: var(--primary); font-size: 0.9em; }
+        .year-select {
+            padding: 8px 25px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-family: 'Montserrat';
+            font-weight: 800;
+            color: var(--primary);
+            cursor: pointer;
+            background: white;
+            outline: none;
+        }
+
+        /* --- Results Grid --- */
+        .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+        
+        .result-card {
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            border: 1px solid transparent;
+        }
+        .result-card:hover { border-color: var(--primary); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .is-dormant { cursor: default; opacity: 0.9; }
+
+        .date-box {
+            background: #e2e8f0;
+            color: var(--dark-blue);
+            padding: 25px;
+            min-width: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Montserrat';
+            text-align: center;
+        }
+
+        .date-box .month { font-size: 1.2em; font-weight: 800; text-transform: uppercase; }
+        .date-box .year { font-size: 1.1em; opacity: 0.9; }
+
+        .details-box { padding: 25px; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
+        .details-box h3 { font-family: 'Montserrat'; color: var(--primary); margin-bottom: 8px; font-size: 1.05em; }
+        .details-box .meta { font-size: 0.85em; color: #64748b; font-weight: 700; }
+
+        .status-badge {
+            margin-left: auto;
+            align-self: center;
+            padding: 6px 18px;
+            border-radius: 50px;
+            font-size: 0.75em;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-right: 20px;
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 12px;
+            border: 2px dashed #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .result-card { flex-direction: column; }
+            .date-box { min-width: 100%; padding: 15px; flex-direction: row; gap: 10px; }
+            .nav-menu { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
+
+    <header class="header-bg">
+        <h1>Competition Results</h1>
+        <p>Official Archives and Meet Records of Telangana Athletics</p>
+    </header>
+
+    <div class="filter-section">
+        <span class="filter-label">SELECT YEAR:</span>
+        <select class="year-select" id="yearFilter" onchange="loadDynamicContent()">
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+        </select>
+    </div>
+
+    <div class="container" id="resultsContainer"></div>
+
+    <script>
+    // MASTER DATA: Every competition belongs to a "categoryYear" 
+    // Even if the date is in 2027, it stays in categoryYear 2026
+    const initialData = [
+        { categoryYear: "2026", title: "1. State Meet for Relay Teams", venue: "Hanumakonda", date: "MAR 2026", isLive: false },
+        { categoryYear: "2026", title: "2. State Athletics Championships for Federation Cup", venue: "Mulugu/Hanumakonda", date: "APR 2026", isLive: false },
+        { categoryYear: "2026", title: "3. State Athletics Championship for All Age Groups", venue: "Jangaon", date: "MAY 2026", isLive: false },
+        { categoryYear: "2026", title: "4. State Athletics Sub-Jr, Juniors & All Age Groups", venue: "Gaudium School, Hyderabad", date: "MAY 2026", isLive: false },
+        { categoryYear: "2026", title: "5. State Sub-Jr, Juniors & Men Athletics Championships", venue: "Badradri Kothagudem", date: "JUN 2026", isLive: false },
+        { categoryYear: "2026", title: "6. State Championships for Inter-State Nationals", venue: "Osmania University, Hyderabad", date: "JUN 2026", isLive: false },
+        { categoryYear: "2026", title: "7. State All Age Groups Middle & Long Distance", venue: "Medak", date: "JUL 2026", isLive: false },
+        { categoryYear: "2026", title: "8. National Javelin Day & South Zone Junior", venue: "Hanumakonda/Khammam", date: "AUG 2026", isLive: false },
+        { categoryYear: "2026", title: "9. Indian Athletics Series-13", venue: "Hanumakonda", date: "AUG 2026", isLive: false },
+        { categoryYear: "2026", title: "10. Telangana State Junior & Open Championships", venue: "WGL at JNS", date: "SEP 2026", isLive: false },
+        { categoryYear: "2026", title: "11. Coaching Camp for Jr.Nationals", venue: "Hanumakonda", date: "SEP 2026", isLive: false },
+        { categoryYear: "2026", title: "12. State Sub-Jr Athletics Championships", venue: "Komurambheem Asifabad", date: "OCT 2026", isLive: false },
+        { categoryYear: "2026", title: "13. State Sub-Jr & Juniors Open", venue: "Nizamabad", date: "NOV 2026", isLive: false },
+        { categoryYear: "2026", title: "14. State Sub Jr. and Junior Athletics", venue: "Bhupalapally", date: "DEC 2026", isLive: false },
+        { categoryYear: "2026", title: "15. State Selection Trials for Cross Country", venue: "Narayanpet", date: "DEC 2026", isLive: false },
+        { categoryYear: "2026", title: "16. State Relay Championships (All Groups)", venue: "IIT Hyderabad", date: "JAN 2027", isLive: false },
+        { categoryYear: "2026", title: "17. State Sub Juniors and Juniors Athletics", venue: "Karimnagar", date: "FEB 2027", isLive: false }
+    ];
+
+    if (!localStorage.getItem('taa_master_db')) {
+        localStorage.setItem('taa_master_db', JSON.stringify(initialData));
+    }
+
+    // --- UPDATED: GENERATES 100 YEARS IN ASCENDING ORDER ---
+    function populateYears() {
+        const selector = document.getElementById('yearFilter');
+        const startYear = 2000;
+        const endYear = 2100;
+        let options = "";
+
+        for (let yr = startYear; yr <= endYear; yr++) {
+            // Default select 2026 so the page isn't empty on first load
+            const selected = (yr === 2026) ? "selected" : "";
+            options += `<option value="${yr}" ${selected}>${yr}</option>`;
+        }
+        
+        selector.innerHTML = options;
+    }
+
+    function loadDynamicContent() {
+        const container = document.getElementById('resultsContainer');
+        const db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
+        const selectedYear = document.getElementById('yearFilter').value;
+
+        // Filtering by categoryYear ensures Jan/Feb 2027 events show up when 2026 is picked
+        const filtered = db.filter(item => item.categoryYear === selectedYear);
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3 style="font-family:Montserrat; color:#64748b;">No results scheduled for ${selectedYear}</h3>
+                    <p style="color:#94a3b8; font-size:0.9em; margin-top:5px;">Archives for this calendar cycle are not yet available.</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = filtered.map(meet => {
+            const isLive = meet.isLive === true;
+            return `
+                <${isLive ? 'a href="meet-details.html?id=' + encodeURIComponent(meet.title) + '"' : 'div'} class="result-card ${isLive ? 'is-live' : 'is-dormant'}">
+                    <div class="date-box" style="${isLive ? 'background:var(--primary); color:white;' : ''}">
+                        <span class="month">${meet.date.split(' ')[0]}</span>
+                        <span class="year">${meet.date.split(' ')[1]}</span>
+                    </div>
+                    <div class="details-box">
+                        <h3>${meet.title}</h3>
+                        <div class="meta">
+                            <span>📍 ${meet.venue}</span>
+                            <span>${isLive ? '✅ Results Published' : '⏳ Pending Meet Completion'}</span>
+                        </div>
+                    </div>
+                    <div class="status-badge" style="${isLive ? 'background:#dcfce7; color:#166534; border-color:#bbf7d0;' : ''}">
+                        ${isLive ? 'View Results' : 'Available Soon'}
+                    </div>
+                </${isLive ? 'a' : 'div'}>
+            `;
+        }).join('');
+    }
+
+    window.onload = () => {
+        populateYears();
+        loadDynamicContent();
+    };
+</script>
+</body>
+</html>

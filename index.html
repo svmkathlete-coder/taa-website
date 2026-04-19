@@ -8,215 +8,195 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
     <style>
-        /* General Reset */
+        :root {
+            --primary: #0056b3;
+            --secondary: #35CAFE;
+            --accent: #FF8C00;
+            --white: #ffffff;
+            --dark-blue: #001a35;
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body { 
             font-family: 'Open Sans', sans-serif; 
-            background-color: #f4f7f6; 
+            background: linear-gradient(rgba(244, 247, 246, 0.96), rgba(244, 247, 246, 0.96)),
+                        url('https://www.transparenttextures.com/patterns/carbon-fibre.png'),
+                        #f4f7f6;
             color: #333; 
             line-height: 1.8; 
         }
 
-        /* --- Navigation Bar --- */
-        nav { 
-            background-color: #ffffff; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-            position: sticky; 
-            top: 0; 
-            z-index: 1000; 
+        /* --- Navigation Styles (Kept here so the injected JS menu is styled perfectly) --- */
+        .navbar {
+            background: var(--white);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 9999;
+            padding: 5px 0;
         }
-        nav ul { 
-            display: flex; 
-            justify-content: center; 
-            list-style: none; 
-            padding: 15px 0; 
+        .nav-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
         }
-        nav ul li { margin: 0 15px; position: relative; }
-        nav ul li a { 
-            text-decoration: none; 
-            color: #1a1a1a; 
-            font-weight: 600; 
-            font-family: 'Montserrat', sans-serif; 
-            text-transform: uppercase; 
-            font-size: 0.85em; 
-            transition: color 0.3s ease; 
-        }
-        nav ul li a:hover { color: #FF8C00; } 
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo img { width: 55px; height: 55px; }
+        .logo-text { display: flex; flex-direction: column; }
+        .main-title { color: var(--primary); font-weight: 800; font-size: 1.1em; line-height: 1; font-family: 'Montserrat'; }
+        .sub-title { color: #64748b; font-weight: 600; font-size: 0.75em; letter-spacing: 1px; }
 
-        /* Rankings Live Badge */
-        .rank-link { color: #FF8C00 !important; font-weight: 800 !important; position: relative; }
-        .rank-link::after {
-            content: 'LIVE';
-            position: absolute;
-            top: -12px;
-            right: -18px;
-            background: #FF8C00;
-            color: white;
-            font-size: 0.55em;
-            padding: 2px 5px;
-            border-radius: 4px;
-            animation: blink 1.5s infinite;
+        .nav-menu { display: flex; list-style: none; gap: 15px; align-items: center; margin: 0; padding: 0; }
+        .nav-menu li { position: relative; } 
+        
+        .nav-menu a { 
+            text-decoration: none; color: #1a1a1a; font-weight: 700; 
+            font-size: 0.82em; transition: 0.3s; padding: 15px 5px;
+            font-family: 'Montserrat'; text-transform: uppercase;
+            display: block;
         }
+        .nav-menu a:hover { color: var(--accent); }
 
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-
-        /* Dropdown Logic */
+        /* --- FIXED DROPDOWN CSS --- */
         .dropdown-content {
-            display: none;
+            display: none; 
             position: absolute;
-            background-color: #ffffff;
-            min-width: 200px;
+            background-color: var(--white);
+            min-width: 220px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            z-index: 1000;
-            border-radius: 0 0 8px 8px;
-            padding: 10px 0;
-            top: 100%;
+            z-index: 1;
+            top: 100%; 
             left: 0;
+            border-top: 3px solid var(--accent);
         }
+
         .dropdown-content a {
-            color: #333 !important;
-            padding: 12px 20px;
+            color: #333;
+            padding: 12px 16px;
             text-decoration: none;
             display: block;
-            font-size: 0.8em;
-            text-transform: none;
-            transition: background 0.3s ease;
+            text-transform: none; 
+            font-size: 0.85em;
+            border-bottom: 1px solid #f1f1f1;
         }
+
         .dropdown-content a:hover {
-            background-color: #f4f7f6;
-            color: #FF8C00 !important;
+            background-color: #f9f9f9;
+            color: var(--primary);
         }
-        nav ul li:hover .dropdown-content { display: block; }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .ors-btn {
+            background: var(--primary) !important; color: white !important;
+            padding: 10px 22px !important; border-radius: 50px; margin-left: 10px;
+            box-shadow: 0 4px 12px rgba(0, 86, 179, 0.2);
+            display: inline-block !important;
+        }
 
         /* --- Hero Banner --- */
         .hero { 
-            background: linear-gradient(135deg, #35CAFE 0%, #0056b3 100%); 
+            background: linear-gradient(135deg, #0056b3 0%, var(--dark-blue) 100%); 
             color: white; 
-            padding: 50px 20px; 
+            padding: 100px 20px; 
             text-align: center; 
+            position: relative;
         }
 
         .hero-content {
-            display: flex;
-            align-items: center; 
-            justify-content: center; 
-            max-width: 1200px; 
-            margin: 0 auto;
-            gap: 40px; 
+            display: flex; align-items: center; justify-content: center; 
+            max-width: 1200px; margin: 0 auto; gap: 40px; 
+            position: relative; z-index: 10;
         }
 
-        .hero-logo {
-            width: 140px; 
-            height: 140px;
-            background-color: #ffffff; 
-            border-radius: 50%;
-            padding: 15px; 
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+        .hero-logo-img {
+            width: 155px; height: 155px;
+            background-color: var(--white); 
+            border-radius: 50%; padding: 15px; 
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
             object-fit: contain;
         }
 
         .hero-text h1 { 
-            font-family: 'Montserrat', sans-serif; 
-            font-size: 2.2em; 
-            text-transform: uppercase; 
-            margin-bottom: 5px; 
-            line-height: 1.1;
+            font-family: 'Montserrat', sans-serif; font-size: 2.8em; 
+            text-transform: uppercase; margin-bottom: 15px; line-height: 1.1;
         }
 
-        .hero-text .tagline {
-            font-size: 0.95em; 
-            margin: 0;
-            opacity: 0.9;
+        .hero-text .tagline { 
+            font-size: 0.9em; font-weight: 700;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 12px 28px; border-radius: 8px;
+            display: inline-block; letter-spacing: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-transform: uppercase;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         }
 
-        /* --- Main Content --- */
-        .container { 
-            max-width: 1000px; 
-            margin: 40px auto; 
-            padding: 0 20px; 
-        }
-
+        /* --- Welcome Card --- */
+        .container { max-width: 1000px; margin: 50px auto; padding: 0 20px; }
         .content-card { 
-            background: white; 
-            padding: 35px; 
-            border-radius: 10px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-            border-top: 4px solid #35CAFE; 
+            background: white; padding: 45px; border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-top: 6px solid var(--primary); 
         }
-        .content-card h2 { 
-            font-family: 'Montserrat', sans-serif; 
-            color: #0056b3; 
-            margin-bottom: 15px; 
-            font-size: 1.8em; 
-        }
+        .content-card h2 { font-family: 'Montserrat'; color: var(--primary); margin-bottom: 15px; }
 
-        /* Responsive Mobile Adjustments */
         @media (max-width: 768px) {
-            .hero-content { flex-direction: column; gap: 20px; }
-            .hero-text { text-align: center; }
+            .hero-content { flex-direction: column; text-align: center; }
+            .hero-text h1 { font-size: 2.2em; }
+            .nav-menu { display: none; }
         }
     </style>
 </head>
 <body>
 
+    <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
+    
     <header class="hero">
         <div class="hero-content">
-            <a href="index.html">
-                <img src="LOGO.jfif" alt="TAA Logo" class="hero-logo">
-            </a>
+            <img src="LOGO.jfif" alt="TAA Logo" class="hero-logo-img">
             <div class="hero-text">
                 <h1>Telangana Athletics Association</h1>
-                <p class="tagline">We are dedicated to fostering athletic excellence and promoting track and field events across the state of Telangana.</p>
+                <p class="tagline">Official Digital Portal of the State Athletics Governing Body</p>
             </div>
         </div>
     </header>
 
-    <nav>
-        <ul>
-            <li><a href="index.html">Home</a></li>
-            <li><a href="about.html">About Us</a></li>
-            
-            <li>
-                <a href="#">Events</a>
-                <div class="dropdown-content">
-                    <a href="calendar.html">Competition Calendar</a>
-                    <a href="results.html">Meet Results</a>
-                </div>
-            </li>
-
-            <li><a href="ranking.html" class="rank-link">Rankings</a></li>
-
-            <li>
-                <a href="profiles.html">Profiles</a>
-                <div class="dropdown-content">
-                    <a href="athlete-profiles.html">Athlete Profiles</a>
-                    <a href="coach-profiles.html">Coach Profiles</a>
-                    <a href="technical-officials.html">Technical Officials</a>
-                </div>
-            </li>
-            
-            <li><a href="education.html">Education</a></li>
-            
-            <li>
-                <a href="registrations.html">ORS Login</a>
-                <div class="dropdown-content">
-                    <a href="athlete-login.html">Athlete Login</a>
-                    <a href="coach-login.html">Coach Login</a>
-                    <a href="official-login.html">Technical Official Login</a>
-                </div>
-            </li>
-            
-            <li><a href="contact.html">Contact Us</a></li>
-        </ul>
-    </nav>
-
     <div class="container">
         <div class="content-card">
             <h2>Welcome to Telangana Athletics</h2>
-            <p>Welcome to the official portal of the Telangana Athletics Association. Use the navigation menu above to access the latest state rankings, view athlete portfolios, or register for upcoming competitions.</p>
+            <p>Welcome to the official portal of the Telangana Athletics Association. We are dedicated to identifying talent and providing a professional platform for athletes across the state.</p>
         </div>
     </div>
 
+    <div id="dynamicRegistrationBanner" style="position: relative; z-index: 999;"></div>
+
+<script>
+    // When the Home Page loads, check if Admin opened any registrations
+    window.addEventListener('DOMContentLoaded', () => {
+        const regData = JSON.parse(localStorage.getItem('taa_active_registration'));
+        const bannerContainer = document.getElementById('dynamicRegistrationBanner');
+
+        if (regData && regData.isActive) {
+            bannerContainer.innerHTML = `
+                <div style="background: linear-gradient(135deg, #FF8C00, #ff6b00); color: white; padding: 20px 40px; border-radius: 12px; max-width: 1200px; margin: 20px auto; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(255,140,0,0.3);">
+                    <div>
+                        <h2 style="font-family: 'Montserrat'; margin: 0 0 5px 0; font-size: 1.5em; text-transform: uppercase;">🚨 ENTRIES OPEN: ${regData.meet}</h2>
+                        <p style="margin: 0; font-weight: 600; font-size: 0.9em;">Last Date for Online Entry: ${regData.deadline}</p>
+                    </div>
+                    <a href="login.html" style="background: white; color: #ff6b00; padding: 12px 25px; border-radius: 8px; font-family: 'Montserrat'; font-weight: 800; text-decoration: none; text-transform: uppercase; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">Register Athletes →</a>
+                </div>
+            `;
+        }
+    });
+</script>
 </body>
 </html>

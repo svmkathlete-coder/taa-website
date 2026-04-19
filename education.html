@@ -8,6 +8,12 @@
     
     <style>
         :root {
+            /* Standard TAA Variables for Navbar */
+            --primary: #0056b3;
+            --accent: #FF8C00;
+            --white: #ffffff;
+            
+            /* Education Page Specific Variables */
             --wa-blue: #0056b3;
             --wa-light: #35CAFE;
             --wa-orange: #FF8C00;
@@ -28,27 +34,24 @@
             min-height: 100vh;
         }
 
-        /* --- Global Home Logo --- */
-        .home-btn {
-            position: fixed; top: 20px; left: 20px; z-index: 1100;
-            background: #fff; padding: 10px; border-radius: 50%;
-            box-shadow: 0 0 20px rgba(53, 202, 254, 0.4); transition: 0.3s;
-        }
-        .home-btn:hover { transform: scale(1.1); box-shadow: 0 0 30px var(--wa-light); }
-        .home-btn img { width: 50px; height: 50px; object-fit: contain; }
-
-        /* --- Navigation Bar --- */
-        nav { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); position: sticky; top: 0; z-index: 1000; }
-        nav ul { display: flex; justify-content: center; list-style: none; padding: 20px 0; }
-        nav ul li { margin: 0 20px; position: relative; }
-        nav ul li a { text-decoration: none; color: #fff; font-weight: 600; font-family: 'Montserrat'; text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
-        nav ul li a:hover { color: var(--wa-orange); }
-
-        /* Dropdown */
-        .dropdown-content { display: none; position: absolute; background: var(--bg-dark); min-width: 220px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-radius: 8px; top: 100%; left: 0; padding: 10px 0; border: 1px solid var(--glass); }
-        .dropdown-content a { padding: 12px 20px; display: block; font-size: 0.8em; text-transform: none; }
-        .dropdown-content a:hover { background: var(--wa-blue); color: #fff !important; }
-        nav ul li:hover .dropdown-content { display: block; }
+        /* --- Standard TAA Navigation Styles for navbar.js --- */
+        .navbar { background: var(--white); box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 9999; padding: 5px 0; }
+        .nav-container { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo img { width: 55px; height: 55px; }
+        .logo-text { display: flex; flex-direction: column; }
+        .main-title { color: var(--primary); font-weight: 800; font-size: 1.1em; line-height: 1; font-family: 'Montserrat'; }
+        .sub-title { color: #64748b; font-weight: 600; font-size: 0.75em; letter-spacing: 1px; }
+        .nav-menu { display: flex; list-style: none; gap: 15px; align-items: center; margin: 0; padding: 0; }
+        .nav-menu li { position: relative; } 
+        .nav-menu a { text-decoration: none; color: #1a1a1a; font-weight: 700; font-size: 0.82em; transition: 0.3s; padding: 15px 5px; font-family: 'Montserrat'; text-transform: uppercase; display: block; }
+        .nav-menu a:hover { color: var(--accent); }
+        .dropdown-content { display: none; position: absolute; background-color: var(--white); min-width: 220px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); z-index: 1; top: 100%; left: 0; border-top: 3px solid var(--accent); }
+        .dropdown-content a { color: #333; padding: 12px 16px; text-decoration: none; display: block; text-transform: none; font-size: 0.85em; border-bottom: 1px solid #f1f1f1; }
+        .dropdown-content a:hover { background-color: #f9f9f9; color: var(--primary); }
+        .dropdown:hover .dropdown-content { display: block; }
+        .ors-btn { background: var(--primary) !important; color: white !important; padding: 10px 22px !important; border-radius: 50px; margin-left: 10px; box-shadow: 0 4px 12px rgba(0, 86, 179, 0.2); display: inline-block !important; }
+        @media (max-width: 768px) { .nav-menu { display: none; } }
 
         /* --- Hero Section --- */
         .hero { padding: 100px 20px; text-align: center; background: radial-gradient(circle at center, rgba(53, 202, 254, 0.1) 0%, transparent 70%); }
@@ -75,31 +78,8 @@
 </head>
 <body>
 
-    <a href="index.html" class="home-btn"><img src="LOGO.jfif" alt="Home"></a>
-
-    <nav>
-        <ul>
-            <li><a href="index.html">Home</a></li>
-            <li><a href="about.html">About Us</a></li>
-            <li><a href="ranking.html" style="color:var(--wa-orange)">Rankings</a></li>
-            <li>
-                <a href="#">Events</a>
-                <div class="dropdown-content">
-                    <a href="calendar.html">Competition Calendar</a>
-                    <a href="results.html">Full Meet Results</a>
-                </div>
-            </li>
-            <li><a href="education.html">Education</a></li>
-            <li>
-                <a href="registrations.html">Registrations</a>
-                <div class="dropdown-content">
-                    <a href="athlete-login.html">Athlete Login</a>
-                    <a href="coach-login.html">Coach Login</a>
-                </div>
-            </li>
-            <li><a href="contact.html">Contact Us</a></li>
-        </ul>
-    </nav>
+    <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
 
     <header class="hero">
         <h1>Global Education Portal</h1>
@@ -134,14 +114,14 @@
                 <span class="badge" style="background: rgba(40, 167, 69, 0.2); color: #28a745;">Interactive</span>
                 <h3>WA e-Learning Platform</h3>
                 <p>Online courses, webinars, and certification modules for coaches, officials, and athletes.</p>
-                <a href="https://www.elearning.worldathletics.org/" target="_blank" class="btn-dl">Launch Learning Hub</a>
+                <a href="https://idp.worldathletics.org/login?client_id=1fii9kveoj2c500vg4pqn98r34&response_type=code&response_mode=&scope=aws.cognito.signin.user.admin+email+openid+profile&redirect_uri=https%3A%2F%2Fworldathletics.backend.prod.cls-eu-west-1-alpha.thelearning-lab.com%2Fapi%2Fsso%2Fsign-in&state=YLYvPCKGCts8aAMh" target="_blank" class="btn-dl">Launch Learning Hub</a>
             </div>
 
             <div class="card" style="border-top-color: #dc3545;">
                 <span class="badge" style="background: rgba(220, 53, 69, 0.2); color: #dc3545;">Integrity</span>
-                <h3>NADA Clean Sports 2026</h3>
-                <p>Latest TUE processes and the prohibited substance list from the National Anti-Doping Agency.</p>
-                <a href="https://www.nada.nic.in/" target="_blank" class="btn-dl">View NADA Guidelines</a>
+                <h3>WADA Clean Sports 2026</h3>
+                <p>Latest TUE processes and the prohibited substance list from the World Anti-Doping Agency.</p>
+                <a href="https://www.wada-ama.org/en/resources" target="_blank" class="btn-dl">View NADA Guidelines</a>
             </div>
 
             <div class="card">

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>District Command Center - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #001a35; --primary-light: #0056b3; --accent: #FF8C00; --bg: #f1f5f9; --text: #334155; --white: #ffffff; --sidebar-w: 280px; --border: #e2e8f0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Open Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+        /* --- SIDEBAR --- */
+        .sidebar { width: var(--sidebar-w); background: var(--primary); color: white; display: flex; flex-direction: column; box-shadow: 4px 0 15px rgba(0,0,0,0.1); z-index: 100; transition: margin-left 0.3s ease; }
+        .sidebar.collapsed { margin-left: calc(-1 * var(--sidebar-w)); }
+        
+        .brand { padding: 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .brand img { width: 50px; background: white; border-radius: 50%; padding: 5px; }
+        .brand-text h2 { font-family: 'Montserrat'; font-size: 1.1em; color: var(--accent); }
+        .brand-text p { font-size: 0.7em; font-weight: 700; letter-spacing: 1px; opacity: 0.8; text-transform: uppercase; }
+
+        .nav-links { flex-grow: 1; padding: 20px 0; overflow-y: auto; }
+        .nav-item { padding: 15px 25px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s; font-size: 0.9em; font-weight: 600; border-left: 4px solid transparent; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); }
+        .nav-item.active { background: var(--primary-light); border-left-color: var(--accent); font-weight: 700; }
+        .nav-icon { font-size: 1.2em; width: 25px; text-align: center; }
+        
+        .badge { background: #ef4444; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.75em; font-weight: 800; margin-left: auto; }
+
+        .user-profile { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); }
+        .logout-btn { display: block; width: 100%; padding: 10px; background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 6px; cursor: pointer; font-family: 'Montserrat'; font-weight: 700; transition: 0.2s; text-align: center; text-decoration: none; font-size: 0.85em; }
+        .logout-btn:hover { background: #ef4444; border-color: #ef4444; }
+
+        /* --- MAIN CONTENT & TOPBAR --- */
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        .topbar { background: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 90; }
+        .topbar-left { display: flex; align-items: center; gap: 20px; }
+        .toggle-sidebar-btn { background: none; border: none; font-size: 1.5em; color: var(--primary-light); cursor: pointer; transition: 0.2s; padding: 5px; border-radius: 4px; }
+        .toggle-sidebar-btn:hover { color: var(--accent); background: #f1f5f9; }
+        .topbar h1 { font-family: 'Montserrat'; color: var(--primary-light); font-size: 1.4em; }
+
+        .content-area { padding: 30px; max-width: 1400px; margin: 0 auto; width: 100%; }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- CARDS & GRIDS --- */
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid var(--border); margin-bottom: 30px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .card-header h3 { font-family: 'Montserrat'; font-size: 1.1em; color: var(--primary); margin: 0; text-transform: uppercase; }
+        
+        .stat-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid var(--primary-light); display: flex; flex-direction: column; }
+        .stat-card.accent { border-left-color: var(--accent); }
+        .stat-card.danger { border-left-color: #ef4444; }
+        .stat-title { font-size: 0.85em; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .stat-value { font-family: 'Montserrat'; font-size: 2.5em; font-weight: 800; color: #0f172a; line-height: 1; }
+
+        /* --- TABLES --- */
+        .table-wrapper { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; margin-bottom: 30px; border: 1px solid var(--border); }
+        .table-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
+        .table-header h2 { font-family: 'Montserrat'; font-size: 1.1em; color: var(--primary-light); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 15px 20px; background: white; color: #64748b; font-size: 0.75em; text-transform: uppercase; border-bottom: 2px solid var(--border); }
+        td { padding: 15px 20px; border-bottom: 1px solid var(--border); font-size: 0.9em; vertical-align: middle; }
+        tr:hover td { background: #f8fafc; }
+        
+        /* --- BUTTONS & BADGES --- */
+        .form-control { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: 'Open Sans'; font-size: 0.9em; outline: none; }
+        .status-badge { padding: 5px 12px; border-radius: 50px; font-size: 0.75em; font-weight: 700; text-transform: uppercase; }
+        .bg-pending { background: #fef3c7; color: #d97706; }
+        .bg-approved { background: #dcfce7; color: #166534; }
+        .bg-green { background: #dcfce7; color: #166534; }
+        
+        .btn { padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; transition: 0.2s; font-family: 'Montserrat'; border: none; font-size: 0.85em; }
+        .btn-approve { background: #10b981; color: white; margin-right: 5px; }
+        .btn-approve:hover { background: #059669; }
+        .btn-reject { background: white; color: #ef4444; border: 1px solid #ef4444; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 0.8em; }
+        .btn-reject:hover { background: #fee2e2; }
+        .btn-primary { background: var(--primary-light); color: white; }
+        .btn-primary:hover { background: var(--primary); }
+
+        /* --- BEARER CARDS --- */
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+        .bearer-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: 0.2s; }
+        .bearer-card:hover { border-color: var(--primary-light); transform: translateY(-3px); }
+        .bearer-avatar { width: 70px; height: 70px; background: #e2e8f0; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 2em; font-family: 'Montserrat'; font-weight: 800; color: var(--primary-light); }
+        .bearer-card h4 { font-family: 'Montserrat'; font-size: 1.05em; color: var(--primary); margin-bottom: 5px; }
+        .bearer-card p.role { font-weight: 800; color: var(--accent); font-size: 0.75em; text-transform: uppercase; margin-bottom: 10px; }
+        .bearer-card p.contact { font-size: 0.85em; color: #64748b; font-weight: 600; }
+
+        /* --- MOCK GRAPHS --- */
+        .mock-graph { height: 200px; display: flex; align-items: flex-end; gap: 15px; padding-top: 20px; border-bottom: 2px solid #e2e8f0; }
+        .bar { flex: 1; background: var(--primary-light); border-radius: 4px 4px 0 0; position: relative; transition: 0.3s; }
+        .bar:hover { background: var(--accent); }
+        .bar::after { content: attr(data-val); position: absolute; top: -25px; left: 50%; transform: translateX(-50%); font-weight: 700; font-size: 0.8em; color: #64748b; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar" id="districtSidebar">
+        <div class="brand">
+            <img src="LOGO.jfif" alt="TAA">
+            <div class="brand-text">
+                <h2 id="sidebarDistName">District</h2>
+                <p>Command Center</p>
+            </div>
+        </div>
+        <div class="nav-links">
+            <div class="nav-item active" onclick="switchTab('tab-home', this)"><span class="nav-icon">🏠</span> Dashboard Home</div>
+            <div class="nav-item" onclick="switchTab('tab-approvals', this)"><span class="nav-icon">✅</span> Approvals <span class="badge" id="pendingBadge">0</span></div>
+            <div class="nav-item" onclick="switchTab('tab-athletes', this)"><span class="nav-icon">🏃</span> Athlete Roster</div>
+            <div class="nav-item" onclick="switchTab('tab-coaches', this)"><span class="nav-icon">📋</span> Coach Roster</div>
+            <div class="nav-item" onclick="switchTab('tab-officials', this)"><span class="nav-icon">⏱️</span> Official Roster</div>
+            
+            <div class="nav-item" onclick="switchTab('tab-calendar', this)"><span class="nav-icon">📅</span> Event Entries</div>
+            <div class="nav-item" onclick="switchTab('tab-results', this)"><span class="nav-icon">📊</span> District Results</div>
+            <div class="nav-item" onclick="switchTab('tab-bearers', this)"><span class="nav-icon">👔</span> Office Bearers</div>
+        </div>
+        <div class="user-profile">
+            <button class="logout-btn" onclick="secureLogout()">Logout</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Toggle Sidebar">☰</button>
+                <h1 id="topbarTitle">Dashboard Home</h1>
+            </div>
+            <div style="font-weight: 700; color: #64748b;" id="currentDate"></div>
+        </header>
+
+        <div class="content-area">
+            
+            <div id="tab-home" class="tab-content active">
+                <div class="grid-3">
+                    <div class="stat-card">
+                        <span class="stat-title">Approved Athletes</span>
+                        <span class="stat-value" id="statAthletes">0</span>
+                    </div>
+                    <div class="stat-card accent">
+                        <span class="stat-title">State Rank (Overall)</span>
+                        <span class="stat-value">#3</span>
+                        <span style="font-size:0.8em; color:#10b981; margin-top:5px; font-weight:700;">▲ Up 1 spot from last year</span>
+                    </div>
+                    <div class="stat-card danger">
+                        <span class="stat-title">Pending Verifications</span>
+                        <span class="stat-value" id="statPending" style="color: #ef4444;">0</span>
+                    </div>
+                </div>
+
+                <div class="grid-3" style="grid-template-columns: 2fr 1fr;">
+                    <div class="card">
+                        <h3>District Performance Analytics (2026)</h3>
+                        <div class="mock-graph">
+                            <div class="bar" style="height: 40%;" data-val="12"></div>
+                            <div class="bar" style="height: 70%;" data-val="24"></div>
+                            <div class="bar" style="height: 50%;" data-val="18"></div>
+                            <div class="bar" style="height: 90%; background: var(--accent);" data-val="32"></div>
+                            <div class="bar" style="height: 30%;" data-val="8"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-top:10px; font-size:0.8em; color:#64748b; font-weight:700;">
+                            <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Top Ranked District Athletes</h3>
+                        <div style="margin-top: 15px; font-size: 0.9em; line-height: 2;">
+                            <div id="topAthletesList">
+                                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-approvals" class="tab-content">
+                <div class="table-wrapper">
+                    <div class="table-header"><h2>Pending Registrations</h2></div>
+                    <table>
+                        <thead><tr><th>AFI UID / Name</th><th>Role</th><th>Date Applied</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="approvalsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-athletes" class="tab-content">
+                <div class="table-wrapper">
+                    <div class="table-header"><h2>Approved Athletes</h2></div>
+                    <table>
+                        <thead><tr><th>AFI UID</th><th>Name</th><th>Event / Specs</th><th>Contact</th></tr></thead>
+                        <tbody id="athletesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-coaches" class="tab-content">
+                <div class="table-wrapper">
+                    <div class="table-header"><h2>Registered Coaches</h2></div>
+                    <table>
+                        <thead><tr><th>Name</th><th>Certification Level</th><th>Academy / Place</th><th>Contact</th></tr></thead>
+                        <tbody id="coachesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-officials" class="tab-content">
+                <div class="table-wrapper">
+                    <div class="table-header"><h2>Technical Officials</h2></div>
+                    <table>
+                        <thead><tr><th>Name</th><th>Official Type</th><th>Specialty</th><th>Contact</th></tr></thead>
+                        <tbody id="officialsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-calendar" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Active Event Registrations</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">Submit your district's athletes to meets opened by the State Admin.</p>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Competition Name</th><th>Entry Deadline</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody id="districtEntriesBody">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-results" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>District Performance Database</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">View detailed results exclusively for athletes belonging to your district.</p>
+                        </div>
+                        <select class="form-control" id="districtMeetSelect" onchange="loadDistrictResults()" style="width: 300px;">
+                            </select>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Athlete Name</th><th>AFI UID</th><th>Event</th><th>Performance</th><th>Position</th></tr></thead>
+                            <tbody id="districtResultsBody">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-bearers" class="tab-content">
+                <div class="card">
+                    <div class="card-header"><h3>District Executive Body</h3></div>
+                    <div class="grid-4" id="bearersGrid">
+                        </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        let currentDistrict = "";
+        let portalData = [];
+
+        // --- 1. INITIALIZATION & SECURITY ---
+        window.onload = () => {
+            const sessionData = localStorage.getItem('taa_current_district');
+            if (!sessionData) { window.location.href = "login.html"; return; }
+
+            const districtInfo = JSON.parse(sessionData);
+            currentDistrict = districtInfo.name;
+            
+            document.getElementById('sidebarDistName').innerText = currentDistrict;
+            document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            initDatabase();
+            loadDashboardData();
+            loadDistrictEntries();
+            populateDistrictMeetsDropdown();
+            loadOfficeBearers();
+        };
+
+        function toggleSidebar() { document.getElementById('districtSidebar').classList.toggle('collapsed'); }
+        function secureLogout() { localStorage.removeItem('taa_current_district'); window.location.href = "login.html"; }
+
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('topbarTitle').innerText = element.innerText.substring(2).trim();
+        }
+
+        // --- 2. ROSTER & APPROVALS LOGIC ---
+        function initDatabase() {
+            portalData = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+        }
+
+        function loadDashboardData() {
+            const districtData = portalData.filter(u => u.district && u.district.toLowerCase() === currentDistrict.toLowerCase());
+            const pending = districtData.filter(u => u.status === "Pending" || !u.status);
+            const approvedAthletes = districtData.filter(u => u.status === "Approved" || u.status === "Verified").filter(u => u.regType === "Athlete");
+            const approvedCoaches = districtData.filter(u => u.status === "Approved" || u.status === "Verified").filter(u => u.regType === "Coach");
+            const approvedOfficials = districtData.filter(u => u.status === "Approved" || u.status === "Verified").filter(u => u.regType === "Official");
+
+            document.getElementById('pendingBadge').innerText = pending.length;
+            document.getElementById('statPending').innerText = pending.length;
+            document.getElementById('statAthletes').innerText = approvedAthletes.length;
+
+            // Approvals Table
+            const appBody = document.getElementById('approvalsBody');
+            if(pending.length === 0) appBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#94a3b8;">No pending approvals.</td></tr>'; 
+            else {
+                appBody.innerHTML = pending.map((u, i) => `
+                    <tr>
+                        <td>
+                            <strong>${u.first_name} ${u.last_name || ''}</strong>
+                            <div style="font-size:0.8em; color:#64748b;">${u.afi_uid || `TEMP-${i}`}</div>
+                        </td>
+                        <td>${u.regType}</td>
+                        <td>${u.timestamp ? u.timestamp.split(',')[0] : 'Recent'}</td>
+                        <td><span class="status-badge bg-pending">Pending</span></td>
+                        <td>
+                            <button class="btn btn-approve" onclick="processApproval('${u.afi_uid || `TEMP-${i}`}', 'Approved')">Approve</button>
+                            <button class="btn btn-reject" onclick="processApproval('${u.afi_uid || `TEMP-${i}`}', 'Rejected')">Reject</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Athlete Roster
+            document.getElementById('athletesBody').innerHTML = approvedAthletes.length ? approvedAthletes.map(u => `<tr><td><strong>${u.afi_uid || 'N/A'}</strong></td><td>${u.first_name} ${u.last_name || ''}</td><td>${u.event || 'TBD'}</td><td>${u.mobile || 'N/A'}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;">No athletes found.</td></tr>';
+            
+            // Populate Top Athletes on Home
+            document.getElementById('topAthletesList').innerHTML = approvedAthletes.slice(0,3).map((u, i) => `<div>${i===0?'🥇':i===1?'🥈':'🥉'} <strong>${u.first_name} ${u.last_name || ''}</strong> (${u.event || 'Athletics'})</div>`).join('');
+
+            // Coach & Official Rosters
+            document.getElementById('coachesBody').innerHTML = approvedCoaches.length ? approvedCoaches.map(u => `<tr><td><strong>${u.first_name} ${u.last_name || ''}</strong></td><td>${u.level || 'TBD'}</td><td>${u.academy || 'TBD'}</td><td>${u.mobile || 'N/A'}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;">No coaches found.</td></tr>';
+            document.getElementById('officialsBody').innerHTML = approvedOfficials.length ? approvedOfficials.map(u => `<tr><td><strong>${u.first_name} ${u.last_name || ''}</strong></td><td>${u.level || 'TBD'}</td><td>${u.specialty || 'TBD'}</td><td>${u.mobile || 'N/A'}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;">No officials found.</td></tr>';
+        }
+
+        function processApproval(uid, newStatus) {
+            if(confirm(`Are you sure you want to ${newStatus.toLowerCase()} this registration?`)) {
+                // Find by actual UID or by matching temporary index if UID is missing
+                const userIndex = portalData.findIndex((u, i) => u.afi_uid === uid || `TEMP-${i}` === uid);
+                if(userIndex > -1) {
+                    portalData[userIndex].status = newStatus;
+                    localStorage.setItem('taa_portal_data', JSON.stringify(portalData));
+                    loadDashboardData(); 
+                }
+            }
+        }
+
+        // --- 3. EVENT ENTRIES LISTENER ---
+        function loadDistrictEntries() {
+            const activeReg = JSON.parse(localStorage.getItem('taa_active_registration'));
+            const body = document.getElementById('districtEntriesBody');
+            
+            if (!activeReg || !activeReg.isActive) {
+                body.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:#64748b;">No active event registrations opened by the State Admin.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = `
+                <tr>
+                    <td style="font-weight:700; color:var(--primary-light);">${activeReg.meet}</td>
+                    <td style="color:#ef4444; font-weight:700;">${activeReg.deadline}</td>
+                    <td><span class="status-badge bg-green">OPEN</span></td>
+                    <td><button class="btn btn-primary" onclick="alert('Opening Entry Form for ${currentDistrict} Athletes...')">Submit District Entries</button></td>
+                </tr>
+            `;
+        }
+
+        // --- 4. DISTRICT RESULTS LOGIC ---
+        function populateDistrictMeetsDropdown() {
+            const masterDb = JSON.parse(localStorage.getItem('taa_master_db')) || [];
+            const publishedMeets = masterDb.filter(m => m.isLive === true);
+            
+            const select = document.getElementById('districtMeetSelect');
+            if (publishedMeets.length === 0) {
+                select.innerHTML = '<option value="">No Results Published Yet</option>';
+                return;
+            }
+
+            select.innerHTML = '<option value="">Select Published Meet...</option>' + publishedMeets.map(m => `<option value="${m.title}">${m.title}</option>`).join('');
+        }
+
+        function loadDistrictResults() {
+            const selectedMeet = document.getElementById('districtMeetSelect').value;
+            const resultsDb = JSON.parse(localStorage.getItem('taa_results')) || [];
+            const body = document.getElementById('districtResultsBody');
+
+            if (!selectedMeet) { body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">Please select a meet to view results.</td></tr>'; return; }
+
+            const districtUIDs = portalData.filter(u => u.district && u.district.toLowerCase() === currentDistrict.toLowerCase()).map(u => u.afi_uid);
+            const filteredResults = resultsDb.filter(r => r.competition_name === selectedMeet && districtUIDs.includes(r.uid));
+
+            if (filteredResults.length === 0) {
+                body.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">No results found for ${currentDistrict} athletes in this meet.</td></tr>`;
+                return;
+            }
+
+            body.innerHTML = filteredResults.map(r => {
+                const ath = portalData.find(u => u.afi_uid === r.uid);
+                return `
+                    <tr>
+                        <td style="font-weight:700;">${ath ? ath.first_name + ' ' + ath.last_name : 'Unknown Athlete'}</td>
+                        <td style="font-family:monospace;">${r.uid}</td>
+                        <td>${r.event}</td>
+                        <td style="font-weight:800; color:var(--accent);">${r.performance}</td>
+                        <td>${r.position}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // --- 5. FULL OFFICE BEARERS DIRECTORY ---
+        function loadOfficeBearers() {
+            const roles = [
+                { role: "President", name: "Dr. K. Srinivas Reddy", contact: "+91 98765 43210" },
+                { role: "Secretary", name: "M. Ramana Rao", contact: "+91 98765 43211" },
+                { role: "Treasurer", name: "S. Venkatesh", contact: "+91 98765 43212" },
+                { role: "Organising Secretary", name: "P. Ravi Kumar", contact: "+91 98765 43213" },
+                { role: "Vice President", name: "A. Lakshmi", contact: "+91 98765 43214" },
+                { role: "Vice President", name: "B. Mohan", contact: "+91 98765 43215" },
+                { role: "Joint-Secretary", name: "K. Suresh", contact: "+91 98765 43216" },
+                { role: "Joint-Secretary", name: "T. Ramesh", contact: "+91 98765 43217" },
+                { role: "Executive Member", name: "V. Prakash", contact: "+91 98765 43218" },
+                { role: "Member", name: "N. Karthik", contact: "+91 98765 43219" }
+            ];
+
+            document.getElementById('bearersGrid').innerHTML = roles.map(b => `
+                <div class="bearer-card">
+                    <div class="bearer-avatar">${b.name.charAt(0)}</div>
+                    <h4>${b.name}</h4>
+                    <p class="role">${b.role}</p>
+                    <p class="contact">📞 ${b.contact}</p>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

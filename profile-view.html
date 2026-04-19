@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Athlete Profile - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #0056b3; --accent: #FF8C00; --bg: #f4f7f6; }
+        body { font-family: 'Open Sans', sans-serif; background: var(--bg); margin: 0; color: #333; }
+        
+        .profile-header { background: linear-gradient(135deg, var(--primary), #001a35); color: white; padding: 60px 20px; text-align: center; }
+        .profile-avatar { width: 120px; height: 120px; background: white; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 3.5em; color: var(--primary); font-weight: 800; border: 5px solid rgba(255,255,255,0.1); }
+        .profile-header h1 { font-family: 'Montserrat'; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+        .event-tag { display: inline-block; background: var(--accent); color: white; padding: 5px 15px; border-radius: 50px; font-size: 0.85em; font-weight: 800; margin-top: 10px; }
+
+        .container { max-width: 1000px; margin: -40px auto 60px; padding: 0 20px; }
+        .card { background: white; border-radius: 15px; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin-bottom: 30px; }
+        
+        h2 { font-family: 'Montserrat'; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-top: 0; font-size: 1.2em; }
+
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 25px; margin-top: 20px; }
+        .info-item label { display: block; font-family: 'Montserrat'; font-weight: 800; color: #64748b; font-size: 0.7em; text-transform: uppercase; margin-bottom: 5px; }
+        .info-item span { font-size: 1em; font-weight: 600; color: #1e293b; }
+
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 20px; }
+        .stat-box { background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center; }
+        .stat-box .val { display: block; font-size: 1.5em; font-weight: 800; color: var(--primary); font-family: 'Montserrat'; }
+        .stat-box .lbl { font-size: 0.7em; font-weight: 800; color: #64748b; text-transform: uppercase; }
+
+        /* Competition Table */
+        .table-wrapper { overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; min-width: 650px; }
+        th { text-align: left; background: #f8fafc; padding: 12px; font-family: 'Montserrat'; font-size: 0.7em; color: #64748b; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 15px 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85em; font-weight: 600; }
+        
+        .pos-badge { background: var(--primary); color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.8em; font-weight: 800; }
+
+        .back-btn { display: inline-block; margin-bottom: 20px; color: white; text-decoration: none; font-weight: 700; font-size: 0.9em; transition: 0.2s; }
+        .back-btn:hover { opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+    <div id="profilePage"></div>
+
+    <script>
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const uid = urlParams.get('uid');
+            
+            // --- BULLETPROOF SMART BACK BUTTON LOGIC ---
+            // Checking the URL parameter instead of the browser's referrer history
+            const ref = urlParams.get('ref'); 
+            
+            let backUrl = "profiles.html";
+            let backText = "← Back to Directory";
+            
+            if (ref === "rankings") {
+                backUrl = "rankings.html";
+                backText = "← Back to Rankings";
+            }
+            // -------------------------------------------
+
+            const db = JSON.parse(localStorage.getItem('taa_profiles_db')) || [];
+            let user = db.find(u => u.uid === uid);
+
+            // Comprehensive Sample Data for Rahul Kumar
+            if (!user && uid === "AFI20261001") {
+                user = {
+                    uid: "AFI20261001", name: "Rahul Kumar", role: "Athlete", dist: "Hyderabad",
+                    father: "S. Vijay Kumar", dob: "12 May 2005", blood: "B+", event: "100m Sprint", coach: "P. Srinivas",
+                    pb: "10.42s", sb: "10.42s", rank: "#1 State",
+                    history: [
+                        { date: "Mar 15, 2026", meet: "State Athletics Championships", venue: "Hanumakonda", perf: "10.42s", pos: "1st" },
+                        { date: "Dec 20, 2025", meet: "Junior Selection Trials 2025", venue: "Osmania University", perf: "10.58s", pos: "2nd" },
+                        { date: "Aug 07, 2025", meet: "South Zone Junior Championship", venue: "Khammam", perf: "10.65s", pos: "3rd" }
+                    ]
+                };
+            }
+
+            const display = document.getElementById('profilePage');
+            if (!user) {
+                display.innerHTML = `<div style='text-align:center; padding:100px;'><h1 style="font-family: 'Montserrat'; color: var(--primary);">Profile Not Found</h1><a href='${backUrl}' style="color: var(--accent); font-weight: 700;">${backText}</a></div>`;
+                return;
+            }
+
+            const maskedUID = user.uid.substring(0, 7) + "****";
+
+            display.innerHTML = `
+                <div class="profile-header">
+                    <div class="container" style="margin:0 auto; text-align:left;">
+                        <a href="${backUrl}" class="back-btn">${backText}</a>
+                    </div>
+                    <div class="profile-avatar">${user.name.charAt(0)}</div>
+                    <h1>${user.name}</h1>
+                    <div class="event-tag">${user.event || 'Athletics'}</div>
+                </div>
+
+                <div class="container">
+                    <div class="card">
+                        <h2>Personal Details</h2>
+                        <div class="info-grid">
+                            <div class="info-item"><label>Full Name</label><span>${user.name}</span></div>
+                            <div class="info-item"><label>AFI UID (Masked)</label><span>${maskedUID}</span></div>
+                            <div class="info-item"><label>Father's Name</label><span>${user.father || 'N/A'}</span></div>
+                            <div class="info-item"><label>Date of Birth</label><span>${user.dob || 'N/A'}</span></div>
+                            <div class="info-item"><label>Blood Group</label><span>${user.blood || 'N/A'}</span></div>
+                            <div class="info-item"><label>District</label><span>${user.dist}</span></div>
+                            <div class="info-item"><label>Present Coach</label><span>${user.coach || 'N/A'}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>Performance Highlights</h2>
+                        <div class="stats-row">
+                            <div class="stat-box"><span class="val">${user.pb || 'N/A'}</span><span class="lbl">Personal Best</span></div>
+                            <div class="stat-box"><span class="val">${user.sb || 'N/A'}</span><span class="lbl">Seasonal Best</span></div>
+                            <div class="stat-box"><span class="val">${user.rank || 'N/A'}</span><span class="lbl">Current Ranking</span></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>Competition History</h2>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Competition Name</th>
+                                        <th>Venue</th>
+                                        <th>Performance</th>
+                                        <th>Position</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${user.history ? user.history.map(h => `
+                                        <tr>
+                                            <td style="color:#64748b; font-size:0.85em;">${h.date}</td>
+                                            <td>${h.meet}</td>
+                                            <td>${h.venue}</td>
+                                            <td style="color:var(--primary); font-weight:800;">${h.perf}</td>
+                                            <td><span class="pos-badge">${h.pos}</span></td>
+                                        </tr>
+                                    `).join('') : '<tr><td colspan="5" style="text-align:center;">No records found</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

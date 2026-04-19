@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Recovery - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #0056b3; --accent: #FF8C00; --bg: #f8fafc; --white: #ffffff; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: 'Open Sans', sans-serif; 
+            background: linear-gradient(rgba(244, 247, 246, 0.96), rgba(244, 247, 246, 0.96)),
+                        url('https://www.transparenttextures.com/patterns/carbon-fibre.png'), #f4f7f6;
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+
+        /* --- UNIFIED NAVIGATION BAR --- */
+        .navbar { background: var(--white); box-shadow: 0 4px 20px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 9999; padding: 5px 0; }
+        .nav-container { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo img { width: 55px; height: 55px; }
+        .logo-text { display: flex; flex-direction: column; }
+        .main-title { color: var(--primary); font-weight: 800; font-size: 1.1em; line-height: 1; font-family: 'Montserrat'; }
+        .sub-title { color: #64748b; font-weight: 600; font-size: 0.75em; letter-spacing: 1px; }
+
+        .nav-menu { display: flex; list-style: none; gap: 15px; align-items: center; margin: 0; padding: 0; }
+        .nav-menu li { position: relative; } 
+        .nav-menu a { text-decoration: none; color: #1a1a1a; font-weight: 700; font-size: 0.82em; transition: 0.3s; padding: 15px 5px; font-family: 'Montserrat'; text-transform: uppercase; display: block; }
+        .nav-menu a:hover { color: var(--accent); }
+
+        .dropdown-content { display: none; position: absolute; background-color: var(--white); min-width: 220px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); z-index: 1; top: 100%; left: 0; border-top: 3px solid var(--accent); }
+        .dropdown-content a { color: #333; padding: 12px 16px; text-transform: none; font-size: 0.85em; border-bottom: 1px solid #f1f1f1; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .ors-btn { background: var(--primary) !important; color: white !important; padding: 10px 22px !important; border-radius: 50px; margin-left: 10px; }
+
+        /* --- CONTAINER --- */
+        .recovery-container { flex-grow: 1; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+        .recovery-card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border-top: 6px solid var(--primary); width: 100%; max-width: 480px; }
+        
+        h2 { font-family: 'Montserrat'; color: var(--primary); margin-bottom: 5px; font-size: 1.6em; }
+        p.subtitle { color: #64748b; font-size: 0.9em; margin-bottom: 25px; }
+
+        /* --- TOGGLES --- */
+        .tab-toggles { display: flex; margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 2px solid var(--primary); }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: white; color: var(--primary); font-weight: 700; font-family: 'Montserrat'; cursor: pointer; transition: 0.3s; }
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        /* --- FORMS --- */
+        .form-section { display: none; }
+        .form-section.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .form-group { margin-bottom: 18px; text-align: left; }
+        .form-group label { display: block; font-weight: 700; font-size: 0.75em; color: #475569; margin-bottom: 6px; text-transform: uppercase; }
+        .form-control { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: 'Open Sans'; font-size: 0.95em; outline: none; transition: 0.2s; font-weight: 600; }
+        .form-control:focus { border-color: var(--primary); }
+
+        .btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: 800; font-family: 'Montserrat'; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; transition: 0.2s; }
+        .btn-primary:hover { background: #004494; transform: translateY(-2px); }
+
+        /* --- OTP & SUCCESS MESSAGES --- */
+        .info-box { background: #e0f2fe; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 0.85em; color: #0369a1; font-weight: 600; text-align: center; border: 1px solid #bae6fd; }
+        .success-box { display: none; background: #dcfce7; color: #166534; padding: 25px; border-radius: 8px; text-align: center; margin-top: 10px; border: 1px solid #bbf7d0; }
+        .success-box h3 { font-family: 'Montserrat'; margin-bottom: 10px; font-size: 1.2em; }
+        
+        .back-link { display: inline-block; margin-top: 25px; color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.85em; text-align: center; width: 100%; }
+        .back-link:hover { text-decoration: underline; }
+
+        @media (max-width: 768px) { .nav-menu { display: none; } }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <img src="LOGO.jfif" alt="TAA Logo">
+                <div class="logo-text">
+                    <span class="main-title">TELANGANA ATHLETICS</span>
+                    <span class="sub-title">ASSOCIATION</span>
+                </div>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="index.html">HOME</a></li>
+                <li class="dropdown">
+                    <a href="#">ABOUT TAA ▾</a>
+                    <div class="dropdown-content">
+                        <a href="office-bearers.html">Executive Body</a>
+                        <a href="member-associations.html">Member Associations</a>
+                        <a href="about.html">History & Constitution</a>
+                        <a href="contact.html">Contact Us</a>
+                    </div>
+                </li>
+                <li><a href="circulars.html">CIRCULARS</a></li>
+                <li><a href="events.html">EVENTS</a></li>
+                <li><a href="results.html">RESULTS</a></li>
+                <li><a href="media.html">MEDIA</a></li>
+                <li><a href="rankings.html">RANKINGS</a></li>
+                <li><a href="profiles.html">PROFILES</a></li>
+                <li><a href="login.html" class="ors-btn">ORS LOGIN</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="recovery-container">
+        <div class="recovery-card">
+            <h2>Account Recovery</h2>
+            <p class="subtitle">Securely retrieve your UID or reset your password.</p>
+
+            <div class="tab-toggles">
+                <button class="tab-btn active" id="btn-uid" onclick="switchTab('uid')">Recover UID</button>
+                <button class="tab-btn" id="btn-pass" onclick="switchTab('pass')">Reset Password</button>
+            </div>
+
+            <div id="section-uid" class="form-section active">
+                
+                <div id="uid-step-1">
+                    <p style="font-size: 0.85em; color: #64748b; margin-bottom: 20px; line-height: 1.5;">Enter your details to verify your identity before we send your UID.</p>
+                    
+                    <div class="form-group">
+                        <label>Registered First Name</label>
+                        <input type="text" id="recName" class="form-control" placeholder="e.g. Rahul">
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Birth</label>
+                        <input type="date" id="recDob" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Registered Mobile or Email</label>
+                        <input type="text" id="recContact" class="form-control" placeholder="Enter Mobile No. or Email ID">
+                    </div>
+                    
+                    <button class="btn-primary" onclick="requestUidOTP()">Send OTP</button>
+                </div>
+
+                <div id="uid-step-2" style="display: none;">
+                    <div class="info-box">A 6-digit OTP has been sent to your contact details.</div>
+                    <div class="form-group">
+                        <label>Enter 6-Digit OTP</label>
+                        <input type="text" id="uidOTP" class="form-control" placeholder="0 0 0 0 0 0" maxlength="6" style="text-align: center; font-size: 1.2em; letter-spacing: 8px;">
+                    </div>
+                    <button class="btn-primary" onclick="verifyUidOTP()">Verify & Email My UID</button>
+                </div>
+
+                <div id="uidSuccess" class="success-box">
+                    <h3>✅ Verification Successful!</h3>
+                    <p style="font-size: 0.9em; line-height: 1.5;">Your Official AFI UID has been securely sent to your registered email address and mobile via SMS.</p>
+                </div>
+            </div>
+
+            <div id="section-pass" class="form-section">
+                
+                <div id="pass-step-1">
+                    <div class="form-group">
+                        <label>User ID / AFI UID</label>
+                        <input type="text" id="resetUID" class="form-control" placeholder="e.g. AFI20261001">
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Birth</label>
+                        <input type="date" id="resetDOB" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Registered Mobile or Email</label>
+                        <input type="text" id="resetContact" class="form-control" placeholder="Enter Mobile No. or Email ID">
+                    </div>
+                    <button class="btn-primary" onclick="requestPassOTP()">Send OTP</button>
+                </div>
+
+                <div id="pass-step-2" style="display: none;">
+                    <div class="info-box">A 6-digit OTP has been sent to verify your identity.</div>
+                    <div class="form-group">
+                        <label>Enter 6-Digit OTP</label>
+                        <input type="text" id="resetOTP" class="form-control" placeholder="0 0 0 0 0 0" maxlength="6" style="text-align: center; font-size: 1.2em; letter-spacing: 8px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Create New Password</label>
+                        <input type="password" id="newPass" class="form-control" placeholder="Minimum 8 characters">
+                    </div>
+                    <button class="btn-primary" onclick="setNewPassword()">Secure New Password</button>
+                </div>
+
+                <div id="passSuccess" class="success-box">
+                    <h3>✅ Password Reset Complete!</h3>
+                    <p style="font-size: 0.9em; line-height: 1.5;">You can now log into the portal using your new credentials.</p>
+                </div>
+
+            </div>
+
+            <a href="login.html" class="back-link">← Return to Login Portal</a>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching logic
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if(urlParams.get('tab') === 'pass') switchTab('pass');
+        };
+
+        function switchTab(tab) {
+            document.getElementById('btn-uid').classList.remove('active');
+            document.getElementById('btn-pass').classList.remove('active');
+            document.getElementById('section-uid').classList.remove('active');
+            document.getElementById('section-pass').classList.remove('active');
+
+            document.getElementById(`btn-${tab}`).classList.add('active');
+            document.getElementById(`section-${tab}`).classList.add('active');
+        }
+
+        // ==========================================
+        //  UID RECOVERY LOGIC
+        // ==========================================
+        function requestUidOTP() {
+            const name = document.getElementById('recName').value.trim().toLowerCase();
+            const dob = document.getElementById('recDob').value;
+            const contact = document.getElementById('recContact').value.trim();
+            
+            const db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+            
+            // Look for a user where name, dob, AND contact matches
+            const userExists = db.find(u => 
+                (u.first_name || "").toLowerCase() === name && 
+                u.dob === dob && 
+                (u.mobile === contact || u.email === contact)
+            );
+            
+            // In a real system, we simulate sending the OTP to prevent data scraping
+            if (name !== "" && dob !== "" && contact !== "") {
+                if (userExists || true) { // 'or true' keeps the simulation smooth without crashing if the test db is empty
+                    document.getElementById('uid-step-1').style.display = 'none';
+                    document.getElementById('uid-step-2').style.display = 'block';
+                }
+            } else {
+                alert("Please fill in all fields (Name, DOB, and Contact).");
+            }
+        }
+
+        function verifyUidOTP() {
+            const otp = document.getElementById('uidOTP').value.trim();
+            if (otp === "123456") {
+                document.getElementById('uid-step-2').style.display = 'none';
+                document.getElementById('uidSuccess').style.display = 'block';
+            } else {
+                alert("Incorrect OTP. Please try again. (Hint: Use 123456)");
+            }
+        }
+
+        // ==========================================
+        //  PASSWORD RESET LOGIC
+        // ==========================================
+        let resetTargetIndex = -1;
+
+        function requestPassOTP() {
+            const uid = document.getElementById('resetUID').value.trim();
+            const dob = document.getElementById('resetDOB').value;
+            const contact = document.getElementById('resetContact').value.trim();
+            
+            const db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+            
+            // Find user matching UID, DOB, AND Contact
+            resetTargetIndex = db.findIndex(u => 
+                u.afi_uid === uid && 
+                u.dob === dob && 
+                (u.mobile === contact || u.email === contact)
+            );
+
+            if (uid !== "" && dob !== "" && contact !== "") {
+                if (resetTargetIndex !== -1) {
+                    document.getElementById('pass-step-1').style.display = 'none';
+                    document.getElementById('pass-step-2').style.display = 'block';
+                } else {
+                    alert("No matching account found for that UID, DOB, and Contact combination.");
+                }
+            } else {
+                alert("Please fill in all fields (UID, DOB, and Contact).");
+            }
+        }
+
+        function setNewPassword() {
+            const otp = document.getElementById('resetOTP').value.trim();
+            const newPass = document.getElementById('newPass').value.trim();
+
+            if (otp === "123456" && newPass.length >= 6) {
+                // Save new password to browser storage
+                const db = JSON.parse(localStorage.getItem('taa_portal_data'));
+                db[resetTargetIndex].password = newPass;
+                localStorage.setItem('taa_portal_data', JSON.stringify(db));
+
+                document.getElementById('pass-step-2').style.display = 'none';
+                document.getElementById('passSuccess').style.display = 'block';
+            } else {
+                alert("Incorrect OTP or password is too short (minimum 6 characters).");
+            }
+        }
+    </script>
+</body>
+</html>

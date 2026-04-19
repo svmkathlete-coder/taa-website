@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Member Profile - TAA Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #0056b3; --accent: #FF8C00; --sidebar: #0f172a; --bg: #f8fafc; --text: #334155; --border: #e2e8f0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Open Sans', sans-serif; background: var(--bg); display: flex; height: 100vh; overflow: hidden; color: var(--text); }
+
+        /* --- SIDEBAR --- */
+        .sidebar { width: 280px; background: var(--sidebar); color: white; display: flex; flex-direction: column; box-shadow: 4px 0 15px rgba(0,0,0,0.1); z-index: 10; }
+        .brand { padding: 25px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 15px; }
+        .brand-icon { width: 40px; height: 40px; background: var(--white); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--primary); font-family: 'Montserrat'; }
+        .brand-text h2 { font-family: 'Montserrat'; font-size: 1.1em; margin: 0; letter-spacing: 1px; }
+        .brand-text span { font-size: 0.7em; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        
+        .nav-items { flex-grow: 1; padding: 20px 0; overflow-y: auto; }
+        .nav-btn { width: 100%; text-align: left; background: none; border: none; color: #94a3b8; padding: 16px 25px; font-size: 0.9em; font-weight: 600; cursor: pointer; transition: 0.2s; border-left: 4px solid transparent; }
+        .nav-btn.active { background: rgba(255,255,255,0.08); color: var(--accent); border-left-color: var(--accent); }
+
+        /* --- MAIN CONTENT --- */
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        .topbar { background: white; padding: 20px 40px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .topbar h1 { font-family: 'Montserrat'; font-size: 1.4em; color: #0f172a; margin: 0; }
+        
+        .workspace { padding: 40px; max-width: 1300px; margin: 0 auto; width: 100%; }
+
+        /* --- HEADER --- */
+        .back-link { display: inline-block; color: var(--primary); text-decoration: none; font-weight: 700; font-family: 'Montserrat'; margin-bottom: 20px; font-size: 0.9em; }
+        .back-link:hover { text-decoration: underline; color: var(--accent); }
+        .profile-header-title { font-family: 'Montserrat'; font-size: 2em; color: #0f172a; margin-bottom: 5px; }
+        .profile-uid { color: var(--accent); font-weight: 800; font-family: 'Montserrat'; font-size: 1.1em; margin-bottom: 30px; display: block; }
+
+        /* --- LAYOUT --- */
+        .grid-layout { display: grid; grid-template-columns: 2.2fr 1fr; gap: 30px; }
+        @media (max-width: 900px) { .grid-layout { grid-template-columns: 1fr; } }
+
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid var(--border); margin-bottom: 30px; }
+        .card-header { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .card-header h3 { font-family: 'Montserrat'; font-size: 1.1em; color: var(--primary); margin: 0; }
+
+        /* --- FORMS --- */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        .form-group.full-width { grid-column: span 2; }
+        .form-group label { font-size: 0.8em; font-weight: 700; color: #64748b; text-transform: uppercase; }
+        .form-control { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: 'Open Sans'; font-size: 0.95em; outline: none; transition: 0.2s; color: #1e293b; font-weight: 600; }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,86,179,0.1); }
+        .form-control:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+
+        /* Document Links */
+        .doc-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; }
+        .doc-item span { font-weight: 600; font-size: 0.9em; }
+        .doc-link { color: var(--primary); font-size: 0.8em; font-weight: 700; text-decoration: none; font-family: 'Montserrat'; text-transform: uppercase; }
+        .doc-link:hover { color: var(--accent); text-decoration: underline; }
+
+        /* Dynamic Visibility */
+        .role-section { display: none; padding: 20px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; margin-top: 10px; }
+        .role-section.active { display: block; }
+
+        /* Buttons */
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 14px 28px; border-radius: 8px; font-weight: 700; cursor: pointer; font-family: 'Montserrat'; font-size: 1em; width: 100%; transition: 0.2s; margin-top: 10px; }
+        .btn-primary:hover { background: #004494; }
+        .btn-danger { background: white; color: #ef4444; border: 2px solid #ef4444; padding: 12px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; font-family: 'Montserrat'; width: 100%; margin-top: 15px; transition: 0.2s; }
+        .btn-danger:hover { background: #fee2e2; }
+        .status-badge { display: inline-block; padding: 6px 12px; border-radius: 50px; font-size: 0.8em; font-weight: 800; text-transform: uppercase; background: #dcfce7; color: #166534; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">TAA</div>
+            <div class="brand-text">
+                <h2>ADMIN PORTAL</h2>
+                <span>Operations Center</span>
+            </div>
+        </div>
+        <div class="nav-items">
+            <button class="nav-btn active" onclick="window.location.href='taa-admin.html'">👥 Member Database</button>
+            <button class="nav-btn" onclick="window.location.href='taa-admin.html'">📅 Season Calendar</button>
+            <button class="nav-btn" onclick="window.location.href='taa-admin.html'">📝 Registration Control</button>
+            <button class="nav-btn" onclick="window.location.href='taa-admin.html'">🔴 Live Meet Manager</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <h1 id="pageTitle">Edit Member Profile</h1>
+        </header>
+
+        <div class="workspace">
+            <a href="taa-admin.html" class="back-link">← Back to Member Database</a>
+            
+            <h1 class="profile-header-title" id="displayFullName">Loading Profile...</h1>
+            <span class="profile-uid" id="displayUID">AFI UID / User ID: --------</span>
+
+            <div class="grid-layout">
+                
+                <div class="left-col">
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Account Credentials & Contact</h3>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Mobile Number</label>
+                                <input type="text" id="editMobile" class="form-control" placeholder="+91">
+                            </div>
+                            <div class="form-group">
+                                <label>Email ID</label>
+                                <input type="email" id="editEmail" class="form-control" placeholder="user@email.com">
+                            </div>
+                            <div class="form-group">
+                                <label>User ID (AFI UID)</label>
+                                <input type="text" id="editUID" class="form-control" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Account Password</label>
+                                <input type="text" id="editPassword" class="form-control" placeholder="Type to set new password">
+                                <small style="color:#ef4444; font-size:0.75em; font-weight:600; margin-top:4px;">*Leave blank to keep current</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Personal Details</h3>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>First Name</label>
+                                <input type="text" id="editFirstName" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Last Name</label>
+                                <input type="text" id="editLastName" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Date of Birth</label>
+                                <input type="date" id="editDOB" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Gender</label>
+                                <select id="editGender" class="form-control">
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Affiliation & Role Details</h3>
+                        </div>
+                        <div class="form-grid" style="margin-bottom: 0;">
+                            <div class="form-group">
+                                <label>District Association</label>
+                                <select id="editDistrict" class="form-control">
+                                    <option value="Hyderabad">Hyderabad</option>
+                                    <option value="Warangal">Warangal</option>
+                                    <option value="Karimnagar">Karimnagar</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Member Role</label>
+                                <select id="editRole" class="form-control" onchange="toggleRolePanels()">
+                                    <option value="Athlete">Athlete</option>
+                                    <option value="Coach">Coach</option>
+                                    <option value="Official">Official</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="panel-Athlete" class="role-section active">
+                            <h4 style="font-family:'Montserrat'; color:var(--primary); margin-bottom:15px; font-size:0.9em;">ATHLETE SPECIFIC DATA</h4>
+                            <div class="form-grid">
+                                <div class="form-group full-width">
+                                    <label>Father's / Guardian's Name</label>
+                                    <input type="text" id="editFatherName" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Blood Group</label>
+                                    <input type="text" id="editBloodGroup" class="form-control" placeholder="e.g. O+">
+                                </div>
+                                <div class="form-group">
+                                    <label>Mapped Coach UID / Name</label>
+                                    <input type="text" id="editMappedCoach" class="form-control" placeholder="Enter Coach UID or Name">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="panel-Coach" class="role-section">
+                            <h4 style="font-family:'Montserrat'; color:var(--primary); margin-bottom:15px; font-size:0.9em;">COACH SPECIFIC DATA</h4>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Certification Level</label>
+                                    <select id="editCoachCert" class="form-control">
+                                        <option>NIS Diploma</option>
+                                        <option>WA Level 1</option>
+                                        <option>WA Level 2</option>
+                                        <option>State Certified</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Associated Academy</label>
+                                    <input type="text" id="editAcademy" class="form-control" placeholder="Academy Name">
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Mapped Athletes</label>
+                                    <textarea class="form-control" disabled rows="2" placeholder="List of athletes managed by this coach will appear here automatically."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="panel-Official" class="role-section">
+                            <h4 style="font-family:'Montserrat'; color:var(--primary); margin-bottom:15px; font-size:0.9em;">OFFICIAL SPECIFIC DATA</h4>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Certification Level</label>
+                                    <select id="editOfficialCert" class="form-control">
+                                        <option>State Technical Official (STO)</option>
+                                        <option>National Technical Official (NTO)</option>
+                                        <option>International (ITO)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Specialization Area</label>
+                                    <select id="editSpecialization" class="form-control">
+                                        <option>Track / Starter</option>
+                                        <option>Jumps Judge</option>
+                                        <option>Throws Judge</option>
+                                        <option>Photo Finish / Timing</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="right-col">
+                    
+                    <div class="card" style="background: #f8fafc; border-color: #cbd5e1;">
+                        <div class="card-header">
+                            <h3>System Actions</h3>
+                        </div>
+                        <span class="status-badge" id="accountStatus">Verified Account</span>
+                        <button class="btn-primary" onclick="saveProfileChanges()">💾 Save All Changes</button>
+                        
+                        <hr style="border: none; border-top: 1px solid #cbd5e1; margin: 25px 0;">
+                        
+                        <h4 style="font-family:'Montserrat'; color:#ef4444; font-size:0.9em; margin-bottom:10px;">Danger Zone</h4>
+                        <button class="btn-danger" onclick="alert('Account Suspended.')">Suspend Account</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Member Documents</h3>
+                            <p style="margin:0; font-size:0.75em; color:#64748b; margin-top:5px;">Files uploaded during registration.</p>
+                        </div>
+                        <div class="doc-list">
+                            <div class="doc-item">
+                                <span>📄 Age Proof (Aadhaar/SSC)</span>
+                                <a href="#" class="doc-link" onclick="alert('Viewing PDF Document')">View File</a>
+                            </div>
+                            <div class="doc-item">
+                                <span>🖼️ Passport Photo</span>
+                                <a href="#" class="doc-link" onclick="alert('Viewing Image')">View File</a>
+                            </div>
+                            <div class="doc-item">
+                                <span>📄 Medical/Certifications</span>
+                                <a href="#" class="doc-link" style="color:#94a3b8;">Not Uploaded</a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentUserIndex = -1;
+        let database = [];
+
+        // UI Logic to switch panels based on Role
+        function toggleRolePanels() {
+            const role = document.getElementById('editRole').value;
+            // Hide all
+            document.querySelectorAll('.role-section').forEach(p => p.classList.remove('active'));
+            // Show selected
+            const activePanel = document.getElementById(`panel-${role}`);
+            if(activePanel) activePanel.classList.add('active');
+        }
+
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetUID = urlParams.get('uid');
+
+            database = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+            currentUserIndex = database.findIndex(u => u.afi_uid === targetUID);
+
+            if (currentUserIndex === -1) {
+                alert("Profile not found in the database. Returning to Admin Panel.");
+                window.location.href = 'taa-admin.html';
+                return;
+            }
+
+            const user = database[currentUserIndex];
+
+            // Header Setup
+            document.getElementById('displayFullName').innerText = `${user.first_name || ''} ${user.last_name || ''}`;
+            document.getElementById('displayUID').innerText = `AFI UID / USER ID: ${user.afi_uid}`;
+            
+            // Standard Fields
+            document.getElementById('editUID').value = user.afi_uid || '';
+            document.getElementById('editEmail').value = user.email || '';
+            document.getElementById('editMobile').value = user.mobile || '';
+            document.getElementById('editPassword').value = user.password || ''; // Usually masked, shown here for admin override
+            
+            document.getElementById('editFirstName').value = user.first_name || '';
+            document.getElementById('editLastName').value = user.last_name || '';
+            document.getElementById('editDOB').value = user.dob || '';
+            document.getElementById('editGender').value = user.gender || 'Male';
+            
+            document.getElementById('editRole').value = user.role || 'Athlete';
+            document.getElementById('editDistrict').value = user.dist || 'Hyderabad';
+            
+            // Specific Fields Loading
+            if(user.role === 'Athlete') {
+                document.getElementById('editFatherName').value = user.father_name || '';
+                document.getElementById('editBloodGroup').value = user.blood_group || '';
+                document.getElementById('editMappedCoach').value = user.coach || '';
+            } else if (user.role === 'Coach') {
+                document.getElementById('editCoachCert').value = user.cert_level || 'NIS Diploma';
+                document.getElementById('editAcademy').value = user.academy || '';
+            } else if (user.role === 'Official') {
+                document.getElementById('editOfficialCert').value = user.cert_level || 'State Technical Official (STO)';
+                document.getElementById('editSpecialization').value = user.specialization || 'Track / Starter';
+            }
+
+            // Trigger the panel visibility
+            toggleRolePanels();
+        };
+
+        function saveProfileChanges() {
+            if (currentUserIndex === -1) return;
+
+            // Save Standard Fields
+            database[currentUserIndex].email = document.getElementById('editEmail').value;
+            database[currentUserIndex].mobile = document.getElementById('editMobile').value;
+            
+            // Only update password if admin typed something new
+            const newPass = document.getElementById('editPassword').value;
+            if(newPass.trim() !== '') {
+                database[currentUserIndex].password = newPass;
+            }
+
+            database[currentUserIndex].first_name = document.getElementById('editFirstName').value;
+            database[currentUserIndex].last_name = document.getElementById('editLastName').value;
+            database[currentUserIndex].dob = document.getElementById('editDOB').value;
+            database[currentUserIndex].gender = document.getElementById('editGender').value;
+            
+            const selectedRole = document.getElementById('editRole').value;
+            database[currentUserIndex].role = selectedRole;
+            database[currentUserIndex].dist = document.getElementById('editDistrict').value;
+
+            // Save Specific Fields based on Role
+            if(selectedRole === 'Athlete') {
+                database[currentUserIndex].father_name = document.getElementById('editFatherName').value;
+                database[currentUserIndex].blood_group = document.getElementById('editBloodGroup').value;
+                database[currentUserIndex].coach = document.getElementById('editMappedCoach').value;
+            } else if (selectedRole === 'Coach') {
+                database[currentUserIndex].cert_level = document.getElementById('editCoachCert').value;
+                database[currentUserIndex].academy = document.getElementById('editAcademy').value;
+            } else if (selectedRole === 'Official') {
+                database[currentUserIndex].cert_level = document.getElementById('editOfficialCert').value;
+                database[currentUserIndex].specialization = document.getElementById('editSpecialization').value;
+            }
+
+            // Push to local storage
+            localStorage.setItem('taa_portal_data', JSON.stringify(database));
+
+            // UI Refresh
+            const updatedName = `${database[currentUserIndex].first_name} ${database[currentUserIndex].last_name}`;
+            document.getElementById('displayFullName').innerText = updatedName;
+            document.getElementById('editPassword').value = ''; // clear password field after save
+
+            alert(`Success: ${updatedName}'s profile has been securely updated!`);
+        }
+    </script>
+</body>
+</html>

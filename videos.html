@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Gallery - Telangana Athletics Association</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #0056b3;
+            --accent: #FF8C00;
+            --white: #ffffff;
+            --bg-light: #f8fafc;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: 'Open Sans', sans-serif; 
+            background: var(--bg-light); 
+            color: var(--text-dark); 
+            line-height: 1.6;
+        }
+
+        /* --- Page Header --- */
+        .page-header {
+            background: linear-gradient(rgba(0, 26, 53, 0.8), rgba(0, 86, 179, 0.9)), url('https://images.unsplash.com/photo-1552674605-15c2145f8ca4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80') center/cover;
+            padding: 80px 20px;
+            text-align: center;
+            color: var(--white);
+            border-bottom: 5px solid var(--accent);
+        }
+        .page-header h1 {
+            font-family: 'Montserrat';
+            font-weight: 800;
+            font-size: 3em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .page-header p {
+            font-size: 1.1em;
+            font-weight: 600;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* --- Gallery Grid --- */
+        .gallery-container {
+            max-width: 1300px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        /* --- Filter Dropdown --- */
+        .filter-container {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .year-dropdown {
+            font-family: 'Montserrat';
+            font-weight: 700;
+            font-size: 1.1em;
+            color: var(--primary);
+            padding: 12px 30px;
+            border: 2px solid var(--primary);
+            border-radius: 50px;
+            background: white;
+            cursor: pointer;
+            outline: none;
+            transition: 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%230056b3%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px top 50%;
+            background-size: 12px auto;
+            padding-right: 40px;
+        }
+        .year-dropdown:hover, .year-dropdown:focus {
+            border-color: var(--accent);
+            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.2);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .video-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
+            cursor: pointer;
+            border: 1px solid #e2e8f0;
+        }
+
+        .video-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .video-img-wrapper {
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            position: relative;
+            background: #000;
+        }
+
+        .video-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.8;
+            transition: transform 0.5s, opacity 0.3s;
+        }
+
+        .video-card:hover .video-img-wrapper img {
+            transform: scale(1.05);
+            opacity: 0.5;
+        }
+
+        /* Play Button Overlay */
+        .play-icon {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px; height: 60px;
+            background: rgba(255, 140, 0, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .play-icon::after {
+            content: '';
+            width: 0; height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-left: 16px solid white;
+            margin-left: 4px;
+        }
+
+        .video-card:hover .play-icon {
+            background: var(--primary);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        .video-info { padding: 20px; }
+        .video-info h3 { font-family: 'Montserrat'; font-size: 1.1em; color: var(--primary); margin-bottom: 5px; line-height: 1.3; }
+        .video-info p { font-size: 0.85em; color: var(--text-muted); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .level-tag { background: #f1f5f9; padding: 4px 10px; border-radius: 4px; color: var(--accent); font-weight: 800; font-size: 0.85em; text-transform: uppercase; }
+
+        /* --- Video Modal (Theater Mode) --- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); z-index: 10000;
+            justify-content: center; align-items: center; padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-content {
+            width: 100%; max-width: 900px;
+            background: #000; border-radius: 8px; overflow: hidden;
+            position: relative; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+
+        .close-modal {
+            position: absolute; top: -40px; right: 0;
+            color: white; font-size: 2em; cursor: pointer;
+            font-weight: bold; font-family: 'Montserrat'; transition: 0.2s;
+        }
+        
+        .close-modal:hover { color: var(--accent); }
+
+        .video-responsive {
+            position: relative; padding-bottom: 56.25%; /* 16:9 Aspect Ratio */ height: 0; overflow: hidden;
+        }
+        
+        .video-responsive iframe {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
+
+    <header class="page-header">
+        <h1>Video Archive</h1>
+        <p>Watch live streams, highlights, and historic moments from the track.</p>
+    </header>
+
+    <div class="gallery-container">
+        <div class="filter-container">
+            <select id="videoYearFilter" class="year-dropdown" onchange="filterVideos()">
+                </select>
+        </div>
+
+        <div class="grid" id="videoGrid">
+            </div>
+    </div>
+
+    <div class="modal-overlay" id="videoModal" onclick="closeModal(event)">
+        <div style="position: relative; width: 100%; max-width: 900px;">
+            <span class="close-modal" onclick="closeModal(null, true)">&times;</span>
+            <div class="modal-content">
+                <div class="video-responsive">
+                    <iframe id="ytPlayer" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock Database of Videos (Using YouTube Video IDs)
+        const videos = [
+            { 
+                title: "Live Stream: State Meet for Relay Teams (Day 1)", 
+                date: "March 2026", 
+                categoryYear: "2026", 
+                level: "State",
+                ytId: "dQw4w9WgXcQ", // Replace with real TAA video IDs later
+                thumbnail: "https://images.unsplash.com/photo-1530549387634-e797ca3501a3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+            },
+            { 
+                title: "100m Sprint Finals - Junior Athletics Championships", 
+                date: "February 2026", 
+                categoryYear: "2026", 
+                level: "State",
+                ytId: "dQw4w9WgXcQ",
+                thumbnail: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+            },
+            { 
+                title: "Highlights: National Inter-State Seniors", 
+                date: "December 2025", 
+                categoryYear: "2025", 
+                level: "National",
+                ytId: "dQw4w9WgXcQ",
+                thumbnail: "https://images.unsplash.com/photo-1552674605-15c2145f8ca4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+            },
+            { 
+                title: "Cross Country Trials Full Broadcast", 
+                date: "November 2025", 
+                categoryYear: "2025", 
+                level: "State",
+                ytId: "dQw4w9WgXcQ",
+                thumbnail: "https://images.unsplash.com/photo-1571008887538-b361663f4f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+            }
+        ];
+
+        // Populate the 2000-2100 dropdown
+        function populateVideoYears() {
+            let options = "";
+            const currentYear = 2026; 
+            for (let yr = 2000; yr <= 2100; yr++) {
+                const selected = (yr === currentYear) ? "selected" : "";
+                options += `<option value="${yr}" ${selected}>Season: ${yr}</option>`;
+            }
+            document.getElementById('videoYearFilter').innerHTML = options;
+        }
+
+        // Filter Grid based on selected year
+        function filterVideos() {
+            const selectedYear = document.getElementById('videoYearFilter').value;
+            const grid = document.getElementById('videoGrid');
+            grid.innerHTML = '';
+
+            const filteredVideos = videos.filter(video => video.categoryYear === selectedYear);
+
+            if (filteredVideos.length === 0) {
+                grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #64748b; font-weight: 700; font-size: 1.2em; padding: 40px 0;">No broadcasts published for this season yet.</p>';
+                return;
+            }
+
+            filteredVideos.forEach(video => {
+                grid.innerHTML += `
+                    <div class="video-card" onclick="playVideo('${video.ytId}')">
+                        <div class="video-img-wrapper">
+                            <img src="${video.thumbnail}" alt="${video.title}" onerror="this.src='https://via.placeholder.com/800x450?text=Video+Thumbnail'">
+                            <div class="play-icon"></div>
+                        </div>
+                        <div class="video-info">
+                            <h3>${video.title}</h3>
+                            <p>
+                                <span>📅 ${video.date}</span>
+                                <span class="level-tag">${video.level}</span>
+                            </p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Modal Video Player Logic
+        function playVideo(ytId) {
+            const modal = document.getElementById('videoModal');
+            const iframe = document.getElementById('ytPlayer');
+            // Adding ?autoplay=1 to start the video instantly when the modal opens
+            iframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=1`;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal(event, forceClose = false) {
+            const modal = document.getElementById('videoModal');
+            // Close if they click the "X" button OR if they click outside the video
+            if (forceClose || event.target === modal) {
+                modal.style.display = 'none';
+                document.getElementById('ytPlayer').src = ""; // Clears the src to stop audio from playing in the background
+            }
+        }
+
+        // Initialize Page
+        window.onload = () => {
+            populateVideoYears();
+            filterVideos();
+        };
+
+    </script>
+</body>
+</html>

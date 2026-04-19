@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Rankings & Leaderboards - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script src="event-master.js"></script>
+
+    <style>
+        :root {
+            --primary: #0056b3;
+            --accent: #FF8C00;
+            --white: #ffffff;
+            --bg-light: #f8fafc;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --gold: #fbbf24;
+            --silver: #cbd5e1;
+            --bronze: #b45309;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: 'Open Sans', sans-serif; 
+            background: var(--bg-light); 
+            color: var(--text-dark); 
+            line-height: 1.6;
+        }
+
+        /* --- Page Header --- */
+        .page-header {
+            background: linear-gradient(rgba(0, 26, 53, 0.85), rgba(0, 86, 179, 0.9)), url('https://images.unsplash.com/photo-1461896836934-ffe607ba8211?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80') center/cover;
+            padding: 80px 20px;
+            text-align: center;
+            color: var(--white);
+            border-bottom: 5px solid var(--accent);
+        }
+        .page-header h1 { font-family: 'Montserrat'; font-weight: 900; font-size: 3.2em; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; text-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .page-header p { font-size: 1.1em; font-weight: 600; opacity: 0.9; max-width: 700px; margin: 0 auto; }
+
+        /* --- Main Container --- */
+        .rankings-container { max-width: 1300px; margin: -40px auto 50px; padding: 0 20px; position: relative; z-index: 10; }
+
+        /* --- Tabs --- */
+        .tabs-wrapper { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); flex-wrap: wrap; }
+        .tab-btn { padding: 12px 30px; background: transparent; border: 2px solid transparent; color: var(--text-muted); border-radius: 8px; font-family: 'Montserrat'; font-weight: 800; font-size: 0.9em; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+        .tab-btn:hover { color: var(--primary); background: #f1f5f9; }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(0, 86, 179, 0.3); }
+        .tab-content { display: none; animation: fadeIn 0.4s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- Leaderboard Card & Table --- */
+        .leaderboard-card { background: white; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid var(--border); }
+        .leaderboard-header { background: #f8fafc; padding: 20px 30px; border-bottom: 2px solid var(--border); display: flex; flex-direction: column; gap: 15px; }
+        .leaderboard-header h2 { font-family: 'Montserrat'; color: var(--primary); font-size: 1.4em; }
+
+        /* --- Powerful Filter Row with Labels --- */
+        .filter-row { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; background: white; padding: 20px; border-radius: 8px; border: 1px solid var(--border); }
+        .filter-group { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+        .filter-group label { font-size: 0.7em; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .filter-input, .filter-select { padding: 10px 15px; border-radius: 6px; border: 1px solid #cbd5e1; font-family: 'Montserrat'; font-weight: 700; color: var(--primary); outline: none; width: 100%; font-size: 0.85em; }
+        .filter-input { font-family: 'Open Sans'; color: var(--text-dark); font-weight: 600; min-width: 220px; }
+        .filter-input::placeholder { color: #94a3b8; font-weight: 400; }
+        .filter-input:focus, .filter-select:focus { border-color: var(--accent); }
+        
+        .btn-search { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 6px; font-weight: 800; font-family: 'Montserrat'; cursor: pointer; transition: 0.2s; text-transform: uppercase; white-space: nowrap; font-size: 0.85em; box-shadow: 0 4px 10px rgba(0, 86, 179, 0.2); height: 43px; }
+        .btn-search:hover { background: #004494; transform: translateY(-2px); }
+
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        th { text-align: left; padding: 18px 20px; background: white; color: var(--text-muted); font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid var(--border); }
+        td { padding: 18px 20px; border-bottom: 1px solid #f1f5f9; font-size: 0.95em; vertical-align: middle; font-weight: 600; color: var(--text-dark); }
+        tr:hover td { background: #f8fafc; }
+
+        /* CLICKABLE ROW STYLE */
+        .clickable-row { cursor: pointer; transition: background 0.2s; }
+        .clickable-row:hover td { background: #e0f2fe; }
+
+        /* --- Top 3 Styling --- */
+        .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 35px; height: 35px; border-radius: 50%; font-family: 'Montserrat'; font-weight: 900; font-size: 1.1em; background: #e2e8f0; color: #475569; }
+        tr.rank-1 .rank-badge { background: var(--gold); color: white; box-shadow: 0 0 15px rgba(251, 191, 36, 0.5); }
+        tr.rank-2 .rank-badge { background: var(--silver); color: #334155; }
+        tr.rank-3 .rank-badge { background: var(--bronze); color: white; }
+
+        .score-highlight { font-family: 'Montserrat'; font-size: 1.2em; font-weight: 900; color: var(--accent); }
+        .points-highlight { font-family: 'Montserrat'; font-size: 1.1em; font-weight: 800; color: var(--primary); }
+
+        .uid-text { font-family: monospace; color: var(--text-muted); font-size: 0.85em; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+        .badge { padding: 4px 10px; border-radius: 50px; font-size: 0.75em; font-weight: 800; text-transform: uppercase; }
+        .bg-blue { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+        .meas-tag { font-size: 0.65em; vertical-align: top; margin-left: 2px; color: #64748b; background: #e2e8f0; padding: 2px 4px; border-radius: 3px; }
+        
+        .empty-state { text-align: center; padding: 50px; color: var(--text-muted); font-weight: 700; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
+
+    <header class="page-header">
+        <h1>Global Leaderboards</h1>
+        <p>Official rankings for Athletes, Coaches, and Districts based on performance metrics and World Athletics scoring.</p>
+    </header>
+
+    <div class="rankings-container">
+        
+        <div class="tabs-wrapper">
+            <button class="tab-btn active" onclick="switchLeaderboard('athletes', this)">🏃 Top Athletes</button>
+            <button class="tab-btn" onclick="switchLeaderboard('coaches', this)">📋 Top Coaches</button>
+            <button class="tab-btn" onclick="switchLeaderboard('districts', this)">📍 Top Districts</button>
+        </div>
+
+        <div id="tab-athletes" class="tab-content active">
+            <div class="leaderboard-card">
+                <div class="leaderboard-header">
+                    <h2>Top Ranked Athletes</h2>
+                    
+                    <div class="filter-row">
+                        <div class="filter-group" style="flex-grow: 2;">
+                            <label>Search Athlete</label>
+                            <input type="text" id="searchString" class="filter-input" placeholder="Name or AFI UID...">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label>Gender</label>
+                            <select id="rankGender" class="filter-select" onchange="updateEventDropdown()">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label>Age Group</label>
+                            <select id="rankAge" class="filter-select" onchange="updateEventDropdown()">
+                                <option value="Seniors">Seniors (20+)</option>
+                                <option value="U-23">Under 23</option>
+                                <option value="U-20">Under 20</option>
+                                <option value="U-18">Under 18</option>
+                                <option value="U-16">Under 16</option>
+                                <option value="U-14">Under 14</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label>Event</label>
+                            <select id="rankEvent" class="filter-select">
+                                <option value="All">All Events</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label>Measurement</label>
+                            <select id="rankMeas" class="filter-select">
+                                <option value="All">All Timing</option>
+                                <option value="Electronic">Electronic (FAT)</option>
+                                <option value="Hand">Hand (HT)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group" style="flex-grow: 0;">
+                            <button class="btn-search" onclick="generateAthleteRankings()">🔍 Search</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 70px;">Rank</th>
+                                <th>Athlete Name & District</th>
+                                <th>Competition Name</th>
+                                <th>Venue & Date</th>
+                                <th>Performance</th>
+                                <th>Position</th>
+                                <th>Total Points</th>
+                            </tr>
+                        </thead>
+                        <tbody id="athletesLeaderboardBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+            <p style="text-align:center; margin-top:15px; font-size:0.8em; color:var(--text-muted); font-weight:600;">* Note: "All Events" view ranks athletes by their Total Points within their specific age/gender category. Click any athlete row to view their full public profile.</p>
+        </div>
+
+        <div id="tab-coaches" class="tab-content">
+            <div class="leaderboard-card">
+                <div class="leaderboard-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <h2>State Coach Rankings</h2>
+                        <div class="filter-group" style="max-width: 200px;">
+                            <select class="filter-select">
+                                <option>2026 Season</option>
+                                <option>All-Time</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th style="width: 80px;">Rank</th><th>Coach Name & UID</th><th>Academy / Base</th><th>Linked Athletes</th><th>Total Points</th></tr></thead>
+                        <tbody id="coachesLeaderboardBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-districts" class="tab-content">
+            <div class="leaderboard-card">
+                <div class="leaderboard-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <h2>District Championship Standings</h2>
+                        <div class="filter-group" style="max-width: 200px;">
+                            <select class="filter-select">
+                                <option>2026 Season</option>
+                                <option>2025 Season</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th style="width: 80px;">Rank</th><th>District Name</th><th>Gold 🥇</th><th>Silver 🥈</th><th>Bronze 🥉</th><th>Total Score</th></tr></thead>
+                        <tbody id="districtsLeaderboardBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchLeaderboard(tabId, btnElement) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            btnElement.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        const eventDatabase = {
+            "Seniors": ["100m", "200m", "400m", "800m", "1500m", "5000m", "10000m", "Long Jump", "High Jump", "Shot Put", "Javelin Throw"],
+            "U-23": ["100m", "200m", "400m", "800m", "1500m", "5000m", "10000m", "Long Jump", "High Jump", "Shot Put", "Javelin Throw"],
+            "U-20": ["100m", "200m", "400m", "800m", "1500m", "5000m", "10000m", "Long Jump", "High Jump", "Shot Put", "Javelin Throw"],
+            "U-18": ["100m", "200m", "400m", "800m", "1500m", "3000m", "Long Jump", "High Jump", "Shot Put", "Javelin Throw"],
+            "U-16": ["100m", "300m", "800m", "2000m", "Long Jump", "High Jump", "Shot Put", "Javelin Throw"],
+            "U-14": ["60m", "600m", "Long Jump", "High Jump", "Shot Put", "Kids Javelin"]
+        };
+
+        function updateEventDropdown() {
+            const ageGroup = document.getElementById('rankAge').value;
+            const eventDropdown = document.getElementById('rankEvent');
+            const currentSelection = eventDropdown.value;
+            eventDropdown.innerHTML = '<option value="All">All Events</option>';
+            let eventsToLoad = eventDatabase[ageGroup] || [];
+            eventsToLoad.forEach(ev => {
+                const isSelected = (ev === currentSelection) ? "selected" : "";
+                eventDropdown.innerHTML += `<option value="${ev}" ${isSelected}>${ev}</option>`;
+            });
+        }
+
+        function getCategory(dobStr) {
+            if(!dobStr) return "Seniors";
+            const birthYear = new Date(dobStr).getFullYear();
+            const age = 2026 - birthYear; 
+            if (age <= 14) return "U-14";
+            if (age <= 16) return "U-16";
+            if (age <= 18) return "U-18";
+            if (age <= 20) return "U-20";
+            if (age <= 23) return "U-23";
+            return "Seniors";
+        }
+
+        function generateAthleteRankings() {
+            const searchStr = document.getElementById('searchString').value.trim().toLowerCase();
+            const genderFilter = document.getElementById('rankGender').value;
+            const ageFilter = document.getElementById('rankAge').value;
+            const eventFilter = document.getElementById('rankEvent').value;
+            const measFilter = document.getElementById('rankMeas').value;
+            
+            const tbody = document.getElementById('athletesLeaderboardBody');
+
+            const mockAthletes = [
+                { uid: "AFI20261001", name: "Rahul Kumar", gender: "Male", dob: "2004-05-12", dist: "Hyderabad", event: "100m", perf: "10.42", meas: "Electronic", comp: "State Athletics Championships", venue: "Hanumakonda", date: "Mar 2026", pos: "1st", points: 1120 },
+                { uid: "AFI102", name: "Arjun Singh", gender: "Male", dob: "2005-08-20", dist: "Warangal", event: "100m", perf: "10.65", meas: "Electronic", comp: "State Meet for Relay Teams", venue: "Jangaon", date: "Feb 2026", pos: "2nd", points: 1050 },
+                { uid: "AFI103", name: "Ravi Teja", gender: "Male", dob: "2008-01-15", dist: "Nizamabad", event: "100m", perf: "10.90", meas: "Hand", comp: "Junior Athletics Championships", venue: "Hyderabad", date: "Mar 2026", pos: "1st", points: 980 },
+                { uid: "AFI104", name: "Sneha Reddy", gender: "Female", dob: "2003-11-05", dist: "Ranga Reddy", event: "100m", perf: "11.85", meas: "Electronic", comp: "State Athletics Championships", venue: "Hanumakonda", date: "Mar 2026", pos: "1st", points: 1090 },
+                { uid: "AFI105", name: "Priya Rao", gender: "Female", dob: "1998-09-10", dist: "Hyderabad", event: "Long Jump", perf: "6.12", meas: "N/A", comp: "National Inter-State", venue: "Delhi", date: "Dec 2025", pos: "3rd", points: 1045 },
+                { uid: "AFI106", name: "Karthik Raj", gender: "Male", dob: "1999-03-22", dist: "Karimnagar", event: "Long Jump", perf: "7.85", meas: "N/A", comp: "State Athletics Championships", venue: "Hanumakonda", date: "Mar 2026", pos: "1st", points: 1105 },
+                { uid: "AFI107", name: "Manoj Yadav", gender: "Male", dob: "2004-12-01", dist: "Medchal", event: "Shot Put", perf: "18.45", meas: "N/A", comp: "Junior Athletics Championships", venue: "Hyderabad", date: "Feb 2026", pos: "1st", points: 1075 },
+                { uid: "AFI108", name: "Ananya Sharma", gender: "Female", dob: "2005-06-18", dist: "Warangal", event: "400m", perf: "53.40", meas: "Electronic", comp: "South Zone Junior Athletics", venue: "Chennai", date: "Aug 2025", pos: "2nd", points: 1130 },
+                { uid: "AFI109", name: "Vijay Kumar", gender: "Male", dob: "2001-02-11", dist: "Hyderabad", event: "400m", perf: "46.20", meas: "Hand", comp: "State Athletics Championships", venue: "Hanumakonda", date: "Mar 2026", pos: "1st", points: 1150 },
+                { uid: "AFI110", name: "Ramesh Singh", gender: "Male", dob: "1996-07-14", dist: "Khammam", event: "100m", perf: "10.35", meas: "Electronic", comp: "State Athletics Championships", venue: "Hanumakonda", date: "Mar 2026", pos: "1st", points: 1180 }
+            ];
+
+            let filtered = mockAthletes.filter(a => {
+                const ageCat = getCategory(a.dob);
+                const isTrackEvent = a.event.includes("m");
+                
+                const passSearch = (searchStr === "") || a.name.toLowerCase().includes(searchStr) || a.uid.toLowerCase().includes(searchStr);
+                const passGender = (a.gender === genderFilter); 
+                const passAge = (ageCat === ageFilter); 
+                const passEvent = (eventFilter === "All") || (a.event === eventFilter);
+                const passMeas = (measFilter === "All") || (!isTrackEvent) || (a.meas === measFilter);
+                
+                return passSearch && passGender && passAge && passEvent && passMeas;
+            });
+
+            filtered.sort((a, b) => {
+                if (eventFilter === "All") {
+                    return b.points - a.points; 
+                } else {
+                    const valA = parseFloat(a.perf);
+                    const valB = parseFloat(b.perf);
+                    const isTrack = eventFilter.includes("m");
+                    return isTrack ? (valA - valB) : (valB - valA);
+                }
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No performance records found matching your search and filters.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((a, i) => {
+                const rank = i + 1;
+                const isTrackEvent = a.event.includes("m");
+                const unit = isTrackEvent ? "s" : "m";
+                
+                let measBadge = "";
+                if (isTrackEvent && a.meas !== "N/A") {
+                    measBadge = a.meas === "Electronic" ? `<span class="meas-tag" title="Electronic Timing">FAT</span>` : `<span class="meas-tag" title="Hand Timing">HT</span>`;
+                }
+
+                // HERE IS THE FIX: Added &ref=rankings to the URL!
+                return `<tr class="${rank <= 3 ? `rank-${rank}` : ''} clickable-row" onclick="window.location.href='profile-view.html?uid=${a.uid}&ref=rankings'" title="View Public Profile">
+                    <td><span class="rank-badge">${rank}</span></td>
+                    <td>
+                        <div style="font-weight: 800; color: var(--primary);">${a.name}</div>
+                        <div style="font-size:0.8em; color:#64748b; font-weight:700; text-transform:uppercase;">${a.uid} • 📍 ${a.dist}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:700; color:var(--text-dark);">${a.comp}</div>
+                        <span class="badge" style="background:#f1f5f9; color:#64748b; padding: 2px 6px; font-size:0.7em;">${getCategory(a.dob)} ${a.gender} • ${a.event}</span>
+                    </td>
+                    <td>
+                        <div style="font-size:0.9em; font-weight:700;">${a.venue}</div>
+                        <div style="font-size:0.8em; color:#64748b;">📅 ${a.date}</div>
+                    </td>
+                    <td class="score-highlight">${a.perf}${unit}${measBadge}</td>
+                    <td><span class="badge bg-blue">${a.pos}</span></td>
+                    <td class="points-highlight">${a.points} pts</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function generateCoachRankings() {
+            const db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+            const tbody = document.getElementById('coachesLeaderboardBody');
+            
+            const coaches = db.filter(u => u.regType === "Coach" || u.role === "Coach");
+            let leaderboardData = [];
+
+            coaches.forEach(coach => {
+                const linkedAthletes = db.filter(a => 
+                    (a.regType === "Athlete" || a.role === "Athlete") && 
+                    (a.current_coach_id || "").toUpperCase() === (coach.afi_uid || "").toUpperCase()
+                );
+                
+                let calculatedScore = linkedAthletes.length > 0 ? (linkedAthletes.length * 1000) + Math.floor(Math.random() * 500) : 0;
+                
+                leaderboardData.push({
+                    name: `${coach.first_name} ${coach.last_name || ''}`.trim(),
+                    uid: coach.afi_uid,
+                    academy: coach.academy || coach.district || "Independent",
+                    athletes: linkedAthletes.length,
+                    score: calculatedScore
+                });
+            });
+
+            const mockCoaches = [
+                { name: "Ramesh Babu", uid: "AFI-C-901", academy: "Sports Authority of Telangana", score: 8450, athletes: 12 },
+                { name: "Sunil Kumar", uid: "AFI-C-882", academy: "GMC Balayogi Stadium", score: 7200, athletes: 8 },
+                { name: "P. V. Sindhu Coaching", uid: "AFI-C-455", academy: "Gachibowli Athletics", score: 6850, athletes: 9 },
+                { name: "Md. Ali", uid: "AFI-C-334", academy: "Warangal Track Club", score: 4100, athletes: 5 },
+            ];
+
+            leaderboardData = [...leaderboardData, ...mockCoaches]
+                .filter(c => c.score > 0)
+                .sort((a, b) => b.score - a.score);
+
+            tbody.innerHTML = leaderboardData.map((coach, index) => {
+                const rank = index + 1;
+                return `<tr class="${rank <= 3 ? `rank-${rank}` : ''}">
+                    <td><span class="rank-badge">${rank}</span></td>
+                    <td><div style="font-weight: 800; color: var(--primary);">${coach.name}</div><span class="uid-text">${coach.uid}</span></td>
+                    <td>${coach.academy}</td>
+                    <td>${coach.athletes} Verified</td>
+                    <td class="score-highlight">${coach.score.toLocaleString()} pts</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function generateDistrictRankings() {
+            const tbody = document.getElementById('districtsLeaderboardBody');
+            
+            const data = [
+                { name: "Hyderabad", gold: 12, silver: 8, bronze: 5, score: 18500 },
+                { name: "Ranga Reddy", gold: 9, silver: 11, bronze: 6, score: 14200 },
+                { name: "Warangal", gold: 7, silver: 5, bronze: 9, score: 11650 },
+                { name: "Karimnagar", gold: 4, silver: 6, bronze: 4, score: 8110 },
+                { name: "Medchal", gold: 3, silver: 4, bronze: 2, score: 5400 }
+            ];
+            
+            data.sort((a, b) => b.score - a.score);
+
+            tbody.innerHTML = data.map((d, i) => {
+                const rank = i + 1;
+                return `<tr class="${rank <= 3 ? `rank-${rank}` : ''}">
+                    <td><span class="rank-badge">${rank}</span></td>
+                    <td style="font-weight: 800; font-size: 1.1em; color: var(--primary);">${d.name}</td>
+                    <td style="font-weight: 800;">${d.gold}</td><td style="font-weight: 800;">${d.silver}</td><td style="font-weight: 800;">${d.bronze}</td>
+                    <td class="score-highlight">${d.score.toLocaleString()} pts</td>
+                </tr>`;
+            }).join('');
+        }
+
+        window.onload = () => {
+            updateEventDropdown(); 
+            generateAthleteRankings();
+            generateCoachRankings();
+            generateDistrictRankings();
+        };
+    </script>
+</body>
+</html>

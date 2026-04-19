@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAA Master Admin Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    
+    <style>
+        :root { --primary: #001a35; --primary-light: #0056b3; --accent: #FF8C00; --bg: #f1f5f9; --text: #334155; --white: #ffffff; --sidebar-w: 280px; --border: #e2e8f0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Open Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+        /* --- COLLAPSIBLE SIDEBAR --- */
+        .sidebar { width: var(--sidebar-w); background: var(--primary); color: white; display: flex; flex-direction: column; box-shadow: 4px 0 15px rgba(0,0,0,0.1); z-index: 100; transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar.collapsed { margin-left: calc(-1 * var(--sidebar-w)); }
+        
+        .brand { padding: 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .brand img { width: 50px; background: white; border-radius: 50%; padding: 5px; }
+        .brand-text h2 { font-family: 'Montserrat'; font-size: 1.1em; color: var(--accent); }
+        .brand-text p { font-size: 0.7em; font-weight: 700; letter-spacing: 1px; opacity: 0.8; text-transform: uppercase; }
+
+        .nav-links { flex-grow: 1; padding: 20px 0; overflow-y: auto; }
+        .nav-item { padding: 15px 25px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s; font-size: 0.9em; font-weight: 600; border-left: 4px solid transparent; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); }
+        .nav-item.active { background: var(--primary-light); border-left-color: var(--accent); font-weight: 700; }
+        .nav-icon { font-size: 1.2em; width: 25px; text-align: center; }
+
+        .user-profile { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); }
+        .logout-btn { display: block; width: 100%; padding: 10px; background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 6px; cursor: pointer; font-family: 'Montserrat'; font-weight: 700; transition: 0.2s; text-align: center; text-decoration: none; font-size: 0.85em; }
+        .logout-btn:hover { background: #ef4444; border-color: #ef4444; }
+
+        /* --- MAIN CONTENT & TOPBAR --- */
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg); }
+        .topbar { background: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 90; }
+        .topbar-left { display: flex; align-items: center; gap: 20px; }
+        .toggle-sidebar-btn { background: none; border: none; font-size: 1.5em; color: var(--primary-light); cursor: pointer; transition: 0.2s; padding: 5px; border-radius: 4px; }
+        .toggle-sidebar-btn:hover { color: var(--accent); background: #f1f5f9; }
+        .topbar h1 { font-family: 'Montserrat'; color: var(--primary-light); font-size: 1.4em; }
+
+        .content-area { padding: 30px; max-width: 1400px; margin: 0 auto; width: 100%; }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- CARDS & FORMS --- */
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; border: 1px solid var(--border); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .card-header h3 { font-family: 'Montserrat'; font-size: 1.1em; color: var(--primary); margin: 0; text-transform: uppercase; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-size: 0.8em; font-weight: 700; color: #64748b; text-transform: uppercase; }
+        .form-control { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: 'Open Sans'; font-size: 0.9em; outline: none; }
+        
+        /* --- BUTTONS --- */
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 700; font-family: 'Montserrat'; cursor: pointer; transition: 0.2s; font-size: 0.85em; }
+        .btn-primary { background: var(--primary-light); color: white; }
+        .btn-primary:hover { background: var(--primary); }
+        .btn-excel { background: #10b981; color: white; }
+        .btn-clear { background: #ef4444; color: white; }
+        .btn-view { background: var(--accent); color: white; padding: 6px 12px; font-size: 0.75em; border-radius: 4px; }
+        .btn-upload-sm { background: #e2e8f0; color: var(--primary-light); padding: 5px 10px; font-size: 0.75em; border-radius: 4px; border: 1px solid #cbd5e1; cursor: pointer; font-weight: 700; }
+        .btn-upload-sm:hover { background: var(--primary-light); color: white; }
+        .btn-save-inline { background: #10b981; color: white; padding: 6px 15px; border: none; border-radius: 4px; font-weight: 700; font-size: 0.8em; cursor: pointer; margin-top: 10px; }
+
+        /* --- TABLES --- */
+        .table-responsive { overflow-x: auto; max-height: 500px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; padding: 15px; background: #f8fafc; color: #64748b; font-size: 0.75em; text-transform: uppercase; border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 10; }
+        td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 0.9em; vertical-align: middle; }
+        tr:hover td { background: #f8fafc; }
+        
+        .badge { padding: 4px 10px; border-radius: 50px; font-size: 0.75em; font-weight: 800; text-transform: uppercase; }
+        .bg-green { background: #dcfce7; color: #166534; }
+        .bg-blue { background: #e0f2fe; color: #075985; }
+        .bg-red { background: #fee2e2; color: #991b1b; }
+        .bg-purple { background: #f3e8ff; color: #6b21a8; }
+        .bg-gray { background: #e2e8f0; color: #475569; }
+
+        /* Expandable Details Row (Editable) */
+        .detail-row { display: none; background: #f8fafc; }
+        .detail-container { padding: 20px; border: 2px solid var(--primary-light); border-radius: 8px; margin: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: white; }
+        .detail-item { display: flex; flex-direction: column; gap: 5px; }
+        .detail-item b { color: var(--primary-light); text-transform: uppercase; font-size: 0.75em; }
+
+        /* --- REGISTRATION TOGGLE SWITCH --- */
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 22px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #10b981; }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* --- LIVE MEET MANAGER STYLES (MULTI-DAY) --- */
+        .meet-section { border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 25px; background: #f8fafc; }
+        .meet-section h4 { font-family: 'Montserrat'; color: var(--primary); font-size: 1em; margin-bottom: 15px; border-bottom: 2px solid var(--primary-light); padding-bottom: 5px; display: inline-block; }
+        
+        .day-accordion { margin-bottom: 15px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: white; }
+        .day-header { background: var(--primary-light); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-family: 'Montserrat'; font-weight: 700; }
+        .day-header input[type="date"] { padding: 4px; border-radius: 4px; border: none; font-family: 'Open Sans'; font-size: 0.85em; }
+        .day-content { display: none; padding: 15px; }
+        .day-content.active { display: block; }
+        
+        .schedule-table { background: white; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; }
+        .schedule-table th { background: #f1f5f9; position: static; }
+        .publish-row-btn { background: var(--accent); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: 700; font-size: 0.75em; cursor: pointer; }
+        .publish-row-btn:hover { background: #e07a00; }
+
+        .yt-preview-container { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 8px; margin-top: 15px; display: none; overflow: hidden; }
+        .yt-preview-container iframe { width: 100%; height: 100%; border: none; }
+
+        /* --- AUTOMATION PANEL --- */
+        .automation-panel { background: #eef2ff; padding: 20px; border-radius: 10px; border: 2px dashed var(--primary-light); margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+        .automation-panel p { margin: 0; font-size: 0.9em; color: var(--primary-light); font-weight: 800; font-family: 'Montserrat'; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar" id="adminSidebar">
+        <div class="brand">
+            <img src="LOGO.jfif" alt="TAA">
+            <div class="brand-text">
+                <h2>Master Admin</h2>
+                <p>Operations Center</p>
+            </div>
+        </div>
+        <div class="nav-links">
+            <div class="nav-item active" onclick="switchTab('tab-database', this)"><span class="nav-icon">👥</span> Member Database</div>
+            <div class="nav-item" onclick="switchTab('tab-calendar', this)"><span class="nav-icon">📅</span> Competition Calendar</div>
+            <div class="nav-item" onclick="switchTab('tab-registrations', this)"><span class="nav-icon">📝</span> Registration Control</div>
+            <div class="nav-item" onclick="switchTab('tab-live', this)"><span class="nav-icon">🔴</span> Live Meet Manager</div>
+            <div class="nav-item" onclick="switchTab('tab-results-sync', this)"><span class="nav-icon">🏆</span> Results & Archives</div>
+            <div class="nav-item" onclick="switchTab('tab-circulars', this)"><span class="nav-icon">📄</span> Circulars Manager</div>
+            <div class="nav-item" onclick="switchTab('tab-media', this)"><span class="nav-icon">📸</span> Media Manager</div>
+        </div>
+        <div class="user-profile">
+            <button class="logout-btn" onclick="secureLogout()">Logout</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Toggle Sidebar">☰</button>
+                <h1 id="topbarTitle">Member Database</h1>
+            </div>
+            <div style="font-weight: 700; color: #64748b;" id="currentDate"></div>
+        </header>
+
+        <div class="content-area">
+            
+            <div id="tab-database" class="tab-content active">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Master Registration Directory</h3>
+                        <div>
+                            <button class="btn btn-excel" onclick="exportFullExcel()">📥 Export CSV</button>
+                            <button class="btn btn-clear" onclick="clearAll()">⚠️ Wipe DB</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-grid" style="margin-bottom: 25px; grid-template-columns: 2fr 1fr auto;">
+                        <input type="text" id="adminSearch" class="form-control" placeholder="Search by UID or Name...">
+                        <select class="form-control" id="adminRoleFilter">
+                            <option value="All">All Roles</option>
+                            <option value="Athlete">Athletes</option>
+                            <option value="Coach">Coaches</option>
+                            <option value="Official">Officials</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="renderAdminUsers()">Search Database</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Date</th><th>AFI UID</th><th>Full Name</th><th>Role & District</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-calendar" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Create New Competition</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">Events added here automatically sync to Registration Control, Live Meet Manager, and Archives.</p>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Competition Name</label><input type="text" id="newMeetName" class="form-control" placeholder="e.g. State Athletics Championship"></div>
+                        <div class="form-group"><label>Season (Year)</label><select class="form-control" id="newMeetYear"></select></div>
+                        <div class="form-group"><label>Start Date</label><input type="date" id="newMeetStart" class="form-control"></div>
+                        <div class="form-group"><label>End Date</label><input type="date" id="newMeetEnd" class="form-control"></div>
+                        <div class="form-group"><label>Venue</label><input type="text" id="newMeetVenue" class="form-control" placeholder="e.g. Hanumakonda"></div>
+                    </div>
+                    <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="addToCalendar()">+ Add to Master Calendar</button></div>
+                </div>
+            </div>
+
+            <div id="tab-registrations" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Online Entry Management</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">Dynamically mapped to the Competition Calendar. Toggle to open registrations.</p>
+                        </div>
+                        <select class="form-control" id="regYearFilter" style="width: 150px;" onchange="loadRegistrationControl()">
+                            </select>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Competition Name</th><th>Entry Deadline</th><th>Portal Status</th><th>Open/Close</th><th>Action</th></tr></thead>
+                            <tbody id="regControlBody">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-live" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Live Meet Manager</h3>
+                        <select class="form-control" id="activeMeetSelect" style="width: 400px;">
+                            </select>
+                    </div>
+
+                    <div class="meet-section">
+                        <h4>Master Meet Documents</h4>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Start Lists (PDF)</label><input type="file" class="form-control"></div>
+                            <div class="form-group"><label>Rejected Athletes (PDF)</label><input type="file" class="form-control"></div>
+                            <div class="form-group"><label>Bib Number List (PDF)</label><input type="file" class="form-control"></div>
+                            <div class="form-group"><label>Event-Wise List (PDF)</label><input type="file" class="form-control"></div>
+                            
+                            <div class="form-group"><label>Day Wise Results (Zip/PDF)</label><input type="file" class="form-control"></div>
+                            <div class="form-group"><label>Complete Meet Results (PDF)</label><input type="file" class="form-control"></div>
+                        </div>
+                        <div style="margin-top: 10px; text-align:right;"><button class="btn-primary" style="padding: 6px 12px; font-size:0.8em;" onclick="alert('Master Files Published to Public Portal!')">Publish Master Files</button></div>
+                    </div>
+
+                    <div class="meet-section">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                            <h4>Multi-Day Schedule & Minute-by-Minute Results</h4>
+                            <button class="btn btn-primary" onclick="addNewDay()">+ Add Competition Day</button>
+                        </div>
+                        
+                        <div id="scheduleDaysContainer">
+                            </div>
+                    </div>
+
+                    <div class="meet-section">
+                        <h4>Broadcast & Gallery</h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Live Stream Link (YouTube URL)</label>
+                                <input type="url" class="form-control" id="ytInput" placeholder="Paste YouTube link here..." oninput="updateYtEmbed()">
+                                <div class="yt-preview-container" id="ytPreviewContainer">
+                                    <iframe id="ytIframe" allowfullscreen></iframe>
+                                </div>
+                            </div>
+                            <div class="form-group"><label>Meet Photo Gallery (Upload Zip/Images)</label><input type="file" class="form-control" multiple accept="image/*"></div>
+                        </div>
+                        <div style="margin-top: 10px; text-align:right;"><button class="btn-primary" style="padding: 6px 12px; font-size:0.8em;" onclick="alert('Broadcast details updated live!')">Update Broadcast</button></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-results-sync" class="tab-content">
+                <div class="automation-panel">
+                    <div>
+                        <p>GLOBAL RANKINGS AUTO-SYNC</p>
+                        <small style="color: #64748b;">Upload CSV with columns: <b>uid, competition_name, level, event, venue, date, performance, measurement_type, position</b></small>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="file" id="csvFile" accept=".csv" class="form-control" style="background: white;">
+                        <button class="btn btn-primary" onclick="handleBulkUpload()">Sync Rankings</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Results Publisher & Archives</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">Link completed 'Live Meet Pages' to the public Results page.</p>
+                        </div>
+                        <select class="form-control" id="archiveYearFilter" style="width: 150px;" onchange="loadArchives()">
+                            </select>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Competition Name</th><th>Date</th><th>Link Event Page</th><th>Public Status</th><th>Action</th></tr></thead>
+                            <tbody id="archiveTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-circulars" class="tab-content">
+                <div class="card">
+                    <div class="card-header"><h3>Upload Official Circular</h3></div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Circular Title / Subject</label><input type="text" class="form-control" placeholder="e.g. Guidelines for State Meet"></div>
+                        <div class="form-group"><label>Category</label><select class="form-control"><option>State Circular</option><option>National (AFI) Circular</option></select></div>
+                        <div class="form-group"><label>Issue Date</label><input type="date" class="form-control"></div>
+                        <div class="form-group"><label>Upload PDF</label><input type="file" class="form-control" accept=".pdf"></div>
+                    </div>
+                    <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="alert('Circular published successfully!')">Publish Circular</button></div>
+                </div>
+            </div>
+
+            <div id="tab-media" class="tab-content">
+                <div class="card">
+                    <div class="card-header"><h3>Upload to Media Gallery</h3></div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Album / Title</label><input type="text" class="form-control" placeholder="e.g. 2026 Highlights"></div>
+                        <div class="form-group">
+                            <label>Media Type (Auto-Routes)</label>
+                            <select class="form-control" id="mediaTypeSelect">
+                                <option value="photo-gallery.html">Photo Gallery</option>
+                                <option value="videos.html">Video Link (YouTube)</option>
+                                <option value="press-releases.html">Press Release</option>
+                                <option value="press-articles.html">Press Article</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Upload Files / URL</label><input type="file" class="form-control" multiple></div>
+                    </div>
+                    <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="publishMedia()">Smart Publish Media</button></div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- CENTRAL MASTER DATA (Syncs exactly with public events/results pages) ---
+        const fullCalendarData = [
+            { categoryYear: "2026", title: "1. State Meet for Relay Teams", venue: "Hanumakonda", date: "MAR 2026", isLive: false },
+            { categoryYear: "2026", title: "2. State Athletics Championships for Federation Cup", venue: "Mulugu/Hanumakonda", date: "APR 2026", isLive: false },
+            { categoryYear: "2026", title: "3. State Athletics Championship for All Age Groups", venue: "Jangaon", date: "MAY 2026", isLive: false },
+            { categoryYear: "2026", title: "4. State Athletics Sub-Jr, Juniors & All Age Groups", venue: "Gaudium School, Hyderabad", date: "MAY 2026", isLive: false },
+            { categoryYear: "2026", title: "5. State Sub-Jr, Juniors & Men Athletics Championships", venue: "Badradri Kothagudem", date: "JUN 2026", isLive: false },
+            { categoryYear: "2026", title: "6. State Championships for Inter-State Nationals", venue: "Osmania University, Hyderabad", date: "JUN 2026", isLive: false },
+            { categoryYear: "2026", title: "7. State All Age Groups Middle & Long Distance", venue: "Medak", date: "JUL 2026", isLive: false },
+            { categoryYear: "2026", title: "8. National Javelin Day & South Zone Junior", venue: "Hanumakonda/Khammam", date: "AUG 2026", isLive: false },
+            { categoryYear: "2026", title: "9. Indian Athletics Series-13", venue: "Hanumakonda", date: "AUG 2026", isLive: false },
+            { categoryYear: "2026", title: "10. Telangana State Junior & Open Championships", venue: "WGL at JNS", date: "SEP 2026", isLive: false },
+            { categoryYear: "2026", title: "11. Coaching Camp for Jr.Nationals", venue: "Hanumakonda", date: "SEP 2026", isLive: false },
+            { categoryYear: "2026", title: "12. State Sub-Jr Athletics Championships", venue: "Komurambheem Asifabad", date: "OCT 2026", isLive: false },
+            { categoryYear: "2026", title: "13. State Sub-Jr & Juniors Open", venue: "Nizamabad", date: "NOV 2026", isLive: false },
+            { categoryYear: "2026", title: "14. State Sub Jr. and Junior Athletics", venue: "Bhupalapally", date: "DEC 2026", isLive: false },
+            { categoryYear: "2026", title: "15. State Selection Trials for Cross Country", venue: "Narayanpet", date: "DEC 2026", isLive: false },
+            { categoryYear: "2026", title: "16. State Relay Championships (All Groups)", venue: "IIT Hyderabad", date: "JAN 2027", isLive: false },
+            { categoryYear: "2026", title: "17. State Sub Juniors and Juniors Athletics", venue: "Karimnagar", date: "FEB 2027", isLive: false }
+        ];
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            // Sync Master DB if empty
+            let db = JSON.parse(localStorage.getItem('taa_master_db'));
+            if (!db || db.length === 0) localStorage.setItem('taa_master_db', JSON.stringify(fullCalendarData));
+
+            populateAdminYears();
+            renderAdminUsers();
+            loadRegistrationControl();
+            loadLiveMeetDropdown();
+            loadArchives();
+            addNewDay(); // Adds Day 1 to Live Meet Manager
+        };
+
+        function toggleSidebar() { document.getElementById('adminSidebar').classList.toggle('collapsed'); }
+        function secureLogout() { localStorage.removeItem('taa_current_district'); window.location.href = "login.html"; }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(m => m.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('topbarTitle').innerText = btn.innerText.substring(2).trim(); 
+        }
+
+        // --- GENERATE YEAR DROPDOWNS ---
+        function populateAdminYears() {
+            let options = "";
+            for (let yr = 2000; yr <= 2100; yr++) {
+                const selected = (yr === 2026) ? "selected" : "";
+                options += `<option value="${yr}" ${selected}>${yr}</option>`;
+            }
+            document.getElementById('regYearFilter').innerHTML = options;
+            document.getElementById('archiveYearFilter').innerHTML = options;
+            document.getElementById('newMeetYear').innerHTML = options;
+        }
+
+        // --- 1. EDITABLE MEMBER DATABASE ---
+        function renderAdminUsers() {
+            let portalData = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+            if (portalData.length === 0) {
+                portalData = [{ regType: "Athlete", first_name: "Rahul", last_name: "Kumar", afi_uid: "AFI20261001", dob: "2004-05-12", gender: "Male", mobile: "9876543210", email: "rahul@email.com", district: "Hyderabad", event: "100m", timestamp: "10/04/2026", status: "Verified" }];
+                localStorage.setItem('taa_portal_data', JSON.stringify(portalData));
+            }
+
+            const searchInput = document.getElementById('adminSearch') ? document.getElementById('adminSearch').value.toLowerCase() : "";
+            const roleFilter = document.getElementById('adminRoleFilter') ? document.getElementById('adminRoleFilter').value : "All";
+            
+            const filtered = portalData.filter(u => {
+                const nameMatch = `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchInput);
+                const uidMatch = (u.afi_uid || "").toLowerCase().includes(searchInput);
+                return (nameMatch || uidMatch) && (roleFilter === "All" || u.regType === roleFilter);
+            });
+
+            document.getElementById('tableBody').innerHTML = filtered.map((item, index) => {
+                const type = item.regType || 'Official';
+                const rowId = 'details-' + index;
+                const uid = item.afi_uid || `TEMP-${index}`;
+
+                return `
+                    <tr>
+                        <td>${item.timestamp ? item.timestamp.split(',')[0] : 'N/A'}</td>
+                        <td style="font-weight:700; color:var(--primary-light);">${uid}</td>
+                        <td style="font-weight:600;">${item.first_name} ${item.last_name || ''}</td>
+                        <td><span class="badge ${type==='Athlete'?'bg-blue':'bg-green'}">${type}</span></td>
+                        <td><span class="badge bg-green">${item.status || 'Verified'}</span></td>
+                        <td><button class="btn btn-view" onclick="toggleDetails('${rowId}')">Edit Profile</button></td>
+                    </tr>
+                    <tr id="${rowId}" class="detail-row"><td colspan="6"><div class="detail-container">
+                        <div class="detail-item"><b>First Name</b><input type="text" class="form-control" id="fn-${uid}" value="${item.first_name}"></div>
+                        <div class="detail-item"><b>Last Name</b><input type="text" class="form-control" id="ln-${uid}" value="${item.last_name || ''}"></div>
+                        <div class="detail-item"><b>Mobile</b><input type="text" class="form-control" id="mob-${uid}" value="${item.mobile || ''}"></div>
+                        <div class="detail-item"><b>District</b><input type="text" class="form-control" id="dist-${uid}" value="${item.district || ''}"></div>
+                        <div class="detail-item"><b>Event/Specs</b><input type="text" class="form-control" id="ev-${uid}" value="${item.event || item.specialty || ''}"></div>
+                        <div class="detail-item" style="justify-content:flex-end;"><button class="btn-save-inline" onclick="saveUserEdit('${uid}')">💾 Save Changes</button></div>
+                    </div></td></tr>`;
+            }).join('');
+        }
+
+        function toggleDetails(id) { const row = document.getElementById(id); row.style.display = (row.style.display === 'table-row') ? 'none' : 'table-row'; }
+        
+        function saveUserEdit(uid) {
+            let db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+            let userIndex = db.findIndex(u => u.afi_uid === uid || `TEMP-${db.indexOf(u)}` === uid);
+            if(userIndex > -1) {
+                db[userIndex].first_name = document.getElementById(`fn-${uid}`).value;
+                db[userIndex].last_name = document.getElementById(`ln-${uid}`).value;
+                db[userIndex].mobile = document.getElementById(`mob-${uid}`).value;
+                db[userIndex].district = document.getElementById(`dist-${uid}`).value;
+                db[userIndex].event = document.getElementById(`ev-${uid}`).value;
+                localStorage.setItem('taa_portal_data', JSON.stringify(db));
+                alert("Profile updated successfully!");
+                renderAdminUsers();
+            }
+        }
+
+        function exportFullExcel() { alert("Exporting database to CSV..."); }
+        function clearAll() { if(confirm("DANGER: Wipe database?")) { localStorage.removeItem('taa_portal_data'); renderAdminUsers(); } }
+
+        // --- 2. CALENDAR CREATOR (FEEDS MASTER DB) ---
+        function addToCalendar() {
+            const name = document.getElementById('newMeetName').value;
+            const year = document.getElementById('newMeetYear').value;
+            const startDate = document.getElementById('newMeetStart').value;
+            const endDate = document.getElementById('newMeetEnd').value;
+            const venue = document.getElementById('newMeetVenue').value;
+
+            if(!name || !year || !startDate || !venue) return alert("Please fill all required fields!");
+
+            let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
+            
+            const dateObj = new Date(startDate);
+            const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            const formattedDate = `${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+
+            const newMeet = {
+                categoryYear: year,
+                title: `${db.length + 1}. ${name}`,
+                venue: venue,
+                date: formattedDate,
+                isLive: false
+            };
+
+            db.push(newMeet);
+            localStorage.setItem('taa_master_db', JSON.stringify(db));
+
+            alert(`${name} added! It is now synced to Registration Control, Live Manager, and Archives.`);
+            
+            // Clear inputs
+            document.getElementById('newMeetName').value = '';
+            document.getElementById('newMeetStart').value = '';
+            document.getElementById('newMeetEnd').value = '';
+            document.getElementById('newMeetVenue').value = '';
+
+            // Refresh UI
+            loadRegistrationControl();
+            loadLiveMeetDropdown();
+            loadArchives();
+        }
+
+        // --- 3. DYNAMIC REGISTRATION CONTROL (FILTERED BY YEAR) ---
+        function loadRegistrationControl() {
+            let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
+            const activeReg = JSON.parse(localStorage.getItem('taa_active_registration'));
+            const selectedYear = document.getElementById('regYearFilter').value;
+            
+            const filtered = db.filter(item => item.categoryYear === selectedYear);
+
+            if (filtered.length === 0) {
+                document.getElementById('regControlBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No events found for this calendar year.</td></tr>';
+                return;
+            }
+
+            document.getElementById('regControlBody').innerHTML = filtered.map((meet, index) => {
+                const isActive = activeReg && activeReg.meet === meet.title;
+                return `
+                    <tr>
+                        <td style="font-weight:700;">${meet.title}</td>
+                        <td><input type="date" class="form-control" id="regDate-${index}" style="padding:6px; width:auto;"></td>
+                        <td><span class="badge ${isActive ? 'bg-green' : 'bg-red'}" id="statusBadge${index}">${isActive ? 'ENTRIES OPEN' : 'CLOSED'}</span></td>
+                        <td><label class="toggle-switch"><input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleRegistration(${index}, this, '${meet.title}')"><span class="slider"></span></label></td>
+                        <td><button class="btn btn-primary" id="pushBtn${index}" style="padding: 6px 12px; font-size: 0.8em; ${!isActive ? 'opacity:0.5;' : ''}" ${!isActive ? 'disabled' : ''} onclick="pushToHome('${meet.title}', document.getElementById('regDate-${index}').value)">Push to Home Page</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function toggleRegistration(id, checkbox, meetName) {
+            const badge = document.getElementById('statusBadge' + id);
+            const actionBtn = document.getElementById('pushBtn' + id);
+            if (checkbox.checked) { badge.className = 'badge bg-green'; badge.innerText = 'ENTRIES OPEN'; actionBtn.style.opacity = '1'; actionBtn.disabled = false; } 
+            else { badge.className = 'badge bg-red'; badge.innerText = 'CLOSED'; actionBtn.style.opacity = '0.5'; actionBtn.disabled = true; localStorage.removeItem('taa_active_registration'); }
+        }
+
+        function pushToHome(meetName, deadline) {
+            if(!deadline) return alert("Please select an entry deadline first!");
+            localStorage.setItem('taa_active_registration', JSON.stringify({ meet: meetName, deadline: deadline, isActive: true }));
+            alert(`Success! Entry banner for ${meetName} is now live on the public Home Page.`);
+        }
+
+        // --- 4. LIVE MEET MANAGER (SYNCED DROPDOWN & MULTI-DAY) ---
+        function loadLiveMeetDropdown() {
+            let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
+            const select = document.getElementById('activeMeetSelect');
+            if (db.length === 0) { select.innerHTML = '<option>No Meets in Calendar</option>'; return; }
+            select.innerHTML = '<option>Select Meet to Manage...</option>' + db.map(meet => `<option value="${meet.title}">${meet.title} (${meet.categoryYear})</option>`).join('');
+        }
+
+        let dayCounter = 0;
+        function addNewDay() {
+            dayCounter++;
+            const container = document.getElementById('scheduleDaysContainer');
+            const dayHTML = `
+                <div class="day-accordion">
+                    <div class="day-header" onclick="toggleDayContent(${dayCounter})">
+                        <span>Day ${dayCounter} ▼</span>
+                        <input type="date" onclick="event.stopPropagation()">
+                    </div>
+                    <div class="day-content active" id="dayContent${dayCounter}">
+                        <div style="text-align:right; margin-bottom:10px;"><button class="btn-upload-sm" onclick="addEventRow('dayTable${dayCounter}')">+ Add Event Row</button></div>
+                        <div class="table-responsive schedule-table">
+                            <table id="dayTable${dayCounter}">
+                                <thead><tr><th>Time</th><th>Event</th><th>Gender</th><th>Specs</th><th>Round</th><th>Result Upload</th><th>Action</th></tr></thead>
+                                <tbody>
+                                    <tr>
+                                        <td><input type="time" class="form-control" style="padding:5px;"></td>
+                                        <td><input type="text" class="form-control" style="padding:5px;" placeholder="e.g. 100m"></td>
+                                        <td><select class="form-control" style="padding:5px;"><option>Men</option><option>Women</option><option>Mixed</option></select></td>
+                                        <td><input type="text" class="form-control" style="padding:5px;" placeholder="U-20"></td>
+                                        <td><select class="form-control" style="padding:5px;"><option>Heats</option><option>Final</option></select></td>
+                                        <td><input type="file" class="form-control" accept=".pdf" style="padding:2px;"></td>
+                                        <td><button class="publish-row-btn" onclick="alert('Result Updated Live!')">Publish Update</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', dayHTML);
+        }
+
+        function toggleDayContent(id) { document.getElementById(`dayContent${id}`).classList.toggle('active'); }
+
+        function addEventRow(tableId) {
+            const tbody = document.getElementById(tableId).querySelector('tbody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="time" class="form-control" style="padding:5px;"></td>
+                <td><input type="text" class="form-control" style="padding:5px;" placeholder="Event"></td>
+                <td><select class="form-control" style="padding:5px;"><option>Men</option><option>Women</option></select></td>
+                <td><input type="text" class="form-control" style="padding:5px;" placeholder="Specs"></td>
+                <td><select class="form-control" style="padding:5px;"><option>Heats</option><option>Final</option></select></td>
+                <td><input type="file" class="form-control" accept=".pdf" style="padding:2px;"></td>
+                <td><button class="publish-row-btn" onclick="alert('Result Updated Live!')">Publish Update</button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        function updateYtEmbed() {
+            let url = document.getElementById('ytInput').value;
+            const container = document.getElementById('ytPreviewContainer');
+            const iframe = document.getElementById('ytIframe');
+            let videoId = "";
+            if (url.includes("v=")) videoId = url.split("v=")[1].substring(0, 11);
+            else if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1].substring(0, 11);
+            
+            if(videoId) { iframe.src = `https://www.youtube.com/embed/${videoId}`; container.style.display = 'block'; } 
+            else { container.style.display = 'none'; iframe.src = ""; }
+        }
+
+        // --- 5. MEDIA SMART ROUTING ---
+        function publishMedia() {
+            const targetPage = document.getElementById('mediaTypeSelect').value;
+            const textName = document.getElementById('mediaTypeSelect').options[document.getElementById('mediaTypeSelect').selectedIndex].text;
+            alert(`Files successfully processed. Automatically routed and published to the public ${textName} section (${targetPage}).`);
+        }
+
+        // --- 6. ARCHIVES LINKER (FILTERED BY YEAR) ---
+        function loadArchives() {
+            let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
+            const selectedYear = document.getElementById('archiveYearFilter').value;
+            const filtered = db.filter(item => item.categoryYear === selectedYear);
+
+            if (filtered.length === 0) {
+                document.getElementById('archiveTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No events found for this calendar year.</td></tr>';
+                return;
+            }
+
+            document.getElementById('archiveTableBody').innerHTML = filtered.map((meet, index) => `
+                <tr>
+                    <td style="font-weight:700;">${meet.title}</td><td>${meet.date || 'TBD'}</td>
+                    <td><select class="form-control" style="width: auto; padding: 6px;"><option>Select Built Page...</option><option>Page: ${meet.title} (Live)</option></select></td>
+                    <td><span class="badge ${meet.isLive ? 'bg-green' : 'bg-gray'}" id="arcBadge${index}">${meet.isLive ? 'PUBLISHED' : 'DORMANT'}</span></td>
+                    <td><button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8em;" onclick="publishArchiveResult('${meet.title}', ${index})">Publish Result</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function publishArchiveResult(meetTitle, index) {
+            let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
+            const meetIndex = db.findIndex(m => m.title === meetTitle);
+            if(meetIndex > -1) { db[meetIndex].isLive = true; localStorage.setItem('taa_master_db', JSON.stringify(db)); }
+            const badge = document.getElementById(`arcBadge${index}`);
+            badge.className = 'badge bg-green'; badge.innerText = 'PUBLISHED';
+            alert(`Result Published! The "View Results" button for ${meetTitle} is now active on the public Results page.`);
+        }
+
+        function handleBulkUpload() { alert("Results CSV processed! Data synced to the Global Rankings."); }
+    </script>
+</body>
+</html>

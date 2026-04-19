@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Athlete Directory - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0056b3;
+            --accent: #FF8C00;
+            --white: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Open Sans', sans-serif; background: #f4f7f6; color: #333; }
+
+        /* --- Standard TAA Navigation Styles for navbar.js --- */
+        .navbar { background: var(--white); box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 9999; padding: 5px 0; }
+        .nav-container { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo img { width: 55px; height: 55px; }
+        .logo-text { display: flex; flex-direction: column; }
+        .main-title { color: var(--primary); font-weight: 800; font-size: 1.1em; line-height: 1; font-family: 'Montserrat'; }
+        .sub-title { color: #64748b; font-weight: 600; font-size: 0.75em; letter-spacing: 1px; }
+
+        .nav-menu { display: flex; list-style: none; gap: 15px; align-items: center; }
+        .nav-menu li { position: relative; }
+        .nav-menu a { text-decoration: none; color: #1a1a1a; font-weight: 700; font-size: 0.82em; font-family: 'Montserrat'; text-transform: uppercase; padding: 10px 5px; }
+        .nav-menu a:hover, .nav-menu a.active { color: var(--accent); }
+
+        .dropdown-content { display: none; position: absolute; background-color: var(--white); min-width: 200px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); top: 100%; left: 0; border-top: 3px solid var(--accent); }
+        .nav-menu li:hover .dropdown-content { display: block; }
+        .dropdown-content a { color: #333; padding: 12px 16px; display: block; text-transform: none; font-size: 0.85em; border-bottom: 1px solid #eee; }
+
+        .ors-btn { background: var(--primary) !important; color: white !important; padding: 10px 22px !important; border-radius: 50px; margin-left: 10px; }
+
+        /* --- Header --- */
+        .sub-header { background: white; border-bottom: 2px solid #eee; padding: 25px 0; text-align: center; }
+        .role-btn { padding: 10px 28px; margin: 0 8px; border-radius: 50px; border: 1px solid #ddd; cursor: pointer; font-family: 'Montserrat'; font-weight: 800; font-size: 0.85em; background: white; transition: 0.3s; }
+        .role-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* --- Search Row --- */
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .search-row { display: grid; grid-template-columns: 2fr 1fr auto; gap: 15px; margin-bottom: 30px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        input, select { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; }
+        .search-btn { background: var(--primary); color: white; border: none; padding: 0 30px; border-radius: 8px; font-weight: 800; cursor: pointer; font-family: 'Montserrat'; }
+
+        /* --- Grid --- */
+        .profile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; }
+        .profile-card { background: white; border-radius: 16px; padding: 40px 20px; text-align: center; text-decoration: none; color: inherit; border: 1px solid transparent; transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .profile-card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
+        
+        .avatar { width: 85px; height: 85px; background: #f1f5f9; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 2.5em; color: var(--primary); font-weight: 800; }
+        .profile-card h3 { font-family: 'Montserrat'; font-size: 1em; text-transform: uppercase; color: var(--primary); margin-bottom: 5px; }
+        .profile-card p { font-size: 0.8em; color: #64748b; font-weight: 700; text-transform: uppercase; }
+        .uid-tag { color: var(--accent); font-size: 0.7em; font-weight: 800; display: block; margin-top: 12px; }
+    </style>
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
+
+    <div class="sub-header">
+        <button class="role-btn active" onclick="setRole('Athlete', this)">Athletes</button>
+        <button class="role-btn" onclick="setRole('Coach', this)">Coaches</button>
+        <button class="role-btn" onclick="setRole('Official', this)">Officials</button>
+    </div>
+
+    <div class="container">
+        <div class="search-row">
+            <input type="text" id="searchInput" placeholder="Search by name..." onkeyup="loadProfiles()">
+            <select id="distFilter" onchange="loadProfiles()">
+                <option value="">All Districts</option>
+                <option value="Hyderabad">Hyderabad</option>
+                <option value="Warangal">Warangal</option>
+            </select>
+            <button class="search-btn" onclick="loadProfiles()">SEARCH</button>
+        </div>
+        <div class="profile-grid" id="profileGrid"></div>
+    </div>
+
+    <script>
+        let currentRole = 'Athlete';
+
+        function setRole(role, btn) {
+            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentRole = role;
+            loadProfiles();
+        }
+
+        function maskUID(uid) {
+            return uid ? uid.substring(0, 7) + "******" : "";
+        }
+
+        function loadProfiles() {
+            const container = document.getElementById('profileGrid');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const dist = document.getElementById('distFilter').value;
+            
+            // Sample Data to prevent "Not Found" error
+            if(!localStorage.getItem('taa_profiles_db')) {
+                const sample = [
+                    { uid: "AFI20261001", name: "Rahul Kumar", dist: "Hyderabad", role: "Athlete" },
+                    { uid: "AFI20262002", name: "Ananya Rao", dist: "Warangal", role: "Athlete" }
+                ];
+                localStorage.setItem('taa_profiles_db', JSON.stringify(sample));
+            }
+
+            const db = JSON.parse(localStorage.getItem('taa_profiles_db'));
+            const filtered = db.filter(u => 
+                u.role === currentRole && 
+                u.name.toLowerCase().includes(search) &&
+                (dist === "" || u.dist === dist)
+            );
+
+            container.innerHTML = filtered.map(u => `
+                <a href="profile-view.html?uid=${u.uid}" class="profile-card">
+                    <div class="avatar">${u.name.charAt(0)}</div>
+                    <h3>${u.name}</h3>
+                    <p>${u.dist}</p>
+                    <span class="uid-tag">${maskUID(u.uid)}</span>
+                </a>
+            `).join('');
+        }
+        window.onload = loadProfiles;
+    </script>
+</body>
+</html>

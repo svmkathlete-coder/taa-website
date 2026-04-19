@@ -7,79 +7,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
     <style>
+        :root {
+            --primary: #0056b3;
+            --secondary: #35CAFE;
+            --accent: #FF8C00;
+            --white: #ffffff;
+            --dark-blue: #001a35;
+        }
+
         /* TAA Gold Standard Styling */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Open Sans', sans-serif; background: #f4f7f6 url('https://www.transparenttextures.com/patterns/cubes.png'); color: #333; line-height: 1.6; }
         
-        /* --- Updated Navigation Bar --- */
-        nav { 
-            background-color: #ffffff; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-            position: sticky; 
-            top: 0; 
-            z-index: 1000; 
-        }
-        nav ul { 
-            display: flex; 
-            justify-content: center; 
-            list-style: none; 
-            padding: 15px 0; 
-        }
-        nav ul li { margin: 0 15px; position: relative; }
-        nav ul li a { 
-            text-decoration: none; 
-            color: #1a1a1a; 
-            font-weight: 600; 
-            font-family: 'Montserrat', sans-serif; 
-            text-transform: uppercase; 
-            font-size: 0.85em; 
-            transition: color 0.3s ease; 
-        }
-        nav ul li a:hover { color: #FF8C00; } 
-
-        /* Rankings Live Badge */
-        .rank-link { color: #FF8C00 !important; font-weight: 800 !important; position: relative; }
-        .rank-link::after {
-            content: 'LIVE';
-            position: absolute;
-            top: -12px;
-            right: -18px;
-            background: #FF8C00;
-            color: white;
-            font-size: 0.55em;
-            padding: 2px 5px;
-            border-radius: 4px;
-            animation: blink 1.5s infinite;
-        }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-
-        /* Dropdown Logic */
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: #ffffff;
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            z-index: 1000;
-            border-radius: 0 0 8px 8px;
-            padding: 10px 0;
-            top: 100%;
-            left: 0;
-        }
-        .dropdown-content a {
-            color: #333 !important;
-            padding: 12px 20px;
-            text-decoration: none;
-            display: block;
-            font-size: 0.8em;
-            text-transform: none;
-            transition: background 0.3s ease;
-        }
-        .dropdown-content a:hover {
-            background-color: #f4f7f6;
-            color: #FF8C00 !important;
-        }
-        nav ul li:hover .dropdown-content { display: block; }
+        /* --- Standard TAA Navigation Styles for navbar.js --- */
+        .navbar { background: var(--white); box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 9999; padding: 5px 0; }
+        .nav-container { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo img { width: 55px; height: 55px; }
+        .logo-text { display: flex; flex-direction: column; }
+        .main-title { color: var(--primary); font-weight: 800; font-size: 1.1em; line-height: 1; font-family: 'Montserrat'; }
+        .sub-title { color: #64748b; font-weight: 600; font-size: 0.75em; letter-spacing: 1px; }
+        .nav-menu { display: flex; list-style: none; gap: 15px; align-items: center; margin: 0; padding: 0; }
+        .nav-menu li { position: relative; } 
+        .nav-menu a { text-decoration: none; color: #1a1a1a; font-weight: 700; font-size: 0.82em; transition: 0.3s; padding: 15px 5px; font-family: 'Montserrat'; text-transform: uppercase; display: block; }
+        .nav-menu a:hover { color: var(--accent); }
+        .dropdown-content { display: none; position: absolute; background-color: var(--white); min-width: 220px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); z-index: 1; top: 100%; left: 0; border-top: 3px solid var(--accent); }
+        .dropdown-content a { color: #333; padding: 12px 16px; text-decoration: none; display: block; text-transform: none; font-size: 0.85em; border-bottom: 1px solid #f1f1f1; }
+        .dropdown-content a:hover { background-color: #f9f9f9; color: var(--primary); }
+        .dropdown:hover .dropdown-content { display: block; }
+        .ors-btn { background: var(--primary) !important; color: white !important; padding: 10px 22px !important; border-radius: 50px; margin-left: 10px; box-shadow: 0 4px 12px rgba(0, 86, 179, 0.2); display: inline-block !important; }
+        @media (max-width: 768px) { .nav-menu { display: none; } }
 
         /* Hero Styling */
         .hero { background: linear-gradient(135deg, #35CAFE 0%, #0056b3 100%); color: white; padding: 40px 20px; text-align: center; }
@@ -116,6 +73,9 @@
 </head>
 <body>
 
+    <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
+
     <header class="hero">
         <div class="hero-content">
             <a href="index.html"><img src="LOGO.jfif" alt="TAA Logo" class="hero-logo" style="cursor: pointer;"></a>
@@ -125,39 +85,6 @@
             </div>
         </div>
     </header>
-
-    <nav>
-        <ul>
-            <li><a href="index.html">Home</a></li>
-            <li><a href="about.html">About Us</a></li>
-            <li>
-                <a href="#">Events</a>
-                <div class="dropdown-content">
-                    <a href="calendar.html">Competition Calendar</a>
-                    <a href="results.html">Full Meet Results</a>
-                </div>
-            </li>
-            <li><a href="ranking.html" class="rank-link">Rankings</a></li>
-            <li>
-                <a href="profiles.html">Profiles</a>
-                <div class="dropdown-content">
-                    <a href="athlete-profiles.html">Athlete Profiles</a>
-                    <a href="coach-profiles.html">Coach Profiles</a>
-                    <a href="technical-officials.html">Technical Officials</a>
-                </div>
-            </li>
-            <li><a href="education.html">Education</a></li>
-            <li>
-                <a href="registrations.html">ORS Login</a>
-                <div class="dropdown-content">
-                    <a href="athlete-login.html">Athlete Login</a>
-                    <a href="coach-login.html">Coach Login</a>
-                    <a href="official-login.html">Technical Official Login</a>
-                </div>
-            </li>
-            <li><a href="contact.html">Contact Us</a></li>
-        </ul>
-    </nav>
 
     <div class="reg-container">
         <form id="officialForm">
