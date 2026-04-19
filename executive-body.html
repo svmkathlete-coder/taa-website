@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Body - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Open Sans', sans-serif; background-color: #f4f7f6; color: #333; line-height: 1.8; }
+
+        .hero { 
+            background: linear-gradient(135deg, #001a35 0%, #0056b3 100%); 
+            color: white; padding: 60px 20px; text-align: center; 
+        }
+        .hero-content { display: flex; align-items: center; justify-content: center; max-width: 1200px; margin: 0 auto; gap: 40px; }
+        .hero-logo { width: 100px; height: 100px; background-color: #fff; border-radius: 50%; padding: 5px; object-fit: contain; }
+        .hero-text h1 { font-family: 'Montserrat'; font-size: 2.5em; text-transform: uppercase; margin: 0; }
+
+        .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+        
+        .section-title { font-family: 'Montserrat'; color: #001a35; text-align: center; margin-bottom: 40px; font-size: 2.2em; text-transform: uppercase; }
+        .section-title span { border-bottom: 4px solid #FF8C00; padding-bottom: 10px; }
+
+        .office-bearers-list { list-style: none; padding: 0; }
+        .office-bearer { 
+            display: flex; align-items: center; margin-bottom: 30px; background-color: #fff; 
+            padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); 
+            transition: transform 0.3s ease; 
+        }
+        .office-bearer:hover { transform: translateY(-5px); }
+        .office-bearer img { 
+            width: 150px; height: 150px; object-fit: cover; border-radius: 50%; 
+            margin-right: 35px; border: 5px solid #f0f4f8; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .info .title { color: #64748b; font-size: 0.9em; text-transform: uppercase; font-weight: 800; letter-spacing: 2px; display: block; margin-bottom: 5px; }
+        .info .name { color: #0056b3; font-size: 1.8em; font-family: 'Montserrat'; font-weight: 800; display: block; margin-bottom: 10px; }
+        .info p { color: #475569; font-weight: 600; font-size: 1em; }
+
+        @media (max-width: 768px) {
+            .office-bearer { flex-direction: column; text-align: center; }
+            .office-bearer img { margin-right: 0; margin-bottom: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+
+    <header class="hero">
+        <div class="hero-content">
+            <img src="LOGO.JFIF" alt="TAA Logo" class="hero-logo">
+            <div class="hero-text">
+                <h1>Executive Body</h1>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2 class="section-title"><span>Leadership Team</span></h2>
+        
+        <ul class="office-bearers-list">
+            <li class="office-bearer">
+                <img src="president.jpg" alt="President B.E. Stanley Jones">
+                <div class="info">
+                    <span class="title">President</span>
+                    <span class="name">B.E. Stanley Jones</span>
+                    <p>Treasurer, Athletics Federation of India (AFI)</p>
+                </div>
+            </li>
+
+            <li class="office-bearer">
+                <img src="secretary.jpeg" alt="Secretary K. Sarangapani">
+                <div class="info">
+                    <span class="title">Secretary</span>
+                    <span class="name">K. Sarangapani</span>
+                    <p>Executive Committee Member, Athletics Federation of India (AFI)</p>
+                </div>
+            </li>
+
+            <li class="office-bearer">
+                <img src="treasurer.jpeg" alt="Treasurer Dr. Rajesh Kumar">
+                <div class="info">
+                    <span class="title">Treasurer</span>
+                    <span class="name">Dr. Rajesh Kumar</span>
+                    <p>Director of Physical Education, Osmania University</p>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <script src="navbar.js"></script>
+
+    <div id="footer-container"></div>
+</body>
+</html>

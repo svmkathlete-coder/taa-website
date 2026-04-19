@@ -3,170 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Press Releases - Telangana Athletics Association</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-    
+    <title>Press Releases - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #0056b3;
             --accent: #FF8C00;
-            --white: #ffffff;
-            --bg-light: #f8fafc;
-            --text-dark: #0f172a;
+            --bg: #f4f7f6;
+            --text-dark: #1e293b;
             --text-muted: #64748b;
+            --white: #ffffff;
             --border: #e2e8f0;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Open Sans', sans-serif; background-color: var(--bg); color: var(--text-dark); line-height: 1.6; }
+
+        /* --- Hero Banner --- */
+        .hero { 
+            background: linear-gradient(135deg, #001a35 0%, #0056b3 100%); 
+            color: white; padding: 60px 20px; text-align: center; border-bottom: 5px solid var(--accent);
+        }
+        .hero-content { display: flex; align-items: center; justify-content: center; max-width: 1200px; margin: 0 auto; gap: 30px; }
+        .hero-logo { width: 100px; height: 100px; background-color: #fff; border-radius: 50%; padding: 5px; object-fit: contain; }
+        .hero-text h1 { font-family: 'Montserrat'; font-size: 2.5em; text-transform: uppercase; margin: 0; }
+        .hero-text p { font-weight: 600; opacity: 0.9; margin-top: 5px; }
+
+        /* --- Main Container --- */
+        .container { max-width: 1100px; margin: -25px auto 60px; padding: 0 20px; position: relative; z-index: 10; }
+
+        /* --- Tabs --- */
+        .tabs-wrapper { 
+            display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; 
+            background: white; padding: 15px; border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); flex-wrap: wrap; 
+        }
+        .tab-btn { 
+            padding: 12px 30px; background: transparent; border: 2px solid transparent; 
+            color: var(--text-muted); border-radius: 8px; font-family: 'Montserrat'; 
+            font-weight: 800; font-size: 0.9em; cursor: pointer; transition: 0.3s; 
+            text-transform: uppercase; letter-spacing: 1px; 
+        }
+        .tab-btn:hover { color: var(--primary); background: #f1f5f9; }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(0, 86, 179, 0.3); }
+
+        /* --- Filter Section --- */
+        .filter-card {
+            background: var(--white); padding: 20px 25px; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px;
+            display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;
+            border: 1px solid var(--border);
+        }
+
+        .filter-group { flex: 1; min-width: 200px; display: flex; flex-direction: column; }
+        .filter-group label { font-family: 'Montserrat'; font-size: 0.75em; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
         
-        body { 
-            font-family: 'Open Sans', sans-serif; 
-            background: var(--bg-light); 
-            color: var(--text-dark); 
-            line-height: 1.6;
+        .filter-control {
+            padding: 12px 15px; border: 2px solid var(--border); border-radius: 8px;
+            font-family: 'Open Sans'; font-size: 0.9em; font-weight: 600; color: var(--text-dark);
+            outline: none; transition: 0.3s;
         }
+        .filter-control:focus { border-color: var(--accent); }
 
-        /* --- Page Header --- */
-        .page-header {
-            background: linear-gradient(rgba(0, 26, 53, 0.8), rgba(0, 86, 179, 0.9)), url('https://images.unsplash.com/photo-1552674605-15c2145f8ca4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80') center/cover;
-            padding: 80px 20px;
-            text-align: center;
-            color: var(--white);
-            border-bottom: 5px solid var(--accent);
-        }
-        .page-header h1 {
-            font-family: 'Montserrat';
-            font-weight: 800;
-            font-size: 3em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-        }
-        .page-header p {
-            font-size: 1.1em;
-            font-weight: 600;
-            opacity: 0.9;
-            max-width: 600px;
-            margin: 0 auto;
-        }
+        /* --- Press Releases List --- */
+        .press-list { display: grid; grid-template-columns: 1fr; gap: 20px; }
 
-        /* --- Content Layout --- */
-        .pr-container {
-            max-width: 1300px;
-            margin: 50px auto;
-            padding: 0 20px;
-        }
-
-        /* --- Filter Dropdown (Consistent with Media Pages) --- */
-        .filter-container {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        .year-dropdown {
-            font-family: 'Montserrat';
-            font-weight: 700;
-            font-size: 1.1em;
-            color: var(--primary);
-            padding: 12px 30px;
-            border: 2px solid var(--primary);
-            border-radius: 50px;
-            background: white;
-            cursor: pointer;
-            outline: none;
+        .press-item {
+            background: var(--white); border-radius: 12px; padding: 25px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-top: 4px solid var(--primary);
             transition: 0.3s;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            appearance: none;
-            -webkit-appearance: none;
-            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%230056b3%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-            background-repeat: no-repeat;
-            background-position: right 15px top 50%;
-            background-size: 12px auto;
-            padding-right: 40px;
         }
-        .year-dropdown:hover, .year-dropdown:focus {
-            border-color: var(--accent);
-            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.2);
-        }
+        .press-item:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+        .press-item.source-afi { border-top-color: var(--accent); }
 
-        /* --- Press Release Cards --- */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 30px;
-        }
+        .press-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
+        .press-date { font-family: 'Montserrat'; font-size: 0.85em; font-weight: 800; color: var(--text-muted); }
+        .press-category { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 4px; font-size: 0.75em; font-weight: 800; text-transform: uppercase; }
+        .source-afi .press-category { background: #ffedd5; color: #c2410c; }
 
-        .pr-card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            border-top: 4px solid var(--primary);
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
+        .press-title { font-family: 'Montserrat'; font-size: 1.3em; color: var(--text-dark); margin-bottom: 10px; line-height: 1.4; }
+        .press-excerpt { font-size: 0.95em; color: var(--text-muted); margin-bottom: 20px; }
 
-        .pr-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        .btn-read {
+            align-self: flex-start; background: transparent; color: var(--primary); text-decoration: none;
+            font-weight: 800; font-size: 0.85em; font-family: 'Montserrat'; transition: 0.3s;
+            text-transform: uppercase; letter-spacing: 1px;
         }
+        .btn-read:hover { color: var(--accent); }
+        .source-afi .btn-read { color: var(--accent); }
+        .source-afi .btn-read:hover { color: var(--primary); }
 
-        .pr-date {
-            font-size: 0.8em;
-            font-weight: 800;
-            color: var(--accent);
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .pr-title {
-            font-family: 'Montserrat';
-            font-size: 1.2em;
-            color: var(--text-dark);
-            margin-bottom: 15px;
-            line-height: 1.4;
-        }
-
-        .pr-excerpt {
-            font-size: 0.9em;
-            color: var(--text-muted);
-            margin-bottom: 25px;
-            flex-grow: 1; /* Pushes the button to the bottom evenly */
-        }
-
-        .pr-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: auto;
-            padding-top: 15px;
-            border-top: 1px solid var(--border);
-        }
-
-        .btn-download {
-            background: #f1f5f9;
-            color: var(--primary);
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-weight: 700;
-            font-family: 'Montserrat';
-            font-size: 0.8em;
-            text-decoration: none;
-            transition: 0.2s;
-            text-transform: uppercase;
-        }
-
-        .btn-download:hover {
-            background: var(--primary);
-            color: white;
-        }
-
-        .file-size {
-            font-size: 0.75em;
-            color: #94a3b8;
-            font-weight: 600;
-        }
+        .empty-state { text-align: center; padding: 50px; color: var(--text-muted); font-weight: 600; background: white; border-radius: 10px; border: 1px dashed #cbd5e1; }
     </style>
 </head>
 <body>
@@ -174,119 +102,149 @@
     <div id="navbar-container"></div>
     <script src="navbar.js"></script>
 
-    <header class="page-header">
-        <h1>Press Releases</h1>
-        <p>Official announcements, team selections, and statements from TAA.</p>
+    <header class="hero">
+        <div class="hero-content">
+            <img src="LOGO.jfif" alt="TAA Logo" class="hero-logo">
+            <div class="hero-text">
+                <h1>Press Releases</h1>
+                <p>Official statements and media updates from TAA & AFI.</p>
+            </div>
+        </div>
     </header>
 
-    <div class="pr-container">
-        <div class="filter-container">
-            <select id="prYearFilter" class="year-dropdown" onchange="filterPressReleases()">
-                </select>
+    <div class="container">
+        
+        <div class="tabs-wrapper">
+            <button class="tab-btn active" onclick="switchSource('TAA', this)">🔵 Telangana State Press</button>
+            <button class="tab-btn" onclick="switchSource('AFI', this)">🟠 AFI National Press</button>
         </div>
 
-        <div class="grid" id="prGrid">
+        <div class="filter-card">
+            <div class="filter-group" style="flex-grow: 2;">
+                <label>Search Keyword</label>
+                <input type="text" id="searchInput" class="filter-control" placeholder="Search headlines or keywords..." onkeyup="filterPress()">
             </div>
+            <div class="filter-group">
+                <label>Category</label>
+                <select id="categoryFilter" class="filter-control" onchange="filterPress()">
+                    <option value="All">All Topics</option>
+                    <option value="Competitions">Competitions</option>
+                    <option value="Administration">Administration</option>
+                    <option value="Achievements">Athlete Achievements</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Year</label>
+                <select id="yearFilter" class="filter-control" onchange="filterPress()">
+                    <option value="All">All Years</option>
+                    </select>
+            </div>
+        </div>
+
+        <div class="press-list" id="pressContainer">
+            </div>
+
     </div>
 
     <script>
-        // Mock Database of Press Releases Synced to Calendar Years
-        const pressReleases = [
-            { 
-                title: "TAA Announces State Team for National Inter-State Championships", 
-                date: "May 15, 2026", 
-                categoryYear: "2026", 
-                excerpt: "The Telangana Athletics Association has officially declared the 45-member squad that will represent the state at the upcoming National Inter-State Senior Athletics Championships in June.",
-                size: "1.2 MB",
-                file: "#"
-            },
-            { 
-                title: "Launch of the New Unified Digital Athletics Portal", 
-                date: "March 10, 2026", 
-                categoryYear: "2026", 
-                excerpt: "In a historic step forward, TAA unveils its centralized digital portal allowing athletes, coaches, and technical officials to register and track performances in real-time.",
-                size: "845 KB",
-                file: "#"
-            },
-            { 
-                title: "State Meet Venue Shifted to Hanumakonda", 
-                date: "February 02, 2026", 
-                categoryYear: "2026", 
-                excerpt: "Due to ongoing track renovations in Hyderabad, the upcoming State Athletics Championships scheduled for April have been officially relocated to the Jawaharlal Nehru Stadium in Hanumakonda.",
-                size: "420 KB",
-                file: "#"
-            },
-            { 
-                title: "Selection Guidelines for South Zone Junior Athletics", 
-                date: "September 18, 2025", 
-                categoryYear: "2025", 
-                excerpt: "The executive committee has released the official qualification standards and trial dates for the South Zone Junior Athletics Championships. All affiliated district secretaries must note the entry deadlines.",
-                size: "2.1 MB",
-                file: "#"
-            },
-            { 
-                title: "TAA Celebrates National Javelin Day with Grassroots Program", 
-                date: "August 07, 2025", 
-                categoryYear: "2025", 
-                excerpt: "To commemorate Neeraj Chopra's historic Olympic Gold, TAA has launched a massive grassroots talent identification program specifically targeting throwing events across all 33 districts.",
-                size: "1.5 MB",
-                file: "#"
-            },
-            { 
-                title: "Annual General Body Meeting Resolutions", 
-                date: "January 20, 2025", 
-                categoryYear: "2025", 
-                excerpt: "Key resolutions passed during the AGM include increased funding for coaching clinics, adoption of the new digital timing system, and the appointment of new district technical committees.",
-                size: "3.4 MB",
-                file: "#"
-            }
+        let currentSource = 'TAA';
+
+        // Master Database for Press Releases
+        const pressDatabase = [
+            // --- AFI PRESS RELEASES (Simulated National News) ---
+            { source: "AFI", date: "2026-03-20", title: "Indian Athletics Squad Announced for Asian Championships 2026", excerpt: "The Athletics Federation of India today announced a 45-member contingent for the upcoming Asian Athletics Championships...", category: "Competitions", year: "2026", link: "https://indianathletics.in" },
+            { source: "AFI", date: "2026-02-14", title: "AFI Partners with Global Brands for Grassroots Development", excerpt: "In a landmark move to boost grassroots athletics, AFI has secured major sponsorships aimed at equipping district-level academies...", category: "Administration", year: "2026", link: "https://indianathletics.in" },
+            { source: "AFI", date: "2025-11-05", title: "National Open Athletics Championships Concludes with 5 New Records", excerpt: "The 2025 season closed on a high note as athletes broke five national records across sprint and throwing events...", category: "Achievements", year: "2025", link: "https://indianathletics.in" },
+
+            // --- TAA PRESS RELEASES (State News) ---
+            { source: "TAA", date: "2026-04-02", title: "Telangana Athletes Secure 12 Medals at South Zone Nationals", excerpt: "The Telangana State athletic squad delivered a stellar performance at the South Zone Championships, bringing home 5 Gold medals...", category: "Achievements", year: "2026", link: "#" },
+            { source: "TAA", date: "2026-03-10", title: "Launch of the Unified TAA Digital Portal", excerpt: "The Telangana Athletics Association officially launches its new state-of-the-art web portal to streamline athlete registrations and live rankings.", category: "Administration", year: "2026", link: "#" },
+            { source: "TAA", date: "2025-12-15", title: "State Junior Athletics Meet Dates Announced", excerpt: "The Annual State Junior Athletics Meet will be held at the GMC Balayogi Stadium. Over 1,500 athletes are expected to participate...", category: "Competitions", year: "2025", link: "#" }
         ];
 
-        // Populate the 2000-2100 dropdown
-        function populatePRYears() {
-            let options = "";
-            const currentYear = 2026; 
-            for (let yr = 2000; yr <= 2100; yr++) {
-                const selected = (yr === currentYear) ? "selected" : "";
-                options += `<option value="${yr}" ${selected}>Season: ${yr}</option>`;
-            }
-            document.getElementById('prYearFilter').innerHTML = options;
+        // Format Date Helper
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('en-IN', options);
         }
 
-        // Filter Grid based on selected year
-        function filterPressReleases() {
-            const selectedYear = document.getElementById('prYearFilter').value;
-            const grid = document.getElementById('prGrid');
-            grid.innerHTML = '';
+        // --- NEW: Automated Year Populator ---
+        function populateYears() {
+            const yearSelect = document.getElementById('yearFilter');
+            const currentYear = new Date().getFullYear(); // Gets the real current year
+            const startYear = 2024; // The year this database logic effectively begins
 
-            const filteredPRs = pressReleases.filter(pr => pr.categoryYear === selectedYear);
+            for (let year = currentYear; year >= startYear; year--) {
+                const option = document.createElement('option');
+                option.value = year.toString();
+                option.text = year.toString();
+                yearSelect.appendChild(option);
+            }
+        }
 
-            if (filteredPRs.length === 0) {
-                grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #64748b; font-weight: 700; font-size: 1.2em; padding: 40px 0;">No press releases published for this season yet.</p>';
+        // Tab Switcher
+        function switchSource(source, btnElement) {
+            currentSource = source;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            filterPress(); 
+        }
+
+        // Render Function
+        function renderPress(data) {
+            const container = document.getElementById('pressContainer');
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = `<div class="empty-state">No press releases found matching your search criteria.</div>`;
                 return;
             }
 
-            filteredPRs.forEach(pr => {
-                grid.innerHTML += `
-                    <div class="pr-card">
-                        <div class="pr-date">📅 ${pr.date}</div>
-                        <h3 class="pr-title">${pr.title}</h3>
-                        <p class="pr-excerpt">${pr.excerpt}</p>
-                        <div class="pr-footer">
-                            <a href="${pr.file}" class="btn-download" onclick="alert('Downloading Official PDF...')">📄 Read Release</a>
-                            <span class="file-size">PDF (${pr.size})</span>
+            data.forEach(item => {
+                const isAFI = item.source === "AFI";
+                
+                const pressHTML = `
+                    <div class="press-item ${isAFI ? 'source-afi' : ''}">
+                        <div class="press-header">
+                            <span class="press-date">📅 ${formatDate(item.date)}</span>
+                            <span class="press-category">${item.category}</span>
                         </div>
+                        <h3 class="press-title">${item.title}</h3>
+                        <p class="press-excerpt">${item.excerpt}</p>
+                        <a href="${item.link}" class="btn-read" ${isAFI ? 'target="_blank"' : ''}>Read Full Release ➞</a>
                     </div>
                 `;
+                container.innerHTML += pressHTML;
             });
         }
 
-        // Initialize Page
-        window.onload = () => {
-            populatePRYears();
-            filterPressReleases();
-        };
+        // Filter Logic
+        function filterPress() {
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            const catVal = document.getElementById('categoryFilter').value;
+            const yearVal = document.getElementById('yearFilter').value;
 
+            const filteredData = pressDatabase.filter(item => {
+                const matchSource = item.source === currentSource;
+                const matchSearch = item.title.toLowerCase().includes(searchVal) || item.excerpt.toLowerCase().includes(searchVal);
+                const matchCat = catVal === "All" || item.category === catVal;
+                const matchYear = yearVal === "All" || item.year === yearVal;
+
+                return matchSource && matchSearch && matchCat && matchYear;
+            });
+
+            // Sort by date (newest first)
+            filteredData.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            renderPress(filteredData);
+        }
+
+        window.onload = () => {
+            populateYears(); // Generates the dropdown options first
+            filterPress();   // Then loads the list
+        };
     </script>
+
+    <div id="footer-container"></div>
 </body>
 </html>

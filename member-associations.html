@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Associations - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Open Sans', sans-serif; background-color: #f4f7f6; color: #333; line-height: 1.6; }
+
+        .hero { background: linear-gradient(135deg, #001a35 0%, #0056b3 100%); color: white; padding: 60px 20px; text-align: center; }
+        .hero-content { display: flex; align-items: center; justify-content: center; max-width: 1200px; margin: 0 auto; gap: 40px; }
+        .hero-logo { width: 100px; height: 100px; background-color: #fff; border-radius: 50%; padding: 5px; object-fit: contain; }
+        .hero-text h1 { font-family: 'Montserrat'; font-size: 2.5em; text-transform: uppercase; margin: 0; }
+
+        .container { max-width: 1300px; margin: 40px auto; padding: 0 20px; }
+        
+        .section-title { font-family: 'Montserrat'; color: #001a35; text-align: center; margin-bottom: 40px; font-size: 2.2em; text-transform: uppercase; }
+        .section-title span { border-bottom: 4px solid #FF8C00; padding-bottom: 10px; }
+
+        /* --- Districts Grid --- */
+        .districts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; }
+        
+        .district-card { 
+            background: white; padding: 25px; border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 5px solid #0056b3;
+            transition: all 0.3s ease; cursor: pointer; position: relative;
+        }
+        .district-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-top-color: #FF8C00; }
+        
+        .district-card h3 { font-family: 'Montserrat'; font-size: 1.4em; color: #001a35; margin-bottom: 15px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+
+        .key-bearer { margin-bottom: 8px; font-size: 0.9em; display: flex; justify-content: space-between; }
+        .key-bearer b { color: #64748b; text-transform: uppercase; font-size: 0.75em; }
+        .key-bearer span { font-weight: 700; color: #1e293b; }
+
+        .contact-info { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #cbd5e1; font-size: 0.85em; color: #0056b3; font-weight: 700; }
+        .view-more-hint { text-align: center; margin-top: 15px; font-size: 0.7em; font-weight: 800; color: #FF8C00; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- Modal Styles --- */
+        .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,26,53,0.9); overflow-y: auto; }
+        .modal-content { background: white; margin: 5% auto; padding: 40px; width: 90%; max-width: 900px; border-radius: 15px; position: relative; animation: slideDown 0.4s ease; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .close-modal { position: absolute; right: 25px; top: 20px; font-size: 30px; cursor: pointer; color: #64748b; }
+        .modal-header { border-bottom: 3px solid #FF8C00; padding-bottom: 15px; margin-bottom: 25px; }
+        .modal-header h2 { font-family: 'Montserrat'; text-transform: uppercase; color: #0056b3; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; background: #f8fafc; padding: 12px; font-family: 'Montserrat'; font-size: 0.8em; color: #64748b; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 15px 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.9em; font-weight: 600; }
+        .pos-col { color: #FF8C00; font-weight: 800; width: 40%; }
+
+        @media (max-width: 768px) { .modal-content { padding: 20px; width: 95%; } }
+    </style>
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+
+    <header class="hero">
+        <div class="hero-content">
+            <img src="LOGO.JFIF" alt="TAA Logo" class="hero-logo">
+            <div class="hero-text"><h1>Member Associations</h1></div>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2 class="section-title"><span>33 District Associations</span></h2>
+        <div class="districts-grid" id="districtsContainer"></div>
+    </div>
+
+    <div id="districtModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div class="modal-header">
+                <h2 id="modalDistrictName">District Name</h2>
+                <p id="modalDistrictContact" style="font-weight:700; color:#64748b; margin-top:5px;"></p>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Position</th>
+                        <th>Name of the Member</th>
+                    </tr>
+                </thead>
+                <tbody id="modalTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="navbar.js"></script>
+    <script>
+        // Helper function to generate the full empty committee structure
+        const generateFullCommittee = (pres = "TBA", sec = "TBA", treas = "TBA") => {
+            return [
+                {pos: "President", name: pres},
+                {pos: "Secretary", name: sec},
+                {pos: "Treasurer", name: treas},
+                {pos: "Organizing Secretary", name: "TBA"},
+                {pos: "Vice President", name: "TBA"},
+                {pos: "Vice President", name: "TBA"},
+                {pos: "Joint Secretary", name: "TBA"},
+                {pos: "Joint Secretary", name: "TBA"},
+                {pos: "Executive Member", name: "TBA"},
+                {pos: "Executive Member", name: "TBA"},
+                {pos: "Member", name: "TBA"},
+                {pos: "Member", name: "TBA"}
+            ];
+        };
+
+        const districtsData = [
+            { 
+                name: "Hyderabad", president: "A. Rajeshwar Rao", secretary: "K. Sarangapani", treasurer: "S.M. Ali", 
+                phone: "98480XXXXX", email: "hyd.athletics@gmail.com",
+                committee: [
+                    {pos: "President", name: "A. Rajeshwar Rao"},
+                    {pos: "Secretary", name: "K. Sarangapani"},
+                    {pos: "Treasurer", name: "S.M. Ali"},
+                    {pos: "Organizing Secretary", name: "P. Srinivas"},
+                    {pos: "Vice President", name: "Dr. V. Satyanarayana"},
+                    {pos: "Vice President", name: "M. Chandra Shekar"},
+                    {pos: "Joint Secretary", name: "B. Laxmi Narayana"},
+                    {pos: "Joint Secretary", name: "G. Ravinder"},
+                    {pos: "Executive Member", name: "N. Ramesh (Dronacharya Awardee)"},
+                    {pos: "Executive Member", name: "K. Ramakrishna"},
+                    {pos: "Member", name: "D. Sridhar"},
+                    {pos: "Member", name: "J. Anitha"}
+                ]
+            },
+            { 
+                name: "Warangal", president: "B. Stanley Jones", secretary: "G. Murali", treasurer: "T. Ramesh", 
+                phone: "94400XXXXX", email: "warangal.athletics@gmail.com",
+                // Uses the helper to fill in the rest of the roles with TBA
+                committee: generateFullCommittee("B. Stanley Jones", "G. Murali", "T. Ramesh")
+            }
+            // ... Add specific logic for other districts here as needed
+        ];
+
+        const allDistrictNames = [
+            "Adilabad", "Bhadradri Kothagudem", "Hanumakonda", "Hyderabad", "Jagtial", "Jangaon", "Jayashankar Bhupalpally", 
+            "Jogulamba Gadwal", "Kamareddy", "Karimnagar", "Khammam", "Kumuram Bheem Asifabad", "Mahabubabad", "Mahabubnagar", 
+            "Mancherial", "Medak", "Medchal−Malkajgiri", "Mulugu", "Nagarkurnool", "Nalgonda", "Narayanpet", "Nirmal", 
+            "Nizamabad", "Peddapalli", "Rajanna Sircilla", "Rangareddy", "Sangareddy", "Siddipet", "Suryapet", "Vikarabad", 
+            "Wanaparthy", "Warangal", "Yadadri Bhuvanagiri"
+        ];
+
+        const container = document.getElementById('districtsContainer');
+
+        allDistrictNames.sort().forEach(name => {
+            // Find specific data if it exists, otherwise generate a completely empty default structure
+            const data = districtsData.find(d => d.name === name) || {
+                name: name, president: "TBA", secretary: "TBA", treasurer: "TBA", phone: "N/A", email: `info.${name.toLowerCase().replace(/ /g, '')}@taa.com`,
+                committee: generateFullCommittee() // This fixes the bug! Generates the full 12-row table.
+            };
+
+            const card = document.createElement('div');
+            card.className = 'district-card';
+            card.onclick = () => openModal(data);
+            card.innerHTML = `
+                <h3>${data.name}</h3>
+                <div class="key-bearer"><b>President</b> <span>${data.president}</span></div>
+                <div class="key-bearer"><b>Secretary</b> <span>${data.secretary}</span></div>
+                <div class="key-bearer"><b>Treasurer</b> <span>${data.treasurer}</span></div>
+                <div class="contact-info">
+                    📞 ${data.phone} | ✉️ ${data.email}
+                </div>
+                <div class="view-more-hint">Click to view full committee ▾</div>
+            `;
+            container.appendChild(card);
+        });
+
+        function openModal(data) {
+            document.getElementById('modalDistrictName').innerText = data.name + " District Athletics Association";
+            document.getElementById('modalDistrictContact').innerText = `Contact: ${data.phone} | Email: ${data.email}`;
+            const tbody = document.getElementById('modalTableBody');
+            tbody.innerHTML = data.committee.map(member => `
+                <tr>
+                    <td class="pos-col">${member.pos}</td>
+                    <td>${member.name}</td>
+                </tr>
+            `).join('');
+            document.getElementById('districtModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent scroll
+        }
+
+        function closeModal() {
+            document.getElementById('districtModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('districtModal')) closeModal();
+        }
+    </script>
+
+    <div id="footer-container"></div>
+</body>
+</html>

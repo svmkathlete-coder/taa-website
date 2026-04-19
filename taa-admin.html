@@ -54,6 +54,11 @@
         .form-group label { font-size: 0.8em; font-weight: 700; color: #64748b; text-transform: uppercase; }
         .form-control { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: 'Open Sans'; font-size: 0.9em; outline: none; }
         
+        /* --- CMS SPECIFIC STYLES --- */
+        .cms-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+        .cms-box { background: #f8fafc; border: 1px solid var(--border); padding: 20px; border-radius: 10px; }
+        .cms-box h4 { font-family: 'Montserrat'; font-size: 0.9em; color: var(--primary-light); margin-bottom: 15px; text-transform: uppercase; border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 3px; }
+
         /* --- BUTTONS --- */
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 700; font-family: 'Montserrat'; cursor: pointer; transition: 0.2s; font-size: 0.85em; }
         .btn-primary { background: var(--primary-light); color: white; }
@@ -128,6 +133,7 @@
         </div>
         <div class="nav-links">
             <div class="nav-item active" onclick="switchTab('tab-database', this)"><span class="nav-icon">👥</span> Member Database</div>
+            <div class="nav-item" onclick="switchTab('tab-cms', this)"><span class="nav-icon">🖥️</span> Website CMS</div>
             <div class="nav-item" onclick="switchTab('tab-calendar', this)"><span class="nav-icon">📅</span> Competition Calendar</div>
             <div class="nav-item" onclick="switchTab('tab-registrations', this)"><span class="nav-icon">📝</span> Registration Control</div>
             <div class="nav-item" onclick="switchTab('tab-live', this)"><span class="nav-icon">🔴</span> Live Meet Manager</div>
@@ -177,6 +183,76 @@
                             <thead><tr><th>Date</th><th>AFI UID</th><th>Full Name</th><th>Role & District</th><th>Status</th><th>Action</th></tr></thead>
                             <tbody id="tableBody"></tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-cms" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Home Page Content Manager</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-clear" onclick="clearAllCMS()">🗑️ Wipe Home Content</button>
+                            <button class="btn btn-primary" onclick="pushAllCMSUpdates()">🚀 Push All Live to Home</button>
+                        </div>
+                    </div>
+
+                    <div class="cms-grid">
+                        <div class="cms-box">
+                            <div style="display:flex; justify-content:space-between;">
+                                <h4>1. Latest News Ticker</h4>
+                                <button class="btn-upload-sm" onclick="clearCMSSection('ticker')">Clear</button>
+                            </div>
+                            <div class="form-group">
+                                <label>Content (Use '|' for multiple headlines)</label>
+                                <textarea id="cms_tickerText" class="form-control" rows="3" placeholder="🚨 Entries Open for State Meet | 🏆 New Record Set"></textarea>
+                            </div>
+                            <div class="form-group" style="margin-top:10px;">
+                                <label>Ticker Link URL</label>
+                                <input type="text" id="cms_tickerLink" class="form-control" placeholder="circulars.html">
+                            </div>
+                        </div>
+
+                        <div class="cms-box">
+                            <div style="display:flex; justify-content:space-between;">
+                                <h4>2. Featured Article (Latest News)</h4>
+                                <button class="btn-upload-sm" onclick="clearCMSSection('news')">Clear</button>
+                            </div>
+                            <div class="form-group">
+                                <label>Article Headline</label>
+                                <input type="text" id="cms_newsTitle" class="form-control" placeholder="Headline">
+                            </div>
+                            <div class="form-group" style="margin-top:10px;">
+                                <label>Direct URL/PDF Link</label>
+                                <input type="text" id="cms_newsLink" class="form-control" placeholder="URL">
+                            </div>
+                        </div>
+
+                        <div class="cms-box">
+                            <div style="display:flex; justify-content:space-between;">
+                                <h4>3. Top Athletes (Marquee)</h4>
+                                <button class="btn-upload-sm" onclick="clearCMSSection('athletes')">Clear</button>
+                            </div>
+                            <div class="form-group">
+                                <label>Athlete UIDs (Comma separated)</label>
+                                <input type="text" id="cms_featuredAthletes" class="form-control" placeholder="AFI20261001, AFI20262002">
+                            </div>
+                        </div>
+
+                        <div class="cms-box">
+                            <div style="display:flex; justify-content:space-between;">
+                                <h4>4. Photo & Video Features</h4>
+                                <button class="btn-upload-sm" onclick="clearCMSSection('media')">Clear</button>
+                            </div>
+                            <div class="form-group">
+                                <label>Photo Album URL</label>
+                                <input type="text" id="cms_photoLink" class="form-control" placeholder="Album URL">
+                            </div>
+                            <div class="form-group" style="margin-top:10px;">
+                                <label>YouTube Video URL</label>
+                                <input type="text" id="cms_videoLink" class="form-control" placeholder="Video URL">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -370,6 +446,7 @@
             loadLiveMeetDropdown();
             loadArchives();
             addNewDay(); // Adds Day 1 to Live Meet Manager
+            loadCMSValues(); // LOAD CMS DATA
         };
 
         function toggleSidebar() { document.getElementById('adminSidebar').classList.toggle('collapsed'); }
@@ -381,6 +458,62 @@
             document.querySelectorAll('.tab-content').forEach(m => m.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             document.getElementById('topbarTitle').innerText = btn.innerText.substring(2).trim(); 
+        }
+
+        // --- INJECTED CMS LOGIC ---
+        function loadCMSValues() {
+            const ticker = JSON.parse(localStorage.getItem('taa_home_ticker')) || {};
+            const news = JSON.parse(localStorage.getItem('taa_home_news')) || {};
+            const athletes = JSON.parse(localStorage.getItem('taa_home_featured_uids')) || [];
+            const media = JSON.parse(localStorage.getItem('taa_home_media')) || {};
+
+            document.getElementById('cms_tickerText').value = ticker.text || "";
+            document.getElementById('cms_tickerLink').value = ticker.link || "";
+            document.getElementById('cms_newsTitle').value = news.title || "";
+            document.getElementById('cms_newsLink').value = news.link || "";
+            document.getElementById('cms_featuredAthletes').value = athletes.join(', ') || "";
+            document.getElementById('cms_photoLink').value = media.photo || "";
+            document.getElementById('cms_videoLink').value = media.video || "";
+        }
+
+        function pushAllCMSUpdates() {
+            const ticker = { text: document.getElementById('cms_tickerText').value, link: document.getElementById('cms_tickerLink').value };
+            const news = { 
+                title: document.getElementById('cms_newsTitle').value, 
+                link: document.getElementById('cms_newsLink').value,
+                date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()
+            };
+            const athleteUIDs = document.getElementById('cms_featuredAthletes').value.split(',').map(u => u.trim()).filter(u => u !== "");
+            const media = { photo: document.getElementById('cms_photoLink').value, video: document.getElementById('cms_videoLink').value };
+
+            localStorage.setItem('taa_home_ticker', JSON.stringify(ticker));
+            localStorage.setItem('taa_home_news', JSON.stringify(news));
+            localStorage.setItem('taa_home_featured_uids', JSON.stringify(athleteUIDs));
+            localStorage.setItem('taa_home_media', JSON.stringify(media));
+
+            alert("Content Manager: All updates pushed to Home Page!");
+        }
+
+        function clearCMSSection(section) {
+            if(confirm(`Remove this section from the Home Page?`)) {
+                if(section === 'ticker') { localStorage.removeItem('taa_home_ticker'); }
+                else if(section === 'news') { localStorage.removeItem('taa_home_news'); }
+                else if(section === 'athletes') { localStorage.removeItem('taa_home_featured_uids'); }
+                else if(section === 'media') { localStorage.removeItem('taa_home_media'); }
+                loadCMSValues();
+                alert("Section cleared.");
+            }
+        }
+
+        function clearAllCMS() {
+            if(confirm("Wipe all Home Page custom content?")) {
+                localStorage.removeItem('taa_home_ticker');
+                localStorage.removeItem('taa_home_news');
+                localStorage.removeItem('taa_home_featured_uids');
+                localStorage.removeItem('taa_home_media');
+                loadCMSValues();
+                alert("Home content wiped.");
+            }
         }
 
         // --- GENERATE YEAR DROPDOWNS ---
@@ -399,7 +532,7 @@
         function renderAdminUsers() {
             let portalData = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
             if (portalData.length === 0) {
-                portalData = [{ regType: "Athlete", first_name: "Rahul", last_name: "Kumar", afi_uid: "AFI20261001", dob: "2004-05-12", gender: "Male", mobile: "9876543210", email: "rahul@email.com", district: "Hyderabad", event: "100m", timestamp: "10/04/2026", status: "Verified" }];
+                portalData = [{ regType: "Athlete", first_name: "Rahul", last_name: "Kumar", afi_uid: "AFI20261001", dob: "2004-05-12", gender: "Male", mobile: "9876543210", email: "rahul@email.com", district: "Hyderabad", event: "100m", timestamp: "10/04/2026", status: "Verified", password: "password123" }];
                 localStorage.setItem('taa_portal_data', JSON.stringify(portalData));
             }
 
@@ -427,11 +560,18 @@
                         <td><button class="btn btn-view" onclick="toggleDetails('${rowId}')">Edit Profile</button></td>
                     </tr>
                     <tr id="${rowId}" class="detail-row"><td colspan="6"><div class="detail-container">
-                        <div class="detail-item"><b>First Name</b><input type="text" class="form-control" id="fn-${uid}" value="${item.first_name}"></div>
+                        <div class="detail-item"><b>AFI UID</b><input type="text" class="form-control" id="uid-${uid}" value="${uid}" disabled style="background:#e2e8f0; cursor:not-allowed;"></div>
+                        <div class="detail-item"><b>Role</b><select class="form-control" id="role-${uid}"><option ${item.regType==='Athlete'?'selected':''}>Athlete</option><option ${item.regType==='Coach'?'selected':''}>Coach</option><option ${item.regType==='Official'?'selected':''}>Official</option></select></div>
+                        <div class="detail-item"><b>First Name</b><input type="text" class="form-control" id="fn-${uid}" value="${item.first_name || ''}"></div>
                         <div class="detail-item"><b>Last Name</b><input type="text" class="form-control" id="ln-${uid}" value="${item.last_name || ''}"></div>
+                        <div class="detail-item"><b>Gender</b><select class="form-control" id="gen-${uid}"><option ${item.gender==='Male'?'selected':''}>Male</option><option ${item.gender==='Female'?'selected':''}>Female</option></select></div>
+                        <div class="detail-item"><b>D.O.B</b><input type="date" class="form-control" id="dob-${uid}" value="${item.dob || ''}"></div>
                         <div class="detail-item"><b>Mobile</b><input type="text" class="form-control" id="mob-${uid}" value="${item.mobile || ''}"></div>
+                        <div class="detail-item"><b>Email</b><input type="email" class="form-control" id="em-${uid}" value="${item.email || ''}"></div>
                         <div class="detail-item"><b>District</b><input type="text" class="form-control" id="dist-${uid}" value="${item.district || ''}"></div>
                         <div class="detail-item"><b>Event/Specs</b><input type="text" class="form-control" id="ev-${uid}" value="${item.event || item.specialty || ''}"></div>
+                        <div class="detail-item"><b>Status</b><select class="form-control" id="stat-${uid}"><option ${item.status==='Verified'?'selected':''}>Verified</option><option ${item.status==='Pending'?'selected':''}>Pending</option><option ${item.status==='Rejected'?'selected':''}>Rejected</option></select></div>
+                        <div class="detail-item"><b>Reset Password</b><input type="text" class="form-control" id="pwd-${uid}" placeholder="Enter new password..."></div>
                         <div class="detail-item" style="justify-content:flex-end;"><button class="btn-save-inline" onclick="saveUserEdit('${uid}')">💾 Save Changes</button></div>
                     </div></td></tr>`;
             }).join('');
@@ -443,11 +583,22 @@
             let db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
             let userIndex = db.findIndex(u => u.afi_uid === uid || `TEMP-${db.indexOf(u)}` === uid);
             if(userIndex > -1) {
+                db[userIndex].regType = document.getElementById(`role-${uid}`).value;
                 db[userIndex].first_name = document.getElementById(`fn-${uid}`).value;
                 db[userIndex].last_name = document.getElementById(`ln-${uid}`).value;
+                db[userIndex].gender = document.getElementById(`gen-${uid}`).value;
+                db[userIndex].dob = document.getElementById(`dob-${uid}`).value;
                 db[userIndex].mobile = document.getElementById(`mob-${uid}`).value;
+                db[userIndex].email = document.getElementById(`em-${uid}`).value;
                 db[userIndex].district = document.getElementById(`dist-${uid}`).value;
                 db[userIndex].event = document.getElementById(`ev-${uid}`).value;
+                db[userIndex].status = document.getElementById(`stat-${uid}`).value;
+                
+                const newPwd = document.getElementById(`pwd-${uid}`).value;
+                if(newPwd.trim() !== "") {
+                    db[userIndex].password = newPwd.trim();
+                }
+
                 localStorage.setItem('taa_portal_data', JSON.stringify(db));
                 alert("Profile updated successfully!");
                 renderAdminUsers();

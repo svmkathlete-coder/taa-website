@@ -143,10 +143,25 @@
             <div class="form-section" id="step2">
                 <h3>Athletic Details</h3>
                 <div class="grid">
-                    <div class="input-group"><label>AFI UID (Username)*</label><input type="text" name="afi_uid" placeholder="AFI-XXXX" required></div>
+                    <div class="input-group">
+                        <label>AFI UID (Username)*</label>
+                        <input type="text" id="reg_afi_uid" name="afi_uid" placeholder="e.g. AFI20261055" required style="text-transform: uppercase;">
+                    </div>
                     <div class="input-group"><label>Primary Event*</label><input type="text" name="event" placeholder="e.g. 100m Sprint" required></div>
                     <div class="input-group"><label>Height (cm)</label><input type="number" name="height"></div>
                     <div class="input-group"><label>Weight (kg)</label><input type="number" name="weight"></div>
+                </div>
+
+                <h3>Account Security</h3>
+                <div class="grid">
+                    <div class="input-group">
+                        <label>Create Password*</label>
+                        <input type="password" id="reg_pwd" name="password" placeholder="Minimum 6 characters" required minlength="6">
+                    </div>
+                    <div class="input-group">
+                        <label>Confirm Password*</label>
+                        <input type="password" id="reg_pwd_confirm" placeholder="Re-enter password" required minlength="6">
+                    </div>
                 </div>
 
                 <h3>Document Uploads</h3>
@@ -166,6 +181,23 @@
                 </div>
             </div>
         </form>
+    </div>
+
+    <div id="successModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,10,30,0.85); z-index:10000; align-items:center; justify-content:center; backdrop-filter: blur(5px);">
+        <div style="background:white; padding:40px; border-radius:15px; text-align:center; max-width:450px; width:90%; border-top: 8px solid #28a745; box-shadow: 0 15px 35px rgba(0,0,0,0.2);">
+            <div style="width: 70px; height: 70px; background: #dcfce7; color: #28a745; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2em; margin: 0 auto 20px;">✓</div>
+            <h2 style="color:#28a745; font-family:'Montserrat', sans-serif; margin-bottom:15px; font-size:1.8em;">Registration Successful!</h2>
+            <p style="margin-bottom:20px; font-weight:600; color:#333;">Welcome to the Telangana Athletics Association.</p>
+            
+            <div style="background:#f4f7f6; padding:20px; border-radius:10px; margin-bottom:25px; border: 1px solid #e2e8f0;">
+                <span style="display:block; font-size:0.85em; color:#64748b; text-transform:uppercase; font-weight:800; margin-bottom: 5px;">Your AFI UID / Username:</span>
+                <strong id="popupUID" style="font-size:1.8em; color:#0056b3; font-family:'Montserrat', sans-serif; letter-spacing: 1px;"></strong>
+            </div>
+            
+            <p style="font-size:0.9em; color:#555; margin-bottom:25px; line-height: 1.5;">Please save this <b>UID</b> and the <b>Password</b> you just created. You will need them to log into the ORS Portal.</p>
+            
+            <button onclick="window.location.href='login.html'" class="btn btn-next" style="width:100%; padding: 15px; font-size: 1.1em;">Go to Secure Login ➞</button>
+        </div>
     </div>
 
 <script>
@@ -192,6 +224,7 @@
             alert("Please fill in all required fields marked with *");
         }
     }
+
     function prevStep() {
         document.getElementById('step2').classList.remove('active');
         document.getElementById('step1').classList.add('active');
@@ -200,21 +233,44 @@
         document.getElementById('line-fill').style.width = '0%';
         window.scrollTo(0, 0);
     }
+
     document.getElementById('regForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        
+        // Password Validation check
+        const pwd = document.getElementById('reg_pwd').value;
+        const pwdConfirm = document.getElementById('reg_pwd_confirm').value;
+        if (pwd !== pwdConfirm) {
+            alert("Error: Passwords do not match. Please try again.");
+            document.getElementById('reg_pwd').style.borderColor = 'red';
+            document.getElementById('reg_pwd_confirm').style.borderColor = 'red';
+            return;
+        }
+
         const formData = new FormData(this);
         const data = {};
         formData.forEach((value, key) => {
             data[key] = (value instanceof File) ? value.name : value;
         });
+        
+        // Ensure the entered UID is saved in uppercase
+        const enteredUID = document.getElementById('reg_afi_uid').value.toUpperCase();
+        data.afi_uid = enteredUID;
+        
         data.regType = "Athlete";
+        data.status = "Pending"; // Sets initial status to pending verification
         data.timestamp = new Date().toLocaleString();
+        
         let list = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
         list.push(data);
         localStorage.setItem('taa_portal_data', JSON.stringify(list));
-        alert("Athlete Registration Successful!");
-        window.location.href = "index.html"; 
+        
+        // Show Success Popup with the entered UID
+        document.getElementById('popupUID').innerText = enteredUID;
+        document.getElementById('successModal').style.display = 'flex';
     });
 </script>
+
+<div id="footer-container"></div>
 </body>
 </html>

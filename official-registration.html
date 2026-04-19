@@ -109,7 +109,7 @@
 
             <h3>2. Official Credentials</h3>
             <div class="grid">
-                <div class="input-group" style="grid-column: span 2;"><label>AFI Official ID (Username)*</label><input type="text" name="afi_uid" placeholder="AFI-XXXX" required></div>
+                <div class="input-group" style="grid-column: span 2;"><label>AFI Official ID (Username)*</label><input type="text" id="reg_afi_uid" name="afi_uid" placeholder="AFI-XXXX" required style="text-transform: uppercase;"></div>
                 <div class="input-group">
                     <label>Official Type*</label>
                     <select id="off-type" name="official_type" required>
@@ -152,7 +152,19 @@
                 <div class="input-group"><label>Pincode*</label><input type="text" name="pincode" maxlength="6" required></div>
             </div>
 
-            <h3>4. Document Uploads</h3>
+            <h3>4. Account Security</h3>
+            <div class="grid">
+                <div class="input-group">
+                    <label>Create Password*</label>
+                    <input type="password" id="reg_pwd" name="password" placeholder="Minimum 6 characters" required minlength="6">
+                </div>
+                <div class="input-group">
+                    <label>Confirm Password*</label>
+                    <input type="password" id="reg_pwd_confirm" placeholder="Re-enter password" required minlength="6">
+                </div>
+            </div>
+
+            <h3>5. Document Uploads</h3>
             <div class="grid">
                 <div class="input-group"><label>Photograph*</label><input type="file" name="photo" accept="image/*" required></div>
                 <div class="input-group"><label>Certificate*</label><input type="file" name="cert" accept="image/*" required></div>
@@ -174,6 +186,23 @@
                 <button type="submit" class="btn-submit">Register</button>
             </div>
         </form>
+    </div>
+
+    <div id="successModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,10,30,0.85); z-index:10000; align-items:center; justify-content:center; backdrop-filter: blur(5px);">
+        <div style="background:white; padding:40px; border-radius:15px; text-align:center; max-width:450px; width:90%; border-top: 8px solid #28a745; box-shadow: 0 15px 35px rgba(0,0,0,0.2);">
+            <div style="width: 70px; height: 70px; background: #dcfce7; color: #28a745; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2em; margin: 0 auto 20px;">✓</div>
+            <h2 style="color:#28a745; font-family:'Montserrat', sans-serif; margin-bottom:15px; font-size:1.8em;">Registration Successful!</h2>
+            <p style="margin-bottom:20px; font-weight:600; color:#333;">Welcome to the Telangana Athletics Association.</p>
+            
+            <div style="background:#f4f7f6; padding:20px; border-radius:10px; margin-bottom:25px; border: 1px solid #e2e8f0;">
+                <span style="display:block; font-size:0.85em; color:#64748b; text-transform:uppercase; font-weight:800; margin-bottom: 5px;">Your AFI Official ID / Username:</span>
+                <strong id="popupUID" style="font-size:1.8em; color:#0056b3; font-family:'Montserrat', sans-serif; letter-spacing: 1px;"></strong>
+            </div>
+            
+            <p style="font-size:0.9em; color:#555; margin-bottom:25px; line-height: 1.5;">Please save this <b>ID</b> and the <b>Password</b> you just created. You will need them to log into the Official Portal.</p>
+            
+            <button onclick="window.location.href='login.html'" class="btn-submit" style="width:100%; padding: 15px; font-size: 1.1em;">Go to Secure Login ➞</button>
+        </div>
     </div>
 
 <script>
@@ -201,22 +230,41 @@
 
     document.getElementById('officialForm').addEventListener('submit', function(e) {
         e.preventDefault();
+
+        // NEW: Password Validation check
+        const pwd = document.getElementById('reg_pwd').value;
+        const pwdConfirm = document.getElementById('reg_pwd_confirm').value;
+        if (pwd !== pwdConfirm) {
+            alert("Error: Passwords do not match. Please try again.");
+            document.getElementById('reg_pwd').style.borderColor = 'red';
+            document.getElementById('reg_pwd_confirm').style.borderColor = 'red';
+            return;
+        }
+
         const formData = new FormData(this);
         const data = {};
         formData.forEach((value, key) => {
             data[key] = (value instanceof File) ? value.name : value;
         });
         
+        // NEW: Ensure the entered UID is saved in uppercase
+        const enteredUID = document.getElementById('reg_afi_uid').value.toUpperCase();
+        data.afi_uid = enteredUID;
+
         data.regType = "Official";
+        data.status = "Pending"; // Set to pending for Admin verification
         data.timestamp = new Date().toLocaleString();
 
         let list = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
         list.push(data);
         localStorage.setItem('taa_portal_data', JSON.stringify(list));
 
-        alert("Official Registration Successful!");
-        window.location.href = "index.html";
+        // NEW: Show Success Popup instead of alert/redirect
+        document.getElementById('popupUID').innerText = enteredUID;
+        document.getElementById('successModal').style.display = 'flex';
     });
 </script>
+
+<div id="footer-container"></div>
 </body>
 </html>

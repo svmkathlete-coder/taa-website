@@ -4,199 +4,281 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home - Telangana Athletics Association</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #0056b3;
-            --secondary: #35CAFE;
-            --accent: #FF8C00;
-            --white: #ffffff;
-            --dark-blue: #001a35;
+            --primary: #0056b3; --accent: #FF8C00; --white: #ffffff;
+            --dark-blue: #001a35; --text-dark: #1e293b; --text-muted: #64748b; --bg-gray: #f4f7f6;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        
         body { 
             font-family: 'Open Sans', sans-serif; 
             background: linear-gradient(rgba(244, 247, 246, 0.96), rgba(244, 247, 246, 0.96)),
-                        url('https://www.transparenttextures.com/patterns/carbon-fibre.png'),
-                        #f4f7f6;
-            color: #333; 
-            line-height: 1.8; 
+                        url('https://www.transparenttextures.com/patterns/carbon-fibre.png'), #f4f7f6;
+            color: var(--text-dark); line-height: 1.6; 
         }
-
-        /* --- Navigation Styles (Kept here so the injected JS menu is styled perfectly) --- */
-        .navbar {
-            background: var(--white);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            position: sticky;
-            top: 0;
-            z-index: 9999;
-            padding: 5px 0;
-        }
-        .nav-container {
-            max-width: 1300px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-        }
-        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 55px; height: 55px; }
-        .logo-text { display: flex; flex-direction: column; }
-        .main-title { color: var(--primary); font-weight: 800; font-size: 1.1em; line-height: 1; font-family: 'Montserrat'; }
-        .sub-title { color: #64748b; font-weight: 600; font-size: 0.75em; letter-spacing: 1px; }
-
-        .nav-menu { display: flex; list-style: none; gap: 15px; align-items: center; margin: 0; padding: 0; }
-        .nav-menu li { position: relative; } 
         
-        .nav-menu a { 
-            text-decoration: none; color: #1a1a1a; font-weight: 700; 
-            font-size: 0.82em; transition: 0.3s; padding: 15px 5px;
-            font-family: 'Montserrat'; text-transform: uppercase;
-            display: block;
-        }
-        .nav-menu a:hover { color: var(--accent); }
-
-        /* --- FIXED DROPDOWN CSS --- */
-        .dropdown-content {
-            display: none; 
-            position: absolute;
-            background-color: var(--white);
-            min-width: 220px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            z-index: 1;
-            top: 100%; 
-            left: 0;
-            border-top: 3px solid var(--accent);
-        }
-
-        .dropdown-content a {
-            color: #333;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            text-transform: none; 
-            font-size: 0.85em;
-            border-bottom: 1px solid #f1f1f1;
-        }
-
-        .dropdown-content a:hover {
-            background-color: #f9f9f9;
-            color: var(--primary);
-        }
-
-        .dropdown:hover .dropdown-content {
-            display: block;
-        }
-
-        .ors-btn {
-            background: var(--primary) !important; color: white !important;
-            padding: 10px 22px !important; border-radius: 50px; margin-left: 10px;
-            box-shadow: 0 4px 12px rgba(0, 86, 179, 0.2);
-            display: inline-block !important;
-        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .section-padding { padding: 60px 0; }
+        .section-title { font-family: 'Montserrat'; font-size: 2em; color: var(--dark-blue); text-transform: uppercase; margin-bottom: 30px; border-left: 6px solid var(--accent); padding-left: 15px; }
 
         /* --- Hero Banner --- */
         .hero { 
             background: linear-gradient(135deg, #0056b3 0%, var(--dark-blue) 100%); 
-            color: white; 
-            padding: 100px 20px; 
-            text-align: center; 
-            position: relative;
+            color: white; padding: 80px 20px; text-align: center; 
         }
-
-        .hero-content {
-            display: flex; align-items: center; justify-content: center; 
-            max-width: 1200px; margin: 0 auto; gap: 40px; 
-            position: relative; z-index: 10;
-        }
-
-        .hero-logo-img {
-            width: 155px; height: 155px;
-            background-color: var(--white); 
-            border-radius: 50%; padding: 15px; 
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
-            object-fit: contain;
-        }
-
-        .hero-text h1 { 
-            font-family: 'Montserrat', sans-serif; font-size: 2.8em; 
-            text-transform: uppercase; margin-bottom: 15px; line-height: 1.1;
-        }
-
+        .hero-content { display: flex; align-items: center; justify-content: center; gap: 40px; }
+        .hero-logo-img { width: 160px; height: 160px; background: white; border-radius: 50%; padding: 10px; object-fit: contain; }
+        .hero-text h1 { font-family: 'Montserrat'; font-size: 2.8em; font-weight: 900; text-transform: uppercase; line-height: 1.1; }
         .hero-text .tagline { 
-            font-size: 0.9em; font-weight: 700;
-            background: rgba(255, 255, 255, 0.12);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 12px 28px; border-radius: 8px;
-            display: inline-block; letter-spacing: 2px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            text-transform: uppercase;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            font-size: 1.1em; font-weight: 700; background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(10px); padding: 12px 28px; border-radius: 8px; display: inline-block;
+            text-transform: uppercase; margin-top: 15px; border: 1px solid rgba(255,255,255,0.2);
         }
 
-        /* --- Welcome Card --- */
-        .container { max-width: 1000px; margin: 50px auto; padding: 0 20px; }
-        .content-card { 
-            background: white; padding: 45px; border-radius: 15px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-top: 6px solid var(--primary); 
-        }
-        .content-card h2 { font-family: 'Montserrat'; color: var(--primary); margin-bottom: 15px; }
+        /* --- News Ticker --- */
+        .news-ticker { background: var(--accent); color: white; display: flex; align-items: center; font-weight: 700; overflow: hidden; }
+        .ticker-label { background: var(--dark-blue); padding: 15px 25px; font-family: 'Montserrat'; z-index: 5; }
+        .ticker-content { flex-grow: 1; overflow: hidden; white-space: nowrap; }
+        .ticker-track { display: inline-block; animation: marquee 30s linear infinite; }
+        .ticker-track:hover { animation-play-state: paused; }
+        .ticker-track a { color: white; text-decoration: none; margin-right: 50px; }
+        @keyframes marquee { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
 
-        @media (max-width: 768px) {
-            .hero-content { flex-direction: column; text-align: center; }
-            .hero-text h1 { font-size: 2.2em; }
-            .nav-menu { display: none; }
-        }
+        /* --- Registration --- */
+        .reg-zone { padding: 40px 0; display: flex; flex-direction: column; gap: 15px; }
+        .reg-banner { display: flex; justify-content: space-between; align-items: center; padding: 25px; border-radius: 12px; color: white; text-decoration: none; transition: 0.3s; }
+        .afi-banner { background: linear-gradient(135deg, var(--primary), #003d82); border-left: 6px solid var(--accent); }
+        .btn-reg { background: white; color: var(--primary); padding: 10px 20px; border-radius: 5px; font-weight: 800; font-family: 'Montserrat'; text-transform: uppercase; cursor: pointer; border: none; text-decoration: none; display: inline-block; }
+
+        /* --- News --- */
+        .news-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .news-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+        .news-card { background: white; padding: 25px; border-radius: 8px; border-top: 4px solid var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        /* --- Profiles --- */
+        .marquee-container { background: var(--dark-blue); padding: 50px 0; overflow: hidden; }
+        .marquee-track-profiles { display: flex; gap: 20px; width: max-content; animation: profileScroll 25s linear infinite; }
+        .marquee-container:hover .marquee-track-profiles { animation-play-state: paused; }
+        .profile-card { background: white; width: 220px; border-radius: 10px; overflow: hidden; text-align: center; text-decoration: none; color: inherit; }
+        .profile-card img { width: 100%; height: 220px; object-fit: cover; }
+        @keyframes profileScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+        /* --- Gallery Section --- */
+        .gallery-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .gallery-item { position: relative; border-radius: 8px; overflow: hidden; height: 250px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+        .gallery-btn-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.3s; }
+        .gallery-item:hover .gallery-btn-overlay { opacity: 1; }
+
+        /* --- Partners Section --- */
+        .partners-section { background: rgba(255,255,255,0.8); padding: 60px 0; border-top: 1px solid #ddd; text-align: center; }
+        .partners-grid { display: flex; justify-content: center; align-items: center; gap: 60px; flex-wrap: wrap; margin-top: 30px; }
+        .partner-link { text-decoration: none; color: var(--text-muted); font-weight: 800; font-family: 'Montserrat'; font-size: 0.75em; text-transform: uppercase; transition: 0.3s; }
+        .partner-link img { width: 200px; height: 200px; object-fit: contain; margin-bottom: 08px; opacity: 0.7; transition: 0.3s; display: block; margin-left: auto; margin-right: auto; }
+        .partner-link:hover img { filter: grayscale(0); opacity: 1; transform: scale(1.1); }
+
+        /* --- Full Footer (Restored) --- */
+        footer { background: var(--dark-blue); color: white; padding: 60px 20px 20px; border-top: 5px solid var(--accent); }
+        .footer-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 40px; }
+        .footer-col h3 { font-family: 'Montserrat'; color: var(--accent); margin-bottom: 20px; font-size: 1.1em; text-transform: uppercase; }
+        .footer-links { list-style: none; }
+        .footer-links li { margin-bottom: 10px; }
+        .footer-links a { color: white; text-decoration: none; opacity: 0.8; transition: 0.3s; }
+        .footer-links a:hover { opacity: 1; color: var(--accent); padding-left: 5px; }
+        .footer-bottom { text-align: center; margin-top: 40px; opacity: 0.6; font-size: 0.85em; }
     </style>
 </head>
 <body>
 
     <div id="navbar-container"></div>
     <script src="navbar.js"></script>
-    
+
     <header class="hero">
         <div class="hero-content">
             <img src="LOGO.jfif" alt="TAA Logo" class="hero-logo-img">
             <div class="hero-text">
                 <h1>Telangana Athletics Association</h1>
-                <p class="tagline">Official Digital Portal of the State Athletics Governing Body</p>
+                <p class="tagline">Official Digital Portal of the State Governing Body</p>
             </div>
         </div>
     </header>
 
-    <div class="container">
-        <div class="content-card">
-            <h2>Welcome to Telangana Athletics</h2>
-            <p>Welcome to the official portal of the Telangana Athletics Association. We are dedicated to identifying talent and providing a professional platform for athletes across the state.</p>
+    <div class="news-ticker">
+        <div class="ticker-label">LATEST NEWS</div>
+        <div class="ticker-content">
+            <div class="ticker-track">
+                <a href="https://indianathletics.in/wp-content/uploads/2026/04/Circular-No.-38.pdf">🚨 24th National Junior (U20) Championships 2026 - View Schedule</a>
+                <a href="circulars.html">📅 State AGM scheduled for February 2026 - View Circular</a>
+                <a href="https://indianathletics.in/wp-content/uploads/2026/04/Circular-No.-38.pdf">🚨 24th National Junior (U20) Championships 2026 - View Schedule</a>
+            </div>
         </div>
     </div>
 
-    <div id="dynamicRegistrationBanner" style="position: relative; z-index: 999;"></div>
+    <div class="container">
+        <div id="dynamicRegistrationZone" class="reg-zone">
+            <a href="https://indianathletics.in" class="reg-banner afi-banner">
+                <div><h3>24th National Junior Federation Competition 2026</h3><p>Entries close April 25, 2026</p></div>
+                <div class="btn-reg">ENTER ON AFI PORTAL ➞</div>
+            </a>
+        </div>
+    </div>
 
-<script>
-    // When the Home Page loads, check if Admin opened any registrations
-    window.addEventListener('DOMContentLoaded', () => {
-        const regData = JSON.parse(localStorage.getItem('taa_active_registration'));
-        const bannerContainer = document.getElementById('dynamicRegistrationBanner');
+    <section class="section-padding container">
+        <div class="news-header">
+            <h2 class="section-title">Latest Updates</h2>
+            <a href="press-releases.html" class="btn-reg" style="border: 1px solid var(--primary); color: var(--primary); background: transparent;">VIEW ALL NEWS</a>
+        </div>
+        <div class="news-grid">
+            <div class="news-card">
+                <span style="color:var(--accent); font-weight:800; font-size: 0.8em;">APRIL 12, 2026</span>
+                <h3 style="margin:10px 0;">National Record Broken at Rotterdam Marathon</h3>
+                <a href="https://indianathletics.in/army-runner-sawan-barwal-conquers-challenging-conditions-at-rotterdam-marathon-breaks-national-record/" style="color:var(--primary); font-weight:800; text-decoration:none;">READ FULL ARTICLE ➞</a>
+            </div>
+        </div>
+    </section>
 
-        if (regData && regData.isActive) {
-            bannerContainer.innerHTML = `
-                <div style="background: linear-gradient(135deg, #FF8C00, #ff6b00); color: white; padding: 20px 40px; border-radius: 12px; max-width: 1200px; margin: 20px auto; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(255,140,0,0.3);">
-                    <div>
-                        <h2 style="font-family: 'Montserrat'; margin: 0 0 5px 0; font-size: 1.5em; text-transform: uppercase;">🚨 ENTRIES OPEN: ${regData.meet}</h2>
-                        <p style="margin: 0; font-weight: 600; font-size: 0.9em;">Last Date for Online Entry: ${regData.deadline}</p>
-                    </div>
-                    <a href="login.html" style="background: white; color: #ff6b00; padding: 12px 25px; border-radius: 8px; font-family: 'Montserrat'; font-weight: 800; text-decoration: none; text-transform: uppercase; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">Register Athletes →</a>
-                </div>
-            `;
-        }
-    });
-</script>
+    <div class="marquee-container">
+        <div class="container"><h2 class="section-title" style="color:white; border-left-color:var(--accent);">Top Athletes</h2></div>
+        <div class="marquee-track-profiles">
+            <a href="profile-view.html?id=rahul&from=home" class="profile-card">
+                <img src="https://images.unsplash.com/photo-1552674605-15c2145bc118?w=300" alt="Rahul">
+                <h4 style="margin-top:10px;">K. RAHUL</h4><p style="margin-bottom:10px; color:var(--text-muted);">100m Sprint</p>
+            </a>
+            <a href="profile-view.html?id=anitha&from=home" class="profile-card">
+                <img src="https://images.unsplash.com/photo-1530549387789-4c1017266635?w=300" alt="Anitha">
+                <h4 style="margin-top:10px;">P. ANITHA</h4><p style="margin-bottom:10px; color:var(--text-muted);">Long Jump</p>
+            </a>
+            <a href="profile-view.html?id=rahul&from=home" class="profile-card">
+                <img src="https://images.unsplash.com/photo-1552674605-15c2145bc118?w=300" alt="Rahul">
+                <h4 style="margin-top:10px;">K. RAHUL</h4><p style="margin-bottom:10px; color:var(--text-muted);">100m Sprint</p>
+            </a>
+            <a href="profile-view.html?id=anitha&from=home" class="profile-card">
+                <img src="https://images.unsplash.com/photo-1530549387789-4c1017266635?w=300" alt="Anitha">
+                <h4 style="margin-top:10px;">P. ANITHA</h4><p style="margin-bottom:10px; color:var(--text-muted);">Long Jump</p>
+            </a>
+        </div>
+        <div style="text-align:center; margin-top:30px;"><a href="profiles.html" class="btn-reg" style="background:var(--primary); color:white;">VIEW ALL PROFILES</a></div>
+    </div>
+
+    <section class="section-padding container">
+        <div class="gallery-header">
+            <h2 class="section-title">Photo Gallery</h2>
+            <a href="photo-gallery.html" class="btn-reg" style="border: 1px solid var(--primary); color: var(--primary); background: transparent;">VIEW FULL GALLERY</a>
+        </div>
+        <div class="gallery-grid">
+            <div class="gallery-item">
+                <img src="https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600" alt="Photo">
+                <div class="gallery-btn-overlay"><a href="https://indianathletics.in/photo-gallery/" class="btn-reg">VIEW ALBUM</a></div>
+            </div>
+        </div>
+
+        <div class="gallery-header" style="margin-top:40px;">
+            <h2 class="section-title">Video Gallery</h2>
+            <a href="videos.html" class="btn-reg" style="border: 1px solid var(--primary); color: var(--primary); background: transparent;">VIEW ALL VIDEOS</a>
+        </div>
+        <div class="gallery-grid">
+            <div class="gallery-item">
+                <img src="https://images.unsplash.com/photo-1552674605-15c2145bc118?w=600" alt="Video">
+                <div class="gallery-btn-overlay"><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" class="btn-reg">WATCH VIDEO</a></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="partners-section">
+        <div class="container">
+            <h2 class="section-title" style="border:none; text-align:center;">Our Partners & Affiliations</h2>
+            <div class="partners-grid">
+                <a href="https://indianathletics.in" class="partner-link"><img src="AFI.PNG" alt="AFI">INDIAN ATHLETICS</a>
+                <a href="https://telangana.gov.in" class="partner-link"><img src="TG.PNG" alt="Govt">GOVT. OF TELANGANA</a>
+                <a href="https://sports.telangana.gov.in" class="partner-link"><img src="sats.PNG" alt="SAT">SPORTS AUTHORITY OF TELANGANA</a>
+            </div>
+        </div>
+    </section>
+
+   <div id="footer-container"></div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            // --- ORIGINAL REGISTRATION LOGIC ---
+            const regData = JSON.parse(localStorage.getItem('taa_active_registration'));
+            if (regData && regData.isActive) {
+                const zone = document.getElementById('dynamicRegistrationZone');
+                const b = document.createElement('a');
+                b.href = "login.html"; b.className = "reg-banner"; b.style.background = "linear-gradient(135deg, #FF8C00, #e67e00)"; b.style.borderLeft = "6px solid #0056b3";
+                b.innerHTML = `<div><h3>🚨 ${regData.meet}</h3><p>Last Date for Entries: ${regData.deadline}</p></div><div class="btn-reg" style="color:#FF8C00">REGISTER NOW ➞</div>`;
+                zone.prepend(b);
+            }
+
+            // --- NEW: WEBSITE CMS HYDRATION LOGIC ---
+
+            // 1. Hydrate News Ticker
+            const ticker = JSON.parse(localStorage.getItem('taa_home_ticker'));
+            if (ticker && ticker.text) {
+                const track = document.querySelector('.ticker-track');
+                const headlines = ticker.text.split('|').map(h => h.trim()).filter(h => h);
+                const link = ticker.link || '#';
+                const tickerHTML = headlines.map(h => `<a href="${link}">${h}</a>`).join('');
+                // Duplicate for smooth infinite CSS marquee scrolling
+                track.innerHTML = tickerHTML + tickerHTML;
+            }
+
+            // 2. Hydrate Featured Update (News Card)
+            const news = JSON.parse(localStorage.getItem('taa_home_news'));
+            if (news && news.title) {
+                const newsCard = document.querySelector('.news-card');
+                if (newsCard) {
+                    newsCard.innerHTML = `
+                        <span style="color:var(--accent); font-weight:800; font-size: 0.8em;">${news.date}</span>
+                        <h3 style="margin:10px 0;">${news.title}</h3>
+                        <a href="${news.link || '#'}" style="color:var(--primary); font-weight:800; text-decoration:none;">READ FULL ARTICLE ➞</a>
+                    `;
+                }
+            }
+
+            // 3. Hydrate Featured Athletes Marquee
+            const featuredUIDs = JSON.parse(localStorage.getItem('taa_home_featured_uids'));
+            if (featuredUIDs && featuredUIDs.length > 0) {
+                const marqueeTrack = document.querySelector('.marquee-track-profiles');
+                const allUsers = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+                
+                let athleteHTML = '';
+                featuredUIDs.forEach(uid => {
+                    const athlete = allUsers.find(u => u.afi_uid === uid);
+                    if(athlete) {
+                        // Generic placeholder image, as uploaded files don't store real image data in LocalStorage simulation
+                        const img = "https://images.unsplash.com/photo-1552674605-15c2145bc118?w=300"; 
+                        athleteHTML += `
+                        <a href="profile-view.html?id=${uid}&from=home" class="profile-card">
+                            <img src="${img}" alt="${athlete.first_name}">
+                            <h4 style="margin-top:10px;">${athlete.first_name.toUpperCase()} ${athlete.last_name ? athlete.last_name.toUpperCase() : ''}</h4>
+                            <p style="margin-bottom:10px; color:var(--text-muted);">${athlete.event || athlete.specialty || athlete.regType}</p>
+                        </a>`;
+                    }
+                });
+                
+                if (athleteHTML !== '') {
+                    // Duplicate for smooth infinite scrolling
+                    marqueeTrack.innerHTML = athleteHTML + athleteHTML;
+                }
+            }
+
+            // 4. Hydrate Photo & Video Gallery Features
+            const media = JSON.parse(localStorage.getItem('taa_home_media'));
+            if (media) {
+                // Find the specific overlay buttons and update their HREFs
+                const galleryButtons = document.querySelectorAll('.gallery-btn-overlay a');
+                if (galleryButtons.length >= 2) {
+                    if (media.photo && media.photo.trim() !== "") {
+                        galleryButtons[0].href = media.photo;
+                    }
+                    if (media.video && media.video.trim() !== "") {
+                        galleryButtons[1].href = media.video;
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>

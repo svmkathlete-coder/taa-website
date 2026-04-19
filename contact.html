@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0056b3;
+            --accent: #FF8C00;
+            --bg: #f4f7f6;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --white: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Open Sans', sans-serif; background-color: var(--bg); color: var(--text-dark); line-height: 1.6; }
+
+        /* --- Hero Banner --- */
+        .hero { 
+            background: linear-gradient(135deg, #001a35 0%, #0056b3 100%); 
+            color: white; padding: 60px 20px; text-align: center; 
+        }
+        .hero-content { display: flex; align-items: center; justify-content: center; max-width: 1200px; margin: 0 auto; gap: 30px; }
+        .hero-logo { width: 100px; height: 100px; background-color: #fff; border-radius: 50%; padding: 5px; object-fit: contain; }
+        .hero-text h1 { font-family: 'Montserrat'; font-size: 2.5em; text-transform: uppercase; margin: 0; }
+        .hero-text p { font-weight: 600; opacity: 0.9; margin-top: 5px; }
+
+        /* --- Main Container --- */
+        /* FIX: Changed margin from -40px to 40px to remove the overlap */
+        .container { max-width: 1200px; margin: 40px auto 60px; padding: 0 20px; }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 40px;
+            align-items: stretch;
+        }
+
+        /* --- Cards --- */
+        .card { 
+            background: var(--white); 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+            border-top: 5px solid var(--primary);
+            height: 100%;
+        }
+
+        .card.accent-border { border-top-color: var(--accent); }
+
+        h2 { font-family: 'Montserrat'; color: var(--primary); font-size: 1.8em; margin-bottom: 25px; text-transform: uppercase; }
+
+        /* --- Left Column: Contact Info --- */
+        .info-block { margin-bottom: 25px; display: flex; align-items: flex-start; gap: 15px; }
+        .info-icon { font-size: 1.5em; line-height: 1; }
+        .info-text h4 { font-family: 'Montserrat'; font-weight: 800; color: var(--text-dark); margin-bottom: 5px; text-transform: uppercase; font-size: 0.9em; letter-spacing: 1px;}
+        .info-text p { color: var(--text-muted); font-weight: 600; font-size: 0.95em; }
+
+        .map-container { width: 100%; height: 200px; border-radius: 8px; overflow: hidden; margin-top: 20px; border: 1px solid var(--border); }
+        .map-container iframe { width: 100%; height: 100%; border: none; }
+
+        /* --- Right Column: Form --- */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-family: 'Montserrat'; font-weight: 700; font-size: 0.8em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+        
+        .form-control {
+            width: 100%; padding: 14px 15px; border: 2px solid var(--border); border-radius: 8px;
+            font-family: 'Open Sans'; font-size: 0.95em; outline: none; transition: 0.3s;
+            color: var(--text-dark); font-weight: 600; background: #f8fafc;
+        }
+        .form-control:focus { border-color: var(--primary); background: var(--white); box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.1); }
+        textarea.form-control { resize: vertical; min-height: 120px; }
+
+        .btn-submit {
+            background: var(--primary); color: white; border: none; padding: 15px 30px;
+            border-radius: 8px; font-weight: 800; font-family: 'Montserrat'; font-size: 1em;
+            cursor: pointer; transition: 0.3s; text-transform: uppercase; width: 100%;
+            letter-spacing: 1px; box-shadow: 0 4px 15px rgba(0, 86, 179, 0.2);
+        }
+        .btn-submit:hover { background: #004494; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 86, 179, 0.3); }
+
+        /* Success Message */
+        #successMessage {
+            display: none; background: #dcfce7; color: #166534; padding: 15px;
+            border-radius: 8px; border: 1px solid #bbf7d0; font-weight: 700; text-align: center; margin-bottom: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .contact-grid { grid-template-columns: 1fr; }
+            .hero-content { flex-direction: column; text-align: center; }
+            .hero-text { text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+
+    <header class="hero">
+        <div class="hero-content">
+            <img src="LOGO.jfif" alt="TAA Logo" class="hero-logo">
+            <div class="hero-text">
+                <h1>Contact Us</h1>
+                <p>Official communication hub for Telangana Athletics.</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="contact-grid">
+            
+            <div class="card">
+                <h2>Get In Touch</h2>
+                
+                <div class="info-block">
+                    <div class="info-icon">📍</div>
+                    <div class="info-text">
+                        <h4>State Headquarters</h4>
+                        <p>Telangana Athletics Association<br>Room No : 12, First Floor, Block-2,<br>Lal Bahadur Stadium, Hyderabad, 500001.</p>
+                    </div>
+                </div>
+
+                <div class="info-block">
+                    <div class="info-icon">📞</div>
+                    <div class="info-text">
+                        <h4>Phone</h4>
+                        <p>040 2324 0228 (Landline)<br>+91 98480 60999 (Mobile)</p>
+                    </div>
+                </div>
+
+                <div class="info-block">
+                    <div class="info-icon">✉️</div>
+                    <div class="info-text">
+                        <h4>Email</h4>
+                        <p>telanganaathletics@gmail.com</p>
+                    </div>
+                </div>
+
+                <div class="map-container">
+                    <iframe src="https://maps.google.com/maps?q=Lal+Bahadur+Stadium,+Hyderabad&t=&z=14&ie=UTF8&iwloc=&output=embed" allowfullscreen="" loading="lazy"></iframe>
+                </div>
+            </div>
+
+            <div class="card accent-border">
+                <h2>Send a Message</h2>
+                
+                <div id="successMessage">
+                    ✅ Thank you! Your message has been sent successfully.
+                </div>
+
+                <form id="contactForm" onsubmit="handleFormSubmit(event)">
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input type="text" id="fullName" class="form-control" placeholder="Enter your full name" required>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label for="emailAddress">Email Address</label>
+                            <input type="email" id="emailAddress" class="form-control" placeholder="you@example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="phoneNumber">Mobile Number</label>
+                            <input type="tel" id="phoneNumber" class="form-control" placeholder="+91" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Subject / Inquiry Type</label>
+                        <select id="subject" class="form-control" required>
+                            <option value="" disabled selected>Select an option...</option>
+                            <option value="General">General Inquiry</option>
+                            <option value="Registration">Registration Issue</option>
+                            <option value="Events">Meet Details</option>
+                            <option value="Technical">Technical Officials</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">Your Message</label>
+                        <textarea id="message" class="form-control" placeholder="How can we help you?" required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Send Message 🚀</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="navbar.js"></script>
+    <script>
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            document.getElementById('contactForm').reset();
+            const successBox = document.getElementById('successMessage');
+            successBox.style.display = 'block';
+            successBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => { successBox.style.display = 'none'; }, 5000);
+        }
+    </script>
+
+    <div id="footer-container"></div>
+</body>
+</html>

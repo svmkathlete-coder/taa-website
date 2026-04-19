@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official Circulars - TAA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0056b3;
+            --accent: #FF8C00;
+            --bg: #f4f7f6;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --white: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Open Sans', sans-serif; background-color: var(--bg); color: var(--text-dark); line-height: 1.6; }
+
+        /* --- Hero Banner --- */
+        .hero { 
+            background: linear-gradient(135deg, #001a35 0%, #0056b3 100%); 
+            color: white; padding: 60px 20px; text-align: center; border-bottom: 5px solid var(--accent);
+        }
+        .hero-content { display: flex; align-items: center; justify-content: center; max-width: 1200px; margin: 0 auto; gap: 30px; }
+        .hero-logo { width: 100px; height: 100px; background-color: #fff; border-radius: 50%; padding: 5px; object-fit: contain; }
+        .hero-text h1 { font-family: 'Montserrat'; font-size: 2.5em; text-transform: uppercase; margin: 0; }
+        .hero-text p { font-weight: 600; opacity: 0.9; margin-top: 5px; }
+
+        /* --- Main Container --- */
+        .container { max-width: 1100px; margin: -25px auto 60px; padding: 0 20px; position: relative; z-index: 10; }
+
+        /* --- Tabs --- */
+        .tabs-wrapper { 
+            display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; 
+            background: white; padding: 15px; border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); flex-wrap: wrap; 
+        }
+        .tab-btn { 
+            padding: 12px 30px; background: transparent; border: 2px solid transparent; 
+            color: var(--text-muted); border-radius: 8px; font-family: 'Montserrat'; 
+            font-weight: 800; font-size: 0.9em; cursor: pointer; transition: 0.3s; 
+            text-transform: uppercase; letter-spacing: 1px; 
+        }
+        .tab-btn:hover { color: var(--primary); background: #f1f5f9; }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(0, 86, 179, 0.3); }
+
+        /* --- Filter Section --- */
+        .filter-card {
+            background: var(--white); padding: 20px 25px; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px;
+            display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;
+            border: 1px solid var(--border);
+        }
+
+        .filter-group { flex: 1; min-width: 200px; display: flex; flex-direction: column; }
+        .filter-group label { font-family: 'Montserrat'; font-size: 0.75em; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
+        
+        .filter-control {
+            padding: 12px 15px; border: 2px solid var(--border); border-radius: 8px;
+            font-family: 'Open Sans'; font-size: 0.9em; font-weight: 600; color: var(--text-dark);
+            outline: none; transition: 0.3s;
+        }
+        .filter-control:focus { border-color: var(--accent); }
+
+        /* --- Circulars List --- */
+        .circular-list { display: flex; flex-direction: column; gap: 15px; }
+
+        .circular-item {
+            background: var(--white); border-radius: 10px; padding: 20px 25px;
+            display: flex; align-items: center; justify-content: space-between; gap: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04); border-left: 5px solid var(--primary);
+            transition: 0.3s;
+        }
+        .circular-item:hover { transform: translateX(5px); box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+        
+        .circular-item.source-afi { border-left-color: var(--accent); }
+
+        .circular-date {
+            text-align: center; background: #f1f5f9; padding: 10px 15px; border-radius: 8px; min-width: 90px;
+        }
+        .circular-date .day { display: block; font-family: 'Montserrat'; font-size: 1.5em; font-weight: 800; color: var(--primary); line-height: 1; }
+        .circular-date .month-year { display: block; font-size: 0.75em; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-top: 3px; }
+
+        .circular-details { flex-grow: 1; }
+        .circular-meta { font-size: 0.75em; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
+        .circular-meta span { color: var(--accent); margin-right: 10px; }
+        .circular-title { font-family: 'Montserrat'; font-size: 1.1em; color: var(--text-dark); margin-bottom: 5px; }
+        
+        .btn-download {
+            background: #e2e8f0; color: var(--text-dark); text-decoration: none; padding: 10px 20px;
+            border-radius: 6px; font-weight: 800; font-size: 0.8em; font-family: 'Montserrat'; transition: 0.3s;
+            display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; text-transform: uppercase;
+        }
+        .btn-download:hover { background: var(--primary); color: white; }
+        .btn-download.afi-btn:hover { background: var(--accent); }
+
+        .empty-state { text-align: center; padding: 40px; color: var(--text-muted); font-weight: 600; background: white; border-radius: 10px; border: 1px dashed #cbd5e1; }
+
+        @media (max-width: 768px) {
+            .circular-item { flex-direction: column; align-items: flex-start; }
+            .btn-download { width: 100%; justify-content: center; }
+            .circular-date { display: flex; align-items: center; gap: 10px; padding: 5px 10px; width: auto; min-width: 0; }
+            .circular-date .day { font-size: 1.2em; }
+            .circular-date .month-year { margin-top: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
+
+    <header class="hero">
+        <div class="hero-content">
+            <img src="LOGO.jfif" alt="TAA Logo" class="hero-logo">
+            <div class="hero-text">
+                <h1>Official Circulars</h1>
+                <p>Notices, guidelines, and announcements from TAA & AFI.</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <div class="tabs-wrapper">
+            <button class="tab-btn active" onclick="switchSource('TAA', this)">🔵 Telangana State Circulars</button>
+            <button class="tab-btn" onclick="switchSource('AFI', this)">🟠 AFI National Circulars</button>
+        </div>
+
+        <div class="filter-card">
+            <div class="filter-group" style="flex-grow: 2;">
+                <label>Search Keyword</label>
+                <input type="text" id="searchInput" class="filter-control" placeholder="Search by title or circular ID..." onkeyup="filterCirculars()">
+            </div>
+            <div class="filter-group">
+                <label>Category</label>
+                <select id="categoryFilter" class="filter-control" onchange="filterCirculars()">
+                    <option value="All">All Categories</option>
+                    <option value="Events">Competitions & Events</option>
+                    <option value="Technical">Technical Officials</option>
+                    <option value="AGM">Meetings & AGM</option>
+                    <option value="General">General Notice</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Year</label>
+                <select id="yearFilter" class="filter-control" onchange="filterCirculars()">
+                    <option value="All">All Years</option>
+                    </select>
+            </div>
+        </div>
+
+        <div class="circular-list" id="circularsContainer">
+            </div>
+
+    </div>
+
+    <script>
+        // Global State for current active tab
+        let currentSource = 'TAA';
+
+        // Master Database (Contains both TAA placeholders and REAL AFI Circulars)
+        const circularsDatabase = [
+            
+            // --- ACTUAL 2026 AFI CIRCULARS (Hardcoded for persistence) ---
+            { source: "AFI", id: "AFI/CIR/38/2026", date: "2026-03-25", title: "24th National Junior (U20) Athletics Federation Competition 2026", category: "Events", year: "2026", link: "https://indianathletics.in/wp-content/uploads/2026/03/Circular-No.-38.pdf" },
+            { source: "AFI", id: "AFI/CIR/32/2026", date: "2026-03-14", title: "Indian Athletics Series – 4 (Ranchi, Jharkhand)", category: "Events", year: "2026", link: "https://indianathletics.in/wp-content/uploads/2026/03/Circular-No.-32_Indian-Athletics-Series-4.pdf" },
+            { source: "AFI", id: "AFI/CIR/20/2026", date: "2026-02-25", title: "Important Decisions taken in the Executive Council Meeting, 2026", category: "AGM", year: "2026", link: "https://indianathletics.in/wp-content/uploads/2026/02/Circular-No.-20_Important-Decisions-taken-in-EC-Meeting.pdf" },
+            { source: "AFI", id: "AFI/CIR/17/2026", date: "2026-02-19", title: "Mandatory Registration of Coaches and Technical Officials", category: "Technical", year: "2026", link: "https://indianathletics.in/wp-content/uploads/2026/02/Circular-No.-17_Registration-of-Coaches-Technical-Officials.pdf" },
+            { source: "AFI", id: "AFI/CIR/06/2026", date: "2026-01-10", title: "Mandatory Participation of Athletes in National Competitions Only in Official Member Unit Kits", category: "General", year: "2026", link: "#" },
+
+            // --- TAA CIRCULARS (State Level - Placeholders) ---
+            { source: "TAA", id: "TAA/CIR/2026/05", date: "2026-04-12", title: "Guidelines for State Meet Relay Teams 2026", category: "Events", year: "2026", link: "#" },
+            { source: "TAA", id: "TAA/CIR/2026/04", date: "2026-03-28", title: "Nomination Call for Technical Officials - April Meets", category: "Technical", year: "2026", link: "#" },
+            { source: "TAA", id: "TAA/CIR/2026/03", date: "2026-02-15", title: "Annual General Body Meeting Notice", category: "AGM", year: "2026", link: "#" },
+            { source: "TAA", id: "TAA/CIR/2026/02", date: "2026-01-10", title: "Mandatory ORS Registration for all State Athletes", category: "General", year: "2026", link: "#" },
+            { source: "TAA", id: "TAA/CIR/2025/15", date: "2025-11-20", title: "Results Compilation and State Records Update", category: "General", year: "2025", link: "#" }
+        ];
+
+        // Format Date Helper
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = date.toLocaleString('default', { month: 'short' });
+            const year = date.getFullYear();
+            return { day, monthYear: `${month} ${year}` };
+        }
+
+        // --- NEW: Automated Year Populator ---
+        function populateYears() {
+            const yearSelect = document.getElementById('yearFilter');
+            const currentYear = new Date().getFullYear(); // Gets the real current year
+            const startYear = 2024; // Base archive year
+
+            for (let year = currentYear; year >= startYear; year--) {
+                const option = document.createElement('option');
+                option.value = year.toString();
+                option.text = year.toString();
+                yearSelect.appendChild(option);
+            }
+        }
+
+        // Tab Switcher
+        function switchSource(source, btnElement) {
+            currentSource = source;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            filterCirculars(); // Refresh the list
+        }
+
+        // Render Function
+        function renderCirculars(data) {
+            const container = document.getElementById('circularsContainer');
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = `<div class="empty-state">No circulars found matching your search.</div>`;
+                return;
+            }
+
+            data.forEach(item => {
+                const dateData = formatDate(item.date);
+                const isAFI = item.source === "AFI";
+                
+                const circularHTML = `
+                    <div class="circular-item ${isAFI ? 'source-afi' : ''}">
+                        <div class="circular-date">
+                            <span class="day" style="${isAFI ? 'color: var(--accent);' : ''}">${dateData.day}</span>
+                            <span class="month-year">${dateData.monthYear}</span>
+                        </div>
+                        <div class="circular-details">
+                            <div class="circular-meta"><span>${item.category}</span> | ${item.id}</div>
+                            <h3 class="circular-title">${item.title}</h3>
+                        </div>
+                        <a href="${item.link}" class="btn-download ${isAFI ? 'afi-btn' : ''}" ${isAFI ? 'target="_blank"' : ''}>
+                            📄 View PDF
+                        </a>
+                    </div>
+                `;
+                container.innerHTML += circularHTML;
+            });
+        }
+
+        // Filter Logic
+        function filterCirculars() {
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            const catVal = document.getElementById('categoryFilter').value;
+            const yearVal = document.getElementById('yearFilter').value;
+
+            const filteredData = circularsDatabase.filter(item => {
+                // 1. Must match the current active tab (TAA vs AFI)
+                const matchSource = item.source === currentSource;
+                
+                // 2. Must match search terms
+                const matchSearch = item.title.toLowerCase().includes(searchVal) || item.id.toLowerCase().includes(searchVal);
+                
+                // 3. Must match dropdowns
+                const matchCat = catVal === "All" || item.category === catVal;
+                const matchYear = yearVal === "All" || item.year === yearVal;
+
+                return matchSource && matchSearch && matchCat && matchYear;
+            });
+
+            // Sort by date (newest first)
+            filteredData.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            renderCirculars(filteredData);
+        }
+
+        // Initial Load Update
+        window.onload = () => {
+            populateYears();
+            filterCirculars();
+        };
+    </script>
+
+    <div id="footer-container"></div>
+</body>
+</html>

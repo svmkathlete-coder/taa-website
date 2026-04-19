@@ -28,7 +28,6 @@
         .stat-box .val { display: block; font-size: 1.5em; font-weight: 800; color: var(--primary); font-family: 'Montserrat'; }
         .stat-box .lbl { font-size: 0.7em; font-weight: 800; color: #64748b; text-transform: uppercase; }
 
-        /* Competition Table */
         .table-wrapper { overflow-x: auto; margin-top: 15px; }
         table { width: 100%; border-collapse: collapse; min-width: 650px; }
         th { text-align: left; background: #f8fafc; padding: 12px; font-family: 'Montserrat'; font-size: 0.7em; color: #64748b; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
@@ -36,7 +35,7 @@
         
         .pos-badge { background: var(--primary); color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.8em; font-weight: 800; }
 
-        .back-btn { display: inline-block; margin-bottom: 20px; color: white; text-decoration: none; font-weight: 700; font-size: 0.9em; transition: 0.2s; }
+        .back-btn { display: inline-block; margin-bottom: 20px; color: white; text-decoration: none; font-weight: 700; font-size: 0.9em; transition: 0.2s; cursor: pointer; }
         .back-btn:hover { opacity: 0.8; }
     </style>
 </head>
@@ -47,41 +46,55 @@
     <script>
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const uid = urlParams.get('uid');
+            const uid = urlParams.get('id'); // Using 'id' to match your Home Page links
+            const from = urlParams.get('from');
+            const ref = urlParams.get('ref');
             
-            // --- BULLETPROOF SMART BACK BUTTON LOGIC ---
-            // Checking the URL parameter instead of the browser's referrer history
-            const ref = urlParams.get('ref'); 
-            
+            // --- SMART BACK BUTTON LOGIC ---
             let backUrl = "profiles.html";
             let backText = "← Back to Directory";
             
-            if (ref === "rankings") {
+            if (from === "home") {
+                backUrl = "index.html";
+                backText = "← Back to Home";
+            } else if (ref === "rankings") {
                 backUrl = "rankings.html";
                 backText = "← Back to Rankings";
             }
-            // -------------------------------------------
 
             const db = JSON.parse(localStorage.getItem('taa_profiles_db')) || [];
             let user = db.find(u => u.uid === uid);
 
-            // Comprehensive Sample Data for Rahul Kumar
-            if (!user && uid === "AFI20261001") {
+            // Mock Data for Demo Purposes
+            if (!user && (uid === "rahul" || uid === "AFI20261001")) {
                 user = {
-                    uid: "AFI20261001", name: "Rahul Kumar", role: "Athlete", dist: "Hyderabad",
+                    uid: "AFI20261001", name: "K. Rahul", role: "Athlete", dist: "Hyderabad",
                     father: "S. Vijay Kumar", dob: "12 May 2005", blood: "B+", event: "100m Sprint", coach: "P. Srinivas",
                     pb: "10.42s", sb: "10.42s", rank: "#1 State",
                     history: [
-                        { date: "Mar 15, 2026", meet: "State Athletics Championships", venue: "Hanumakonda", perf: "10.42s", pos: "1st" },
-                        { date: "Dec 20, 2025", meet: "Junior Selection Trials 2025", venue: "Osmania University", perf: "10.58s", pos: "2nd" },
-                        { date: "Aug 07, 2025", meet: "South Zone Junior Championship", venue: "Khammam", perf: "10.65s", pos: "3rd" }
+                        { date: "Mar 15, 2026", meet: "State Athletics Championships", venue: "Hanumakonda", perf: "10.42s", pos: "1st" }
+                    ]
+                };
+            } else if (!user && uid === "anitha") {
+                user = {
+                    uid: "AFI20262002", name: "P. Anitha", role: "Athlete", dist: "Warangal",
+                    father: "M. Rajamouli", dob: "22 Aug 2004", blood: "A+", event: "Long Jump", coach: "G. Kishan",
+                    pb: "6.15m", sb: "6.02m", rank: "#2 State",
+                    history: [
+                        { date: "Feb 10, 2026", meet: "District Level Meet", venue: "Warangal", perf: "6.02m", pos: "1st" }
                     ]
                 };
             }
 
             const display = document.getElementById('profilePage');
+            
+            // Handling "Profile Not Found" with Smart Back Button
             if (!user) {
-                display.innerHTML = `<div style='text-align:center; padding:100px;'><h1 style="font-family: 'Montserrat'; color: var(--primary);">Profile Not Found</h1><a href='${backUrl}' style="color: var(--accent); font-weight: 700;">${backText}</a></div>`;
+                display.innerHTML = `
+                    <div style='text-align:center; padding:100px;'>
+                        <h1 style="font-family: 'Montserrat'; color: var(--primary); margin-bottom: 20px;">Profile Not Found</h1>
+                        <a href='${backUrl}' style="color: var(--accent); font-weight: 700; text-decoration: none; font-size: 1.1em;">${backText}</a>
+                    </div>`;
                 return;
             }
 
