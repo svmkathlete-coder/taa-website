@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Unified Login - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root { --primary: #0056b3; --accent: #FF8C00; --bg: #f8fafc; --text: #334155; --white: #ffffff; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,25 +21,6 @@
             flex-direction: column;
         }
 
-        /* --- Standard TAA Navigation Styles for navbar.js --- */
-        .navbar { background: var(--white); box-shadow: 0 4px 20px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 9999; padding: 5px 0; }
-        .nav-container { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
-        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 55px; height: 55px; }
-        .logo-text { display: flex; flex-direction: column; }
-        .main-title { color: var(--primary); font-weight: 800; font-size: 1.1em; line-height: 1; font-family: 'Montserrat'; }
-        .sub-title { color: #64748b; font-weight: 600; font-size: 0.75em; letter-spacing: 1px; }
-        .nav-menu { display: flex; list-style: none; gap: 15px; align-items: center; margin: 0; padding: 0; }
-        .nav-menu li { position: relative; } 
-        .nav-menu a { text-decoration: none; color: #1a1a1a; font-weight: 700; font-size: 0.82em; transition: 0.3s; padding: 15px 5px; font-family: 'Montserrat'; text-transform: uppercase; display: block; }
-        .nav-menu a:hover { color: var(--accent); }
-        .dropdown-content { display: none; position: absolute; background-color: var(--white); min-width: 220px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); z-index: 1; top: 100%; left: 0; border-top: 3px solid var(--accent); }
-        .dropdown-content a { color: #333; padding: 12px 16px; text-transform: none; font-size: 0.85em; border-bottom: 1px solid #f1f1f1; }
-        .dropdown:hover .dropdown-content { display: block; }
-        .ors-btn { background: var(--primary) !important; color: white !important; padding: 10px 22px !important; border-radius: 50px; margin-left: 10px; }
-        @media (max-width: 768px) { .nav-menu { display: none; } }
-
-        /* --- LOGIN CONTAINER --- */
         .login-page-container { flex-grow: 1; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
         .login-wrapper { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); width: 100%; max-width: 420px; text-align: center; position: relative; overflow: hidden; }
         .logo { width: 70px; margin-bottom: 15px; }
@@ -48,33 +32,24 @@
         .form-control { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: 'Open Sans'; font-size: 0.95em; outline: none; transition: 0.2s; font-weight: 600; color: #1e293b; }
         .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,86,179,0.1); }
 
-        /* --- PASSWORD TOGGLE STYLES --- */
         .password-wrapper { position: relative; display: flex; align-items: center; }
-        .password-wrapper .form-control { padding-right: 45px; }
-        .toggle-password-btn { 
-            position: absolute; right: 10px; background: none; border: none; 
-            color: #94a3b8; cursor: pointer; outline: none; transition: 0.2s;
-            display: flex; align-items: center; justify-content: center; padding: 4px;
-        }
-        .toggle-password-btn:hover { color: var(--primary); }
-        .toggle-password-btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+        .toggle-password-btn { position: absolute; right: 10px; background: none; border: none; color: #94a3b8; cursor: pointer; display: flex; align-items: center; }
+        .toggle-password-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
 
         .captcha-box { display: flex; gap: 10px; align-items: center; }
-        .captcha-display { background: #f1f5f9; padding: 10px 20px; border-radius: 8px; font-family: 'Courier New', monospace; font-weight: 800; font-size: 1.2em; color: var(--primary); letter-spacing: 4px; user-select: none; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.05) 5px, rgba(0,0,0,0.05) 10px); }
-        .refresh-btn { background: none; border: none; font-size: 1.2em; cursor: pointer; color: #64748b; transition: 0.2s; }
-        .refresh-btn:hover { color: var(--accent); transform: rotate(45deg); }
-
+        .captcha-display { background: #f1f5f9; padding: 10px 20px; border-radius: 8px; font-family: 'Courier New', monospace; font-weight: 800; font-size: 1.2em; color: var(--primary); letter-spacing: 4px; user-select: none; }
+        
         .btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: 800; font-family: 'Montserrat'; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
         .btn-primary:hover { background: #004494; transform: translateY(-2px); }
+        .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
 
         .links-grid { display: flex; justify-content: space-between; margin-top: 20px; font-size: 0.8em; font-weight: 700; }
         .links-grid a { color: var(--primary); text-decoration: none; }
-        .links-grid a:hover { color: var(--accent); text-decoration: underline; }
 
         .error-msg { color: #ef4444; font-size: 0.8em; margin-top: 15px; font-weight: 700; display: none; background: #fee2e2; padding: 10px; border-radius: 6px; }
 
         #step-otp { display: none; }
-        .otp-msg { background: #e0f2fe; color: #0369a1; padding: 12px; border-radius: 8px; font-size: 0.85em; font-weight: 600; margin-bottom: 20px; line-height: 1.4; }
+        .otp-msg { background: #e0f2fe; color: #0369a1; padding: 12px; border-radius: 8px; font-size: 0.85em; font-weight: 600; margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -88,10 +63,10 @@
             
             <div id="step-login">
                 <h2>Secure Portal</h2>
-                <p class="subtitle">Unified Login for Athletes, Coaches, Officials, Districts & Admin</p>
+                <p class="subtitle">Unified Login for Athletics Community</p>
 
                 <div class="form-group">
-                    <label>User ID / AFI UID</label>
+                    <label>AFI UID / Email</label>
                     <input type="text" id="userId" class="form-control" placeholder="e.g. AFI20261001" autocomplete="off">
                 </div>
 
@@ -99,11 +74,8 @@
                     <label>Password</label>
                     <div class="password-wrapper">
                         <input type="password" id="password" class="form-control" placeholder="••••••••">
-                        <button type="button" class="toggle-password-btn" id="togglePasswordBtn" onclick="togglePasswordVisibility()" title="Show Password">
-                            <svg viewBox="0 0 24 24" id="eyeIcon">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
+                        <button type="button" class="toggle-password-btn" onclick="togglePassword()">
+                            <svg id="eyeIcon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                         </button>
                     </div>
                 </div>
@@ -111,157 +83,194 @@
                 <div class="form-group">
                     <label>Security CAPTCHA</label>
                     <div class="captcha-box">
-                        <div class="captcha-display" id="captchaText">XYZ99</div>
-                        <button class="refresh-btn" onclick="generateCaptcha()" title="Refresh CAPTCHA">🔄</button>
-                        <input type="text" id="captchaInput" class="form-control" placeholder="Enter text">
+                        <div class="captcha-display" id="captchaText">...</div>
+                        <button class="form-control" style="width: 50px; padding: 5px;" onclick="generateCaptcha()">🔄</button>
+                        <input type="text" id="captchaInput" class="form-control" placeholder="Text">
                     </div>
                 </div>
 
-                <div id="loginError" class="error-msg">Invalid Credentials or CAPTCHA.</div>
-
-                <button class="btn-primary" onclick="verifyCredentials()">Login</button>
+                <div id="loginError" class="error-msg"></div>
+                <button id="loginBtn" class="btn-primary" onclick="verifyCredentials()">Login</button>
 
                 <div class="links-grid">
-                    <a href="recovery.html?tab=uid">Forgot User ID?</a>
-                    <a href="recovery.html?tab=pass">Forgot Password?</a>
+                    <a href="recovery.html">Forgot ID?</a>
+                    <a href="recovery.html">Forgot Password?</a>
                 </div>
             </div>
 
             <div id="step-otp">
                 <h2>2-Step Verification</h2>
                 <p class="subtitle">Authentication Required</p>
-                <div class="otp-msg">A 6-digit One Time Password (OTP) has been sent to your registered mobile <strong id="maskedMobile">XXXX</strong> and email <strong id="maskedEmail">XXXX</strong>.</div>
+                <div class="otp-msg">A 6-digit OTP has been sent to your registered email: <br><strong id="targetEmail">...</strong></div>
                 <div class="form-group">
                     <label>Enter 6-Digit OTP</label>
-                    <input type="text" id="otpInput" class="form-control" placeholder="0 0 0 0 0 0" maxlength="6" style="text-align: center; font-size: 1.2em; letter-spacing: 8px;">
+                    <input type="text" id="otpInput" class="form-control" placeholder="· · · · · ·" maxlength="6" style="text-align: center; font-size: 1.5em; letter-spacing: 5px;">
                 </div>
-                <div id="otpError" class="error-msg">Incorrect OTP. (Hint: Use 123456)</div>
-                <button class="btn-primary" onclick="verifyOTP()">Verify & Login</button>
+                <div id="otpError" class="error-msg"></div>
+                <button id="otpBtn" class="btn-primary" onclick="verifyOTP()">Verify & Login</button>
             </div>
         </div>
     </div>
 
-    <script>
-        let targetUrl = "";
-        let currentCaptcha = "";
+   <script type="module">
+    import { collection, query, where, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // SVG Strings for the professional icons
-        const eyeOpenSVG = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
-        const eyeClosedSVG = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+    let currentCaptcha = "";
+    let authenticatedUser = null;
+    let generatedOTP = "";
 
-        // --- TOGGLE PASSWORD VISIBILITY ---
-        function togglePasswordVisibility() {
-            const passInput = document.getElementById('password');
-            const iconElement = document.getElementById('eyeIcon');
-            const toggleBtn = document.getElementById('togglePasswordBtn');
-            
-            if (passInput.type === 'password') {
-                passInput.type = 'text';
-                iconElement.innerHTML = eyeClosedSVG;
-                toggleBtn.title = "Hide Password";
-            } else {
-                passInput.type = 'password';
-                iconElement.innerHTML = eyeOpenSVG;
-                toggleBtn.title = "Show Password";
+    // 1. Initialize Page
+    window.generateCaptcha = function() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
+        currentCaptcha = Array.from({length: 5}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+        document.getElementById('captchaText').innerText = currentCaptcha;
+    };
+
+    window.togglePassword = function() {
+        const p = document.getElementById('password');
+        p.type = p.type === 'password' ? 'text' : 'password';
+    };
+
+    // 2. Step 1: Verify User in Firebase
+    window.verifyCredentials = async function() {
+        const uidInput = document.getElementById('userId').value.trim().toUpperCase();
+        const passInput = document.getElementById('password').value;
+        const captchaInput = document.getElementById('captchaInput').value.trim().toUpperCase();
+        const errorBox = document.getElementById('loginError');
+        const btn = document.getElementById('loginBtn');
+
+        errorBox.style.display = 'none';
+
+        if (captchaInput !== currentCaptcha) {
+            errorBox.innerText = "Invalid CAPTCHA.";
+            errorBox.style.display = 'block';
+            generateCaptcha();
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = "Checking...";
+
+        try {
+            // -- EMERGENCY & ADMIN OVERRIDES (No Firebase needed for these) --
+            if (uidInput === "TAA-ADMIN-0001" || uidInput === "TAA_ADMIN") {
+                if (passInput !== "admin123") throw new Error("Invalid Admin Password");
+                authenticatedUser = { id: "master", fullName: "System Admin", role: "Admin", email: "admin@taa.in", afi_uid: "TAA-ADMIN-0001" };
+                sendOTP();
+                return;
             }
-        }
-
-        function generateCaptcha() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
-            let captcha = '';
-            for (let i = 0; i < 5; i++) captcha += chars.charAt(Math.floor(Math.random() * chars.length));
-            currentCaptcha = captcha;
-            document.getElementById('captchaText').innerText = captcha;
-        }
-
-        function verifyCredentials() {
-            // Case-insensitive input formatting for UID
-            const uid = document.getElementById('userId').value.trim().toUpperCase();
-            const pass = document.getElementById('password').value.trim();
-            const userCaptcha = document.getElementById('captchaInput').value.trim().toUpperCase();
-            const errorBox = document.getElementById('loginError');
-
-            errorBox.style.display = 'none';
-
-            if (userCaptcha !== currentCaptcha) {
-                errorBox.innerText = "Incorrect CAPTCHA. Please try again.";
-                errorBox.style.display = 'block';
-                generateCaptcha(); 
+            if (uidInput === "TAA-TECH-001" || uidInput === "TECH_CHAIR") {
+                if (passInput !== "tech123") throw new Error("Invalid Chairman Password");
+                authenticatedUser = { id: "master", fullName: "Technical Chairman", role: "Technical Chairman", email: "tech@taa.in", afi_uid: "TAA-TECH-001" };
+                sendOTP();
                 return;
             }
 
-            let roleFound = false;
-            let maskPhone = "******0000"; 
-            let maskEmail = "use****@email.com";
+            // -- FIREBASE CONNECTION CHECK --
+            if (!window.db) {
+                throw new Error("Database offline. Please check firebase-init.js connection.");
+            }
 
-            // 1. MASTER ADMIN ROUTING
-            if (uid === "TAA_ADMIN" && pass === "admin123") {
-                roleFound = true;
-                targetUrl = "taa-admin.html"; 
-                maskPhone = "******8899"; 
-                maskEmail = "sec****@taa.in";
+            // -- SEARCH REAL USERS --
+            const q = query(collection(window.db, "users"), where("afi_uid", "==", uidInput));
+            const querySnapshot = await getDocs(q);
             
-            // 2. DISTRICT ADMIN ROUTING
-            } else if (uid.startsWith("DIST_") && pass === "hyd123") {
-                roleFound = true;
-                targetUrl = "district-dashboard.html"; 
-                maskPhone = "******1122"; 
-                maskEmail = "hyd****@gmail.com";
-                localStorage.setItem('taa_current_district', JSON.stringify({id: uid, name: "Hyderabad"}));
+            let userDoc = null;
+            querySnapshot.forEach(d => { userDoc = { id: d.id, ...d.data() }; });
+
+            if (userDoc && userDoc.password === passInput) {
+                authenticatedUser = userDoc;
+                sendOTP();
+            } else {
+                throw new Error("Invalid User ID or Password.");
+            }
+        } catch (err) {
+            errorBox.innerText = err.message;
+            errorBox.style.display = 'block';
+            btn.disabled = false;
+            btn.innerText = "Login";
+            generateCaptcha();
+        }
+    };
+
+    // 3. Send OTP via EmailJS
+    async function sendOTP() {
+        generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+        const btn = document.getElementById('loginBtn');
+
+        try {
+            // Update Firestore with OTP (if it's not a hardcoded admin)
+            if (authenticatedUser.id !== "master" && window.db) {
+                const userRef = doc(window.db, "users", authenticatedUser.id);
+                await updateDoc(userRef, { current_otp: generatedOTP });
+            }
+
+            // Fire EmailJS Notification
+            if (window.emailjs) {
+                await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                    subject: "Login Verification Code",
+                    name: authenticatedUser.first_name || authenticatedUser.fullName || "User",
+                    message: `Your TAA Portal secure login code is: ${generatedOTP}.`
+                });
+            } else {
+                console.warn("EmailJS not loaded. Bypassing OTP for testing.");
+            }
+
+            // Show UI Masked Email
+            const email = authenticatedUser.email || "user@taa.in";
+            document.getElementById('targetEmail').innerText = email.replace(/(.{3})(.*)(?=@)/, "$1****");
+            document.getElementById('step-login').style.display = 'none';
+            document.getElementById('step-otp').style.display = 'block';
+
+        } catch (err) {
+            console.error("OTP Error:", err);
+            // Fallback for local testing so you don't get stuck
+            alert(`[TESTING MODE] Email failed to send. Your OTP is: ${generatedOTP}`);
+            document.getElementById('step-login').style.display = 'none';
+            document.getElementById('step-otp').style.display = 'block';
+        }
+    }
+
+    // 4. Final Verification and Specific Role Routing
+    window.verifyOTP = function() {
+        const input = document.getElementById('otpInput').value.trim();
+        const errorBox = document.getElementById('otpError');
+
+        if (input === generatedOTP) {
+            // Save Session for Security Checks
+            sessionStorage.setItem('taa_logged_user', JSON.stringify(authenticatedUser));
             
-            // 3. SMART PORTAL ROUTING (Athlete, Coach, Official, Chairman)
-            } else {
-                const db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-                const member = db.find(u => (u.afi_uid || "").toUpperCase() === uid && u.password === pass);
-                
-                if (member) {
-                    roleFound = true;
-                    const userRole = member.role || member.regType;
-                    
-                    // Route based on role
-                    if (userRole === "Technical Chairman") {
-                        targetUrl = "technical-chairman.html";
-                        // Save to session for the security shield on the chairman page
-                        sessionStorage.setItem('taa_logged_user', JSON.stringify(member));
-                    } else if (userRole === "Athlete") {
-                        targetUrl = `athlete-dashboard.html?uid=${member.afi_uid}`;
-                    } else if (userRole === "Coach") {
-                        targetUrl = `coach-dashboard.html?uid=${member.afi_uid}`;
-                    } else if (userRole === "Official") {
-                        targetUrl = `official-dashboard.html?uid=${member.afi_uid}`;
-                    } else {
-                        targetUrl = `athlete-dashboard.html?uid=${member.afi_uid}`; // Fallback
-                    }
-                    
-                    maskPhone = "******" + (member.mobile ? member.mobile.slice(-4) : "0000");
-                    maskEmail = member.email ? member.email.substring(0,3) + "****@email.com" : "use****@email.com";
-                }
-            }
+            // Normalize role to lowercase for safe checking
+            const role = (authenticatedUser.role || authenticatedUser.regType || "").toLowerCase();
 
-            if (roleFound) {
-                document.getElementById('maskedMobile').innerText = maskPhone;
-                document.getElementById('maskedEmail').innerText = maskEmail;
-                document.getElementById('step-login').style.display = 'none';
-                document.getElementById('step-otp').style.display = 'block';
-            } else {
-                errorBox.innerText = "Invalid User ID or Password.";
-                errorBox.style.display = 'block';
-                generateCaptcha();
+            // --- 6-WAY SPECIFIC ROUTING ---
+            if (role === "admin" || role === "taa-admin") {
+                window.location.href = "taa-admin.html";
+            } 
+            else if (role === "technical chairman" || role === "technical") {
+                window.location.href = "technical-chairman.html";
+            } 
+            else if (role === "district" || role === "member association") {
+                window.location.href = "district-dashboard.html";
+            } 
+            else if (role === "coach") {
+                window.location.href = `coach-dashboard.html?uid=${authenticatedUser.afi_uid}`;
+            } 
+            else if (role === "official") {
+                window.location.href = `official-dashboard.html?uid=${authenticatedUser.afi_uid}`;
+            } 
+            else {
+                // Default to Athlete
+                window.location.href = `athlete-dashboard.html?uid=${authenticatedUser.afi_uid}`;
             }
+        } else {
+            errorBox.innerText = "Incorrect OTP. Please check your email.";
+            errorBox.style.display = 'block';
         }
+    };
 
-        function verifyOTP() {
-            const otp = document.getElementById('otpInput').value.trim();
-            const errorBox = document.getElementById('otpError');
-            if (otp === "123456") {
-                errorBox.style.display = 'none'; window.location.href = targetUrl;
-            } else {
-                errorBox.style.display = 'block';
-            }
-        }
-
-        window.onload = generateCaptcha;
-    </script>
+    window.onload = generateCaptcha;
+</script>
 
     <div id="footer-container"></div>
 </body>

@@ -6,6 +6,8 @@
     <title>Coach Registration - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root {
             --primary: #0056b3;
@@ -128,7 +130,7 @@
                 </div>
                 <div class="btn-row">
                     <div></div>
-                    <button type="button" class="btn btn-next" onclick="moveStep(1, 2)">Next Step</button>
+                    <button type="button" class="btn btn-next" onclick="window.moveStep(1, 2)">Next Step</button>
                 </div>
             </div>
 
@@ -137,12 +139,50 @@
                 <div class="input-group"><label>Current Occupation*</label><input type="text" name="occupation" placeholder="e.g. PET Teacher, Professional Academy Coach" required></div>
                 <div class="input-group"><label>Communication Address*</label><textarea name="address" rows="3" placeholder="Flat/House No, Street, Landmark" required></textarea></div>
                 <div class="grid">
-                    <div class="input-group"><label>District*</label><input type="text" name="district" required></div>
+                    <div class="input-group">
+                        <label>District*</label>
+                        <select name="district" required style="width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 8px; outline: none; font-size: 0.95em;">
+                            <option value="">Select District</option>
+                            <option value="Adilabad">Adilabad</option>
+                            <option value="Bhadradri Kothagudem">Bhadradri Kothagudem</option>
+                            <option value="Hanumakonda">Hanumakonda</option>
+                            <option value="Hyderabad">Hyderabad</option>
+                            <option value="Jagtial">Jagtial</option>
+                            <option value="Jangaon">Jangaon</option>
+                            <option value="Jayashankar Bhupalpally">Jayashankar Bhupalpally</option>
+                            <option value="Jogulamba Gadwal">Jogulamba Gadwal</option>
+                            <option value="Kamareddy">Kamareddy</option>
+                            <option value="Karimnagar">Karimnagar</option>
+                            <option value="Khammam">Khammam</option>
+                            <option value="Kumuram Bheem Asifabad">Kumuram Bheem Asifabad</option>
+                            <option value="Mahabubabad">Mahabubabad</option>
+                            <option value="Mahabubnagar">Mahabubnagar</option>
+                            <option value="Mancherial">Mancherial</option>
+                            <option value="Medak">Medak</option>
+                            <option value="Medchal-Malkajgiri">Medchal-Malkajgiri</option>
+                            <option value="Mulugu">Mulugu</option>
+                            <option value="Nagarkurnool">Nagarkurnool</option>
+                            <option value="Nalgonda">Nalgonda</option>
+                            <option value="Narayanpet">Narayanpet</option>
+                            <option value="Nirmal">Nirmal</option>
+                            <option value="Nizamabad">Nizamabad</option>
+                            <option value="Peddapalli">Peddapalli</option>
+                            <option value="Rajanna Sircilla">Rajanna Sircilla</option>
+                            <option value="Ranga Reddy">Ranga Reddy</option>
+                            <option value="Sangareddy">Sangareddy</option>
+                            <option value="Siddipet">Siddipet</option>
+                            <option value="Suryapet">Suryapet</option>
+                            <option value="Vikarabad">Vikarabad</option>
+                            <option value="Wanaparthy">Wanaparthy</option>
+                            <option value="Warangal">Warangal</option>
+                            <option value="Yadadri Bhuvanagiri">Yadadri Bhuvanagiri</option>
+                        </select>
+                    </div>
                     <div class="input-group"><label>Pincode*</label><input type="text" name="pincode" maxlength="6" required></div>
                 </div>
                 <div class="btn-row">
-                    <button type="button" class="btn btn-prev" onclick="moveStep(2, 1)">Previous</button>
-                    <button type="button" class="btn btn-next" onclick="moveStep(2, 3)">Next Step</button>
+                    <button type="button" class="btn btn-prev" onclick="window.moveStep(2, 1)">Previous</button>
+                    <button type="button" class="btn btn-next" onclick="window.moveStep(2, 3)">Next Step</button>
                 </div>
             </div>
 
@@ -185,8 +225,8 @@
                 </div>
 
                 <div class="btn-row">
-                    <button type="button" class="btn btn-prev" onclick="moveStep(3, 2)">Previous</button>
-                    <button type="button" class="btn btn-next" onclick="moveStep(3, 4)">Next Step</button>
+                    <button type="button" class="btn btn-prev" onclick="window.moveStep(3, 2)">Previous</button>
+                    <button type="button" class="btn btn-next" onclick="window.moveStep(3, 4)">Next Step</button>
                 </div>
             </div>
 
@@ -204,8 +244,8 @@
                 </div>
 
                 <div class="btn-row">
-                    <button type="button" class="btn btn-prev" onclick="moveStep(4, 3)">Previous</button>
-                    <button type="submit" class="btn btn-next">Submit</button>
+                    <button type="button" class="btn btn-prev" onclick="window.moveStep(4, 3)">Previous</button>
+                    <button type="submit" id="submitBtn" class="btn btn-next">Submit</button>
                 </div>
             </div>
         </form>
@@ -228,84 +268,163 @@
         </div>
     </div>
 
-    <script>
-    function moveStep(current, next) {
-        const currentSection = document.getElementById('step' + current);
-        const nextSection = document.getElementById('step' + next);
-        if (next > current) {
-            const requiredFields = currentSection.querySelectorAll('[required]');
-            let valid = true;
-            requiredFields.forEach(field => {
-                if (!field.value) {
-                    field.style.borderColor = 'red';
-                    valid = false;
+    <script type="module">
+        import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Attach UI stepper logic to window
+        window.moveStep = function(current, next) {
+            const currentSection = document.getElementById('step' + current);
+            const nextSection = document.getElementById('step' + next);
+            if (next > current) {
+                const requiredFields = currentSection.querySelectorAll('[required]');
+                let valid = true;
+                requiredFields.forEach(field => {
+                    if (!field.value) {
+                        field.style.borderColor = 'red';
+                        valid = false;
+                    } else {
+                        field.style.borderColor = '#eee';
+                    }
+                });
+                if (!valid) {
+                    alert("Please fill all required fields before proceeding.");
+                    return;
+                }
+            }
+            currentSection.classList.remove('active');
+            nextSection.classList.add('active');
+            updateStepper(next);
+            window.scrollTo(0, 0);
+        };
+
+        function updateStepper(step) {
+            document.querySelectorAll('.step').forEach((s, idx) => {
+                const stepNum = idx + 1;
+                if (stepNum < step) {
+                    s.classList.add('completed');
+                    s.classList.remove('active');
+                } else if (stepNum === step) {
+                    s.classList.add('active');
+                    s.classList.remove('completed');
                 } else {
-                    field.style.borderColor = '#eee';
+                    s.classList.remove('active', 'completed');
                 }
             });
-            if (!valid) {
-                alert("Please fill all required fields before proceeding.");
+            const fillPercent = ((step - 1) / 3) * 100;
+            document.getElementById('line-fill').style.width = fillPercent + '%';
+        }
+
+        document.getElementById('coachForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Password Validation check
+            const pwd = document.getElementById('reg_pwd').value;
+            const pwdConfirm = document.getElementById('reg_pwd_confirm').value;
+            if (pwd !== pwdConfirm) {
+                alert("Error: Passwords do not match. Please try again.");
+                document.getElementById('reg_pwd').style.borderColor = 'red';
+                document.getElementById('reg_pwd_confirm').style.borderColor = 'red';
                 return;
             }
-        }
-        currentSection.classList.remove('active');
-        nextSection.classList.add('active');
-        updateStepper(next);
-        window.scrollTo(0, 0);
-    }
 
-    function updateStepper(step) {
-        document.querySelectorAll('.step').forEach((s, idx) => {
-            const stepNum = idx + 1;
-            if (stepNum < step) {
-                s.classList.add('completed');
-                s.classList.remove('active');
-            } else if (stepNum === step) {
-                s.classList.add('active');
-                s.classList.remove('completed');
-            } else {
-                s.classList.remove('active', 'completed');
+            const submitBtn = document.getElementById('submitBtn');
+            const originalBtnText = submitBtn.innerText;
+            submitBtn.innerText = "Checking Database...";
+            submitBtn.disabled = true;
+
+            const formData = new FormData(this);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = (value instanceof File) ? value.name : value;
+            });
+
+            const enteredUID = document.getElementById('reg_afi_uid').value.toUpperCase();
+            const aadhaarVal = data.aadhaar;
+
+            try {
+                // --- BULLETPROOF DUPLICATE CHECK LOGIC ---
+                if (window.db) {
+                    // Scans the Firestore 'users' collection to block duplicates BEFORE account creation
+                    const qUID = query(collection(window.db, "users"), where("afi_uid", "==", enteredUID));
+                    const qAadhaar = query(collection(window.db, "users"), where("aadhaar", "==", aadhaarVal));
+                    
+                    const [snapUID, snapAadhaar] = await Promise.all([getDocs(qUID), getDocs(qAadhaar)]);
+
+                    if (!snapUID.empty) {
+                        alert("Registration Error: This AFI UID is already registered in our system. Please proceed to the Login page.");
+                        submitBtn.innerText = originalBtnText; 
+                        submitBtn.disabled = false;
+                        return;
+                    }
+                    if (!snapAadhaar.empty) {
+                        alert("Registration Error: This Aadhaar Number is already linked to an existing account. Please proceed to the Login page.");
+                        submitBtn.innerText = originalBtnText; 
+                        submitBtn.disabled = false;
+                        return;
+                    }
+                }
+
+                submitBtn.innerText = "Creating Account...";
+
+                data.afi_uid = enteredUID;
+                data.regType = "Coach";
+                data.role = "Coach";
+                data.status = "Pending"; // Coaches are pending admin approval
+                data.timestamp = new Date().toISOString();
+                
+                const email = data.email;
+                const password = data.password;
+                const firstName = data.first_name;
+                
+                // SECURITY: Delete password from data object so it never saves as plain text in the database
+                delete data.password; 
+
+                if (window.auth && window.db) {
+                    // 1. Create secure account in Firebase Auth
+                    const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
+                    const authId = userCredential.user.uid;
+
+                    // 2. Save profile data to Firestore (Users Collection) using enteredUID
+                    await setDoc(doc(window.db, "users", enteredUID), data);
+                } else {
+                    // Fallback to local storage if offline
+                    let localDb = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+                    data.password = password; // Add password back just for local storage fallback testing
+                    localDb.push(data);
+                    localStorage.setItem('taa_portal_data', JSON.stringify(localDb));
+                }
+
+                // 3. Send Automated Welcome Email via EmailJS
+                if (window.emailjs) {
+                    try {
+                        await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                            subject: "Welcome to Telangana Athletics Association (Coach Portal)",
+                            name: firstName,
+                            message: `Your Coach Registration has been received and is pending verification. \n\nYour official AFI UID is: ${enteredUID}\n\nPlease keep your credentials safe and use this UID to log into the Coach portal.`
+                        });
+                    } catch(emailErr) {
+                        console.warn("Email failed to send, but registration was successful.");
+                    }
+                }
+
+                // Show Success Popup
+                document.getElementById('popupUID').innerText = enteredUID;
+                document.getElementById('successModal').style.display = 'flex';
+
+            } catch (error) {
+                console.error("Registration Error:", error);
+                
+                if(error.code === 'auth/email-already-in-use') {
+                    alert("Registration Error: This Email Address is already registered. Please log in.");
+                } else {
+                    alert("Registration failed: " + error.message);
+                }
+                
+                submitBtn.innerText = originalBtnText;
+                submitBtn.disabled = false;
             }
         });
-        const fillPercent = ((step - 1) / 3) * 100;
-        document.getElementById('line-fill').style.width = fillPercent + '%';
-    }
-
-    document.getElementById('coachForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        // NEW: Password Validation check
-        const pwd = document.getElementById('reg_pwd').value;
-        const pwdConfirm = document.getElementById('reg_pwd_confirm').value;
-        if (pwd !== pwdConfirm) {
-            alert("Error: Passwords do not match. Please try again.");
-            document.getElementById('reg_pwd').style.borderColor = 'red';
-            document.getElementById('reg_pwd_confirm').style.borderColor = 'red';
-            return;
-        }
-
-        const formData = new FormData(this);
-        const data = {};
-        formData.forEach((value, key) => {
-            data[key] = (value instanceof File) ? value.name : value;
-        });
-
-        // NEW: Ensure the entered UID is saved in uppercase
-        const enteredUID = document.getElementById('reg_afi_uid').value.toUpperCase();
-        data.afi_uid = enteredUID;
-
-        data.regType = "Coach";
-        data.status = "Pending"; // Initialize as pending until admin verifies
-        data.timestamp = new Date().toLocaleString();
-
-        let list = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-        list.push(data);
-        localStorage.setItem('taa_portal_data', JSON.stringify(list));
-
-        // NEW: Show Success Popup instead of standard alert/redirect
-        document.getElementById('popupUID').innerText = enteredUID;
-        document.getElementById('successModal').style.display = 'flex';
-    });
     </script>
 
     <div id="footer-container"></div>

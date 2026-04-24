@@ -6,6 +6,8 @@
     <title>Video Gallery - Telangana Athletics Association</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root {
             --primary: #0056b3;
@@ -208,7 +210,7 @@
 
     <div class="gallery-container">
         <div class="filter-container">
-            <select id="videoYearFilter" class="year-dropdown" onchange="filterVideos()">
+            <select id="videoYearFilter" class="year-dropdown" onchange="window.filterVideos()">
                 </select>
         </div>
 
@@ -216,9 +218,9 @@
             </div>
     </div>
 
-    <div class="modal-overlay" id="videoModal" onclick="closeModal(event)">
+    <div class="modal-overlay" id="videoModal" onclick="window.closeModal(event)">
         <div style="position: relative; width: 100%; max-width: 900px;">
-            <span class="close-modal" onclick="closeModal(null, true)">&times;</span>
+            <span class="close-modal" onclick="window.closeModal(null, true)">&times;</span>
             <div class="modal-content">
                 <div class="video-responsive">
                     <iframe id="ytPlayer" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
@@ -227,9 +229,14 @@
         </div>
     </div>
 
-    <script>
-        // Mock Database of Videos (Using YouTube Video IDs)
-        const videos = [
+    <script type="module">
+        import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Global Cache
+        window.cloudVideos = [];
+
+        // Mock Database of Videos (Fallback if offline)
+        const fallbackVideos = [
             { 
                 title: "Live Stream: State Meet for Relay Teams (Day 1)", 
                 date: "March 2026", 
@@ -264,10 +271,18 @@
             }
         ];
 
-        // Populate the 2000-2100 dropdown
-        function populateVideoYears() {
+        // Extracts YouTube ID safely from various link formats uploaded via Admin CMS
+        window.extractYouTubeID = function(url) {
+            let videoId = "";
+            if (!url) return videoId;
+            if (url.includes("v=")) videoId = url.split("v=")[1].substring(0, 11);
+            else if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1].substring(0, 11);
+            return videoId;
+        };
+
+        window.populateVideoYears = function() {
             let options = "";
-            const currentYear = 2026; 
+            const currentYear = 2026; // Setting 2026 as default per original design
             for (let yr = 2000; yr <= 2100; yr++) {
                 const selected = (yr === currentYear) ? "selected" : "";
                 options += `<option value="${yr}" ${selected}>Season: ${yr}</option>`;
@@ -275,13 +290,13 @@
             document.getElementById('videoYearFilter').innerHTML = options;
         }
 
-        // Filter Grid based on selected year
-        function filterVideos() {
+        window.filterVideos = function() {
             const selectedYear = document.getElementById('videoYearFilter').value;
             const grid = document.getElementById('videoGrid');
             grid.innerHTML = '';
 
-            const filteredVideos = videos.filter(video => video.categoryYear === selectedYear);
+            const datasetToUse = window.cloudVideos.length > 0 ? window.cloudVideos : fallbackVideos;
+            const filteredVideos = datasetToUse.filter(video => video.categoryYear === selectedYear);
 
             if (filteredVideos.length === 0) {
                 grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #64748b; font-weight: 700; font-size: 1.2em; padding: 40px 0;">No broadcasts published for this season yet.</p>';
@@ -290,9 +305,9 @@
 
             filteredVideos.forEach(video => {
                 grid.innerHTML += `
-                    <div class="video-card" onclick="playVideo('${video.ytId}')">
+                    <div class="video-card" onclick="window.playVideo('${video.ytId}')">
                         <div class="video-img-wrapper">
-                            <img src="${video.thumbnail}" alt="${video.title}" onerror="this.src='https://via.placeholder.com/800x450?text=Video+Thumbnail'">
+                            <img src="${video.thumbnail}" alt="${video.title}" onerror="this.src='https://images.unsplash.com/photo-1461896836934-ffe607ba8211?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'">
                             <div class="play-icon"></div>
                         </div>
                         <div class="video-info">
@@ -307,8 +322,7 @@
             });
         }
 
-        // Modal Video Player Logic
-        function playVideo(ytId) {
+        window.playVideo = function(ytId) {
             const modal = document.getElementById('videoModal');
             const iframe = document.getElementById('ytPlayer');
             // Adding ?autoplay=1 to start the video instantly when the modal opens
@@ -316,7 +330,7 @@
             modal.style.display = 'flex';
         }
 
-        function closeModal(event, forceClose = false) {
+        window.closeModal = function(event, forceClose = false) {
             const modal = document.getElementById('videoModal');
             // Close if they click the "X" button OR if they click outside the video
             if (forceClose || event.target === modal) {
@@ -325,10 +339,39 @@
             }
         }
 
-        // Initialize Page
-        window.onload = () => {
-            populateVideoYears();
-            filterVideos();
+        // Initialize Page and fetch from Cloud
+        window.onload = async () => {
+            window.populateVideoYears();
+            
+            try {
+                if(window.db) {
+                    // Query the 'media' collection specifically for type 'videos.html'
+                    const q = query(collection(window.db, "media"), where("type", "==", "videos.html"));
+                    const snap = await getDocs(q);
+                    
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        // Support full URL uploaded by Admin or pure ID
+                        const ytId = window.extractYouTubeID(data.url) || data.url; 
+                        
+                        if(ytId) {
+                            window.cloudVideos.push({
+                                title: data.title || "Untitled Broadcast",
+                                date: data.date || "2026",
+                                categoryYear: data.categoryYear || (data.date ? data.date.split(' ').pop() : "2026"),
+                                level: data.level || "State",
+                                ytId: ytId,
+                                // Automatically fetch highest quality YouTube thumbnail
+                                thumbnail: data.thumbnail || `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` 
+                            });
+                        }
+                    });
+                }
+            } catch(error) {
+                console.warn("Could not fetch videos from cloud. Loading local fallbacks.");
+            }
+
+            window.filterVideos();
         };
 
     </script>

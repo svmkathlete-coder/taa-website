@@ -6,6 +6,8 @@
     <title>Athlete Registration - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root {
             --primary: #0056b3;
@@ -130,13 +132,51 @@
                 <h3>Communication Address</h3>
                 <div class="input-group"><label>Full Address*</label><textarea name="address" rows="2" required></textarea></div>
                 <div class="grid">
-                    <div class="input-group"><label>District*</label><input type="text" name="district" required></div>
+                    <div class="input-group">
+                        <label>District*</label>
+                        <select name="district" required style="width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 8px; outline: none; font-size: 0.95em;">
+                            <option value="">Select District</option>
+                            <option value="Adilabad">Adilabad</option>
+                            <option value="Bhadradri Kothagudem">Bhadradri Kothagudem</option>
+                            <option value="Hanumakonda">Hanumakonda</option>
+                            <option value="Hyderabad">Hyderabad</option>
+                            <option value="Jagtial">Jagtial</option>
+                            <option value="Jangaon">Jangaon</option>
+                            <option value="Jayashankar Bhupalpally">Jayashankar Bhupalpally</option>
+                            <option value="Jogulamba Gadwal">Jogulamba Gadwal</option>
+                            <option value="Kamareddy">Kamareddy</option>
+                            <option value="Karimnagar">Karimnagar</option>
+                            <option value="Khammam">Khammam</option>
+                            <option value="Kumuram Bheem Asifabad">Kumuram Bheem Asifabad</option>
+                            <option value="Mahabubabad">Mahabubabad</option>
+                            <option value="Mahabubnagar">Mahabubnagar</option>
+                            <option value="Mancherial">Mancherial</option>
+                            <option value="Medak">Medak</option>
+                            <option value="Medchal-Malkajgiri">Medchal-Malkajgiri</option>
+                            <option value="Mulugu">Mulugu</option>
+                            <option value="Nagarkurnool">Nagarkurnool</option>
+                            <option value="Nalgonda">Nalgonda</option>
+                            <option value="Narayanpet">Narayanpet</option>
+                            <option value="Nirmal">Nirmal</option>
+                            <option value="Nizamabad">Nizamabad</option>
+                            <option value="Peddapalli">Peddapalli</option>
+                            <option value="Rajanna Sircilla">Rajanna Sircilla</option>
+                            <option value="Ranga Reddy">Ranga Reddy</option>
+                            <option value="Sangareddy">Sangareddy</option>
+                            <option value="Siddipet">Siddipet</option>
+                            <option value="Suryapet">Suryapet</option>
+                            <option value="Vikarabad">Vikarabad</option>
+                            <option value="Wanaparthy">Wanaparthy</option>
+                            <option value="Warangal">Warangal</option>
+                            <option value="Yadadri Bhuvanagiri">Yadadri Bhuvanagiri</option>
+                        </select>
+                    </div>
                     <div class="input-group"><label>Pincode*</label><input type="text" name="pincode" maxlength="6" required></div>
                 </div>
 
                 <div class="btn-row">
                     <div></div>
-                    <button type="button" class="btn btn-next" onclick="nextStep()">Next Step</button>
+                    <button type="button" class="btn btn-next" onclick="window.nextStep()">Next Step</button>
                 </div>
             </div>
 
@@ -176,8 +216,8 @@
                 </div>
 
                 <div class="btn-row">
-                    <button type="button" class="btn btn-prev" onclick="prevStep()">Previous</button>
-                    <button type="submit" class="btn btn-next">Submit</button>
+                    <button type="button" class="btn btn-prev" onclick="window.prevStep()">Previous</button>
+                    <button type="submit" class="btn btn-next" id="submitBtn">Submit</button>
                 </div>
             </div>
         </form>
@@ -200,8 +240,12 @@
         </div>
     </div>
 
-<script>
-    function nextStep() {
+<script type="module">
+    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import { doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // Expose functions globally for HTML onclick attributes
+    window.nextStep = function() {
         const step1 = document.getElementById('step1');
         const required = step1.querySelectorAll('[required]');
         let valid = true;
@@ -223,18 +267,18 @@
         } else {
             alert("Please fill in all required fields marked with *");
         }
-    }
+    };
 
-    function prevStep() {
+    window.prevStep = function() {
         document.getElementById('step2').classList.remove('active');
         document.getElementById('step1').classList.add('active');
         document.getElementById('s1').classList.remove('completed');
         document.getElementById('s2').classList.remove('active');
         document.getElementById('line-fill').style.width = '0%';
         window.scrollTo(0, 0);
-    }
+    };
 
-    document.getElementById('regForm').addEventListener('submit', function(e) {
+    document.getElementById('regForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         // Password Validation check
@@ -247,27 +291,103 @@
             return;
         }
 
+        const submitBtn = document.getElementById('submitBtn');
+        const originalBtnText = submitBtn.innerText;
+        submitBtn.innerText = "Checking Database...";
+        submitBtn.disabled = true;
+
         const formData = new FormData(this);
         const data = {};
         formData.forEach((value, key) => {
             data[key] = (value instanceof File) ? value.name : value;
         });
         
-        // Ensure the entered UID is saved in uppercase
         const enteredUID = document.getElementById('reg_afi_uid').value.toUpperCase();
-        data.afi_uid = enteredUID;
+        const aadhaarVal = data.aadhaar;
         
-        data.regType = "Athlete";
-        data.status = "Pending"; // Sets initial status to pending verification
-        data.timestamp = new Date().toLocaleString();
-        
-        let list = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-        list.push(data);
-        localStorage.setItem('taa_portal_data', JSON.stringify(list));
-        
-        // Show Success Popup with the entered UID
-        document.getElementById('popupUID').innerText = enteredUID;
-        document.getElementById('successModal').style.display = 'flex';
+        try {
+            // --- BULLETPROOF DUPLICATE CHECK LOGIC ---
+            if (window.db) {
+                const qUID = query(collection(window.db, "users"), where("afi_uid", "==", enteredUID));
+                const qAadhaar = query(collection(window.db, "users"), where("aadhaar", "==", aadhaarVal));
+                
+                const [snapUID, snapAadhaar] = await Promise.all([getDocs(qUID), getDocs(qAadhaar)]);
+
+                if (!snapUID.empty) {
+                    alert("Registration Error: This AFI UID is already registered in our system. Please proceed to the Login page.");
+                    submitBtn.innerText = originalBtnText; 
+                    submitBtn.disabled = false;
+                    return;
+                }
+                if (!snapAadhaar.empty) {
+                    alert("Registration Error: This Aadhaar Number is already linked to an existing account. Please proceed to the Login page.");
+                    submitBtn.innerText = originalBtnText; 
+                    submitBtn.disabled = false;
+                    return;
+                }
+            }
+
+            submitBtn.innerText = "Creating Account...";
+
+            data.afi_uid = enteredUID;
+            data.regType = "Athlete";
+            data.status = "Verified"; // Athletes auto-verify per standard flow
+            data.timestamp = new Date().toISOString();
+            
+            const email = data.email;
+            const password = data.password;
+            const firstName = data.first_name;
+            
+            // Delete password from data object so it never saves as plain text in the Firestore DB
+            // (It is securely hashed by Firebase Auth)
+            delete data.password; 
+
+            if (window.auth && window.db) {
+                // 1. Create secure account in Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
+                const authId = userCredential.user.uid;
+
+                // 2. Save profile data to Firestore
+                await setDoc(doc(window.db, "users", enteredUID), data);
+            } else {
+                // Fallback to local storage if offline
+                let localDb = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+                
+                // Add password back just for local storage fallback testing
+                data.password = password; 
+                localDb.push(data);
+                localStorage.setItem('taa_portal_data', JSON.stringify(localDb));
+            }
+
+            // 3. Send Automated Welcome Email via EmailJS
+            if (window.emailjs) {
+                try {
+                    await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                        subject: "Welcome to Telangana Athletics Association!",
+                        name: firstName,
+                        message: `Your Athlete Registration was successful. \n\nYour official AFI UID is: ${enteredUID}\n\nPlease keep your credentials safe and use this UID to log into the portal for all future meets.`
+                    });
+                } catch(emailErr) {
+                    console.warn("Email failed to send, but registration was successful.");
+                }
+            }
+
+            // Show Success Popup
+            document.getElementById('popupUID').innerText = enteredUID;
+            document.getElementById('successModal').style.display = 'flex';
+
+        } catch (error) {
+            console.error("Registration Error:", error);
+            
+            if(error.code === 'auth/email-already-in-use') {
+                alert("Registration Error: This Email Address is already registered. Please proceed to Login or Account Recovery.");
+            } else {
+                alert("Registration failed: " + error.message);
+            }
+            
+            submitBtn.innerText = originalBtnText;
+            submitBtn.disabled = false;
+        }
     });
 </script>
 

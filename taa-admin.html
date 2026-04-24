@@ -7,6 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root { --primary: #001a35; --primary-light: #0056b3; --accent: #FF8C00; --bg: #f1f5f9; --text: #334155; --white: #ffffff; --sidebar-w: 280px; --border: #e2e8f0; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -83,6 +85,7 @@
         .bg-red { background: #fee2e2; color: #991b1b; }
         .bg-purple { background: #f3e8ff; color: #6b21a8; }
         .bg-gray { background: #e2e8f0; color: #475569; }
+        .bg-orange { background: #ffedd5; color: #c2410c; }
 
         /* Expandable Details Row (Editable) */
         .detail-row { display: none; background: #f8fafc; }
@@ -119,6 +122,9 @@
         /* --- AUTOMATION PANEL --- */
         .automation-panel { background: #eef2ff; padding: 20px; border-radius: 10px; border: 2px dashed var(--primary-light); margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
         .automation-panel p { margin: 0; font-size: 0.9em; color: var(--primary-light); font-weight: 800; font-family: 'Montserrat'; }
+        
+        /* Account Creation Box */
+        .creation-box { background: #fff7ed; border-left: 5px solid var(--accent); padding: 20px; border-radius: 8px; margin-bottom: 30px; }
     </style>
 </head>
 <body>
@@ -132,24 +138,26 @@
             </div>
         </div>
         <div class="nav-links">
-            <div class="nav-item active" onclick="switchTab('tab-database', this)"><span class="nav-icon">👥</span> Member Database</div>
-            <div class="nav-item" onclick="switchTab('tab-cms', this)"><span class="nav-icon">🖥️</span> Website CMS</div>
-            <div class="nav-item" onclick="switchTab('tab-calendar', this)"><span class="nav-icon">📅</span> Competition Calendar</div>
-            <div class="nav-item" onclick="switchTab('tab-registrations', this)"><span class="nav-icon">📝</span> Registration Control</div>
-            <div class="nav-item" onclick="switchTab('tab-live', this)"><span class="nav-icon">🔴</span> Live Meet Manager</div>
-            <div class="nav-item" onclick="switchTab('tab-results-sync', this)"><span class="nav-icon">🏆</span> Results & Archives</div>
-            <div class="nav-item" onclick="switchTab('tab-circulars', this)"><span class="nav-icon">📄</span> Circulars Manager</div>
-            <div class="nav-item" onclick="switchTab('tab-media', this)"><span class="nav-icon">📸</span> Media Manager</div>
+            <div class="nav-item active" onclick="window.switchTab('tab-database', this)"><span class="nav-icon">👥</span> Member Database</div>
+            <div class="nav-item" onclick="window.switchTab('tab-afi-bot', this)"><span class="nav-icon">🤖</span> AFI Auto-Bot</div>
+            <div class="nav-item" onclick="window.switchTab('tab-cms', this)"><span class="nav-icon">🖥️</span> Website CMS</div>
+            <div class="nav-item" onclick="window.switchTab('tab-institution', this)"><span class="nav-icon">🏛️</span> Institution Manager</div>
+            <div class="nav-item" onclick="window.switchTab('tab-calendar', this)"><span class="nav-icon">📅</span> Competition Calendar</div>
+            <div class="nav-item" onclick="window.switchTab('tab-registrations', this)"><span class="nav-icon">📝</span> Registration Control</div>
+            <div class="nav-item" onclick="window.switchTab('tab-live', this)"><span class="nav-icon">🔴</span> Live Meet Manager</div>
+            <div class="nav-item" onclick="window.switchTab('tab-results-sync', this)"><span class="nav-icon">🏆</span> Results & Archives</div>
+            <div class="nav-item" onclick="window.switchTab('tab-circulars', this)"><span class="nav-icon">📄</span> Circulars Manager</div>
+            <div class="nav-item" onclick="window.switchTab('tab-media', this)"><span class="nav-icon">📸</span> Media Manager</div>
         </div>
         <div class="user-profile">
-            <button class="logout-btn" onclick="secureLogout()">Logout</button>
+            <button class="logout-btn" onclick="window.secureLogout()">Logout</button>
         </div>
     </aside>
 
     <main class="main-content">
         <header class="topbar">
             <div class="topbar-left">
-                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Toggle Sidebar">☰</button>
+                <button class="toggle-sidebar-btn" onclick="window.toggleSidebar()" title="Toggle Sidebar">☰</button>
                 <h1 id="topbarTitle">Member Database</h1>
             </div>
             <div style="font-weight: 700; color: #64748b;" id="currentDate"></div>
@@ -158,12 +166,79 @@
         <div class="content-area">
             
             <div id="tab-database" class="tab-content active">
+                <div class="card creation-box">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                        <h3 style="font-family:'Montserrat'; color:var(--accent); margin:0;">Create Official Institutional Account</h3>
+                        <span class="badge bg-orange">Admin Only</span>
+                    </div>
+                    <p style="font-size:0.85em; color:#64748b; margin-bottom:15px;">Generate secure credentials for District Secretaries, Tech Chairmen, or Master Admins. Bypasses public ORS registration and emails credentials directly.</p>
+                    
+                    <div class="form-grid" style="align-items: end;">
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select id="createRole" class="form-control" onchange="window.toggleDistrictField()">
+                                <option value="District_Admin">District Secretary / Admin</option>
+                                <option value="Technical_Chairman">Technical Chairman</option>
+                                <option value="Master_Admin">Master Admin</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="createDistrictGroup">
+                            <label>Assign District</label>
+                            <select id="createDistrict" class="form-control">
+                                <option value="Adilabad">Adilabad</option>
+                                <option value="Bhadradri Kothagudem">Bhadradri Kothagudem</option>
+                                <option value="Hanumakonda">Hanumakonda</option>
+                                <option value="Hyderabad" selected>Hyderabad</option>
+                                <option value="Jagtial">Jagtial</option>
+                                <option value="Jangaon">Jangaon</option>
+                                <option value="Jayashankar Bhupalpally">Jayashankar Bhupalpally</option>
+                                <option value="Jogulamba Gadwal">Jogulamba Gadwal</option>
+                                <option value="Kamareddy">Kamareddy</option>
+                                <option value="Karimnagar">Karimnagar</option>
+                                <option value="Khammam">Khammam</option>
+                                <option value="Kumuram Bheem Asifabad">Kumuram Bheem Asifabad</option>
+                                <option value="Mahabubabad">Mahabubabad</option>
+                                <option value="Mahabubnagar">Mahabubnagar</option>
+                                <option value="Mancherial">Mancherial</option>
+                                <option value="Medak">Medak</option>
+                                <option value="Medchal-Malkajgiri">Medchal-Malkajgiri</option>
+                                <option value="Mulugu">Mulugu</option>
+                                <option value="Nagarkurnool">Nagarkurnool</option>
+                                <option value="Nalgonda">Nalgonda</option>
+                                <option value="Narayanpet">Narayanpet</option>
+                                <option value="Nirmal">Nirmal</option>
+                                <option value="Nizamabad">Nizamabad</option>
+                                <option value="Peddapalli">Peddapalli</option>
+                                <option value="Rajanna Sircilla">Rajanna Sircilla</option>
+                                <option value="Ranga Reddy">Ranga Reddy</option>
+                                <option value="Sangareddy">Sangareddy</option>
+                                <option value="Siddipet">Siddipet</option>
+                                <option value="Suryapet">Suryapet</option>
+                                <option value="Vikarabad">Vikarabad</option>
+                                <option value="Wanaparthy">Wanaparthy</option>
+                                <option value="Warangal">Warangal</option>
+                                <option value="Yadadri Bhuvanagiri">Yadadri Bhuvanagiri</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Full Name</label><input type="text" id="createName" class="form-control" placeholder="e.g. K. Sarangapani"></div>
+                        <div class="form-group"><label>Official Email</label><input type="email" id="createEmail" class="form-control" placeholder="Email to receive credentials"></div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <div style="display:flex; gap:5px;">
+                                <input type="text" id="createPass" class="form-control" placeholder="Auto-generated">
+                                <button class="btn-upload-sm" onclick="window.generatePassword()">Generate</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" style="margin-top: 20px;" onclick="window.createOfficialAccount()">Create & Email Credentials</button>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <h3>Master Registration Directory</h3>
                         <div>
-                            <button class="btn btn-excel" onclick="exportFullExcel()">📥 Export CSV</button>
-                            <button class="btn btn-clear" onclick="clearAll()">⚠️ Wipe DB</button>
+                            <button class="btn btn-excel" onclick="window.exportFullExcel()">📥 Export CSV</button>
+                            <button class="btn btn-clear" onclick="window.clearAll()">⚠️ Wipe DB</button>
                         </div>
                     </div>
                     
@@ -174,8 +249,9 @@
                             <option value="Athlete">Athletes</option>
                             <option value="Coach">Coaches</option>
                             <option value="Official">Officials</option>
+                            <option value="District_Admin">District Admins</option>
                         </select>
-                        <button class="btn btn-primary" onclick="renderAdminUsers()">Search Database</button>
+                        <button class="btn btn-primary" onclick="window.renderAdminUsers()">Search Database</button>
                     </div>
 
                     <div class="table-responsive">
@@ -187,13 +263,40 @@
                 </div>
             </div>
 
+            <div id="tab-afi-bot" class="tab-content">
+                <div class="automation-panel" style="margin-bottom: 20px;">
+                    <div>
+                        <p>🤖 NODE.JS AFI WEB SCRAPER BOT</p>
+                        <small style="color: #64748b;">Background process that stealthily visits the official AFI website at midnight to pull new Circulars, Press Releases, and National Meet Registrations directly into our Firebase Cloud.</small>
+                    </div>
+                    <button class="btn btn-primary" onclick="alert('Triggering manual stealth sync with AFI servers. Please wait 60 seconds...')">⚡ Force Manual Sync</button>
+                </div>
+                <div class="cms-grid">
+                    <div class="cms-box">
+                        <h4>📄 Circulars Engine</h4>
+                        <p style="font-size:0.85em; color:#64748b;">Status: <span class="badge bg-green">Active (Last Sync: Today 00:00)</span></p>
+                        <p style="font-size:0.8em; margin-top:10px;">Automatically detects PDF uploads on AFI and creates entries in the "National (AFI) Circulars" section.</p>
+                    </div>
+                    <div class="cms-box">
+                        <h4>📰 Press Release Engine</h4>
+                        <p style="font-size:0.85em; color:#64748b;">Status: <span class="badge bg-green">Active (Last Sync: Today 00:00)</span></p>
+                        <p style="font-size:0.8em; margin-top:10px;">Detects new AFI press articles and syncs them to the "AFI National Press" tab with an AUTO-SYNCED badge.</p>
+                    </div>
+                    <div class="cms-box">
+                        <h4>📝 National Registration Engine</h4>
+                        <p style="font-size:0.85em; color:#64748b;">Status: <span class="badge bg-green">Active (Last Sync: Today 00:00)</span></p>
+                        <p style="font-size:0.8em; margin-top:10px;">Scans AFI homepage for new competition entry links. Automatically publishes or unpublishes the registration banner on the TAA Home Page.</p>
+                    </div>
+                </div>
+            </div>
+
             <div id="tab-cms" class="tab-content">
                 <div class="card">
                     <div class="card-header">
                         <h3>Home Page Content Manager</h3>
                         <div style="display: flex; gap: 10px;">
-                            <button class="btn btn-clear" onclick="clearAllCMS()">🗑️ Wipe Home Content</button>
-                            <button class="btn btn-primary" onclick="pushAllCMSUpdates()">🚀 Push All Live to Home</button>
+                            <button class="btn btn-clear" onclick="window.clearAllCMS()">🗑️ Wipe Home Content</button>
+                            <button class="btn btn-primary" onclick="window.pushAllCMSUpdates()">🚀 Push All Live to Home</button>
                         </div>
                     </div>
 
@@ -201,7 +304,7 @@
                         <div class="cms-box">
                             <div style="display:flex; justify-content:space-between;">
                                 <h4>1. Latest News Ticker</h4>
-                                <button class="btn-upload-sm" onclick="clearCMSSection('ticker')">Clear</button>
+                                <button class="btn-upload-sm" onclick="window.clearCMSSection('ticker')">Clear</button>
                             </div>
                             <div class="form-group">
                                 <label>Content (Use '|' for multiple headlines)</label>
@@ -216,7 +319,7 @@
                         <div class="cms-box">
                             <div style="display:flex; justify-content:space-between;">
                                 <h4>2. Featured Article (Latest News)</h4>
-                                <button class="btn-upload-sm" onclick="clearCMSSection('news')">Clear</button>
+                                <button class="btn-upload-sm" onclick="window.clearCMSSection('news')">Clear</button>
                             </div>
                             <div class="form-group">
                                 <label>Article Headline</label>
@@ -231,7 +334,7 @@
                         <div class="cms-box">
                             <div style="display:flex; justify-content:space-between;">
                                 <h4>3. Top Athletes (Marquee)</h4>
-                                <button class="btn-upload-sm" onclick="clearCMSSection('athletes')">Clear</button>
+                                <button class="btn-upload-sm" onclick="window.clearCMSSection('athletes')">Clear</button>
                             </div>
                             <div class="form-group">
                                 <label>Athlete UIDs (Comma separated)</label>
@@ -242,7 +345,7 @@
                         <div class="cms-box">
                             <div style="display:flex; justify-content:space-between;">
                                 <h4>4. Photo & Video Features</h4>
-                                <button class="btn-upload-sm" onclick="clearCMSSection('media')">Clear</button>
+                                <button class="btn-upload-sm" onclick="window.clearCMSSection('media')">Clear</button>
                             </div>
                             <div class="form-group">
                                 <label>Photo Album URL</label>
@@ -253,6 +356,110 @@
                                 <input type="text" id="cms_videoLink" class="form-control" placeholder="Video URL">
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-institution" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Institution Control Panel</h3>
+                        <button class="btn btn-primary" onclick="window.saveInstitutionSettings()">💾 Save All Updates to Cloud</button>
+                    </div>
+                    
+                    <div style="margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 30px;">
+                        <h4 style="font-family:'Montserrat'; color:var(--primary); margin-bottom: 15px;">Manage State Executive Body (TAA Office Bearers)</h4>
+                        <div class="form-grid" style="align-items: end;">
+                            <div class="form-group"><label>President</label><input type="text" id="exec_pres" class="form-control" placeholder="President Name"></div>
+                            <div class="form-group"><label>Working President</label><input type="text" id="exec_work_pres" class="form-control" placeholder="Working President Name"></div>
+                            <div class="form-group"><label>General Secretary</label><input type="text" id="exec_sec" class="form-control" placeholder="General Secretary Name"></div>
+                            <div class="form-group"><label>Treasurer</label><input type="text" id="exec_treas" class="form-control" placeholder="Treasurer Name"></div>
+                        </div>
+                        <button class="btn btn-primary" style="margin-top:15px;" onclick="window.saveExecutiveBody()">Update State Executive Body</button>
+                    </div>
+
+                    <div class="cms-grid">
+                        <div class="cms-box">
+                            <h4>History & Constitution</h4>
+                            <div class="form-group">
+                                <label>About TAA Description</label>
+                                <textarea id="inst_aboutText" class="form-control" rows="5" placeholder="Enter the official history of the association..."></textarea>
+                            </div>
+                            <div class="form-group" style="margin-top:10px;">
+                                <label>Constitution PDF Link</label>
+                                <input type="text" id="inst_constLink" class="form-control" placeholder="URL to Constitution PDF">
+                            </div>
+                        </div>
+
+                        <div class="cms-box">
+                            <h4>Public Contact Info</h4>
+                            <div class="form-group"><label>Headquarters Address</label><textarea id="inst_address" class="form-control" rows="2"></textarea></div>
+                            <div class="form-group" style="margin-top:10px;"><label>Official Phone Number</label><input type="text" id="inst_phone" class="form-control"></div>
+                            <div class="form-group" style="margin-top:10px;"><label>Official Email Address</label><input type="text" id="inst_email" class="form-control"></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px;">
+                        <h4 style="font-family:'Montserrat'; color:var(--primary); margin-bottom: 15px;">Manage District Associations (Executive Bodies)</h4>
+                        <div class="form-grid" style="align-items: end;">
+                            <div class="form-group">
+                                <label>Select District to Edit</label>
+                                <select id="inst_districtSelect" class="form-control" onchange="window.loadDistrictDetails()">
+                                    <option value="Adilabad">Adilabad</option>
+                                    <option value="Bhadradri Kothagudem">Bhadradri Kothagudem</option>
+                                    <option value="Hanumakonda">Hanumakonda</option>
+                                    <option value="Hyderabad" selected>Hyderabad</option>
+                                    <option value="Jagtial">Jagtial</option>
+                                    <option value="Jangaon">Jangaon</option>
+                                    <option value="Jayashankar Bhupalpally">Jayashankar Bhupalpally</option>
+                                    <option value="Jogulamba Gadwal">Jogulamba Gadwal</option>
+                                    <option value="Kamareddy">Kamareddy</option>
+                                    <option value="Karimnagar">Karimnagar</option>
+                                    <option value="Khammam">Khammam</option>
+                                    <option value="Kumuram Bheem Asifabad">Kumuram Bheem Asifabad</option>
+                                    <option value="Mahabubabad">Mahabubabad</option>
+                                    <option value="Mahabubnagar">Mahabubnagar</option>
+                                    <option value="Mancherial">Mancherial</option>
+                                    <option value="Medak">Medak</option>
+                                    <option value="Medchal-Malkajgiri">Medchal-Malkajgiri</option>
+                                    <option value="Mulugu">Mulugu</option>
+                                    <option value="Nagarkurnool">Nagarkurnool</option>
+                                    <option value="Nalgonda">Nalgonda</option>
+                                    <option value="Narayanpet">Narayanpet</option>
+                                    <option value="Nirmal">Nirmal</option>
+                                    <option value="Nizamabad">Nizamabad</option>
+                                    <option value="Peddapalli">Peddapalli</option>
+                                    <option value="Rajanna Sircilla">Rajanna Sircilla</option>
+                                    <option value="Ranga Reddy">Ranga Reddy</option>
+                                    <option value="Sangareddy">Sangareddy</option>
+                                    <option value="Siddipet">Siddipet</option>
+                                    <option value="Suryapet">Suryapet</option>
+                                    <option value="Vikarabad">Vikarabad</option>
+                                    <option value="Wanaparthy">Wanaparthy</option>
+                                    <option value="Warangal">Warangal</option>
+                                    <option value="Yadadri Bhuvanagiri">Yadadri Bhuvanagiri</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label>President Name</label><input type="text" id="dist_pres" class="form-control"></div>
+                            <div class="form-group"><label>Secretary Name</label><input type="text" id="dist_sec" class="form-control"></div>
+                            <div class="form-group"><label>Treasurer Name</label><input type="text" id="dist_treas" class="form-control"></div>
+                            <div class="form-group"><label>District Phone</label><input type="text" id="dist_phone" class="form-control"></div>
+                        </div>
+                        <button class="btn btn-primary" style="margin-top:15px;" onclick="window.saveDistrictDetails()">Update District Information</button>
+                    </div>
+
+                    <div style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                            <h4 style="font-family:'Montserrat'; color:var(--primary); margin: 0;">Master Admin Recovery Settings</h4>
+                            <span class="badge bg-red">System Critical</span>
+                        </div>
+                        <p style="font-size:0.85em; color:#64748b;">Update the secure contact details used for recovering the Master Admin account. Keep these current if the administrative team changes.</p>
+                        <div class="form-grid" style="align-items: end;">
+                            <div class="form-group"><label>Admin Recovery Email</label><input type="email" id="adminRecEmail" class="form-control" placeholder="svmk.athlete@gmail.com"></div>
+                            <div class="form-group"><label>Admin Recovery Mobile</label><input type="text" id="adminRecMobile" class="form-control" placeholder="+91 7093882050"></div>
+                            <div class="form-group"><label>Change Password (Optional)</label><input type="text" id="adminRecPass" class="form-control" placeholder="Leave blank to keep current"></div>
+                        </div>
+                        <button class="btn btn-primary" style="margin-top:15px;" onclick="window.updateMasterAdminCredentials()">Secure Admin Credentials</button>
                     </div>
                 </div>
             </div>
@@ -272,7 +479,7 @@
                         <div class="form-group"><label>End Date</label><input type="date" id="newMeetEnd" class="form-control"></div>
                         <div class="form-group"><label>Venue</label><input type="text" id="newMeetVenue" class="form-control" placeholder="e.g. Hanumakonda"></div>
                     </div>
-                    <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="addToCalendar()">+ Add to Master Calendar</button></div>
+                    <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="window.addToCalendar()">+ Add to Master Calendar</button></div>
                 </div>
             </div>
 
@@ -283,7 +490,7 @@
                             <h3>Online Entry Management</h3>
                             <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">Dynamically mapped to the Competition Calendar. Toggle to open registrations.</p>
                         </div>
-                        <select class="form-control" id="regYearFilter" style="width: 150px;" onchange="loadRegistrationControl()">
+                        <select class="form-control" id="regYearFilter" style="width: 150px;" onchange="window.loadRegistrationControl()">
                             </select>
                     </div>
                     <div class="table-responsive">
@@ -321,7 +528,7 @@
                     <div class="meet-section">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                             <h4>Multi-Day Schedule & Minute-by-Minute Results</h4>
-                            <button class="btn btn-primary" onclick="addNewDay()">+ Add Competition Day</button>
+                            <button class="btn btn-primary" onclick="window.addNewDay()">+ Add Competition Day</button>
                         </div>
                         
                         <div id="scheduleDaysContainer">
@@ -333,7 +540,7 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Live Stream Link (YouTube URL)</label>
-                                <input type="url" class="form-control" id="ytInput" placeholder="Paste YouTube link here..." oninput="updateYtEmbed()">
+                                <input type="url" class="form-control" id="ytInput" placeholder="Paste YouTube link here..." oninput="window.updateYtEmbed()">
                                 <div class="yt-preview-container" id="ytPreviewContainer">
                                     <iframe id="ytIframe" allowfullscreen></iframe>
                                 </div>
@@ -348,12 +555,13 @@
             <div id="tab-results-sync" class="tab-content">
                 <div class="automation-panel">
                     <div>
-                        <p>GLOBAL RANKINGS AUTO-SYNC</p>
-                        <small style="color: #64748b;">Upload CSV with columns: <b>uid, competition_name, level, event, venue, date, performance, measurement_type, position</b></small>
+                        <p>GLOBAL RANKINGS AUTO-SYNC ENGINE</p>
+                        <small style="color: #64748b;">Upload CSV to parse results, update Athlete PBs, calculate Points, and update District Medals in the Cloud.</small><br>
+                        <small style="color: #ef4444;">Columns Required: <b>uid, district, event, performance, position</b></small>
                     </div>
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <input type="file" id="csvFile" accept=".csv" class="form-control" style="background: white;">
-                        <button class="btn btn-primary" onclick="handleBulkUpload()">Sync Rankings</button>
+                        <button class="btn btn-primary" onclick="window.handleBulkUpload()">⚙️ Parse & Sync to Cloud</button>
                     </div>
                 </div>
                 <div class="card">
@@ -362,7 +570,7 @@
                             <h3>Results Publisher & Archives</h3>
                             <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">Link completed 'Live Meet Pages' to the public Results page.</p>
                         </div>
-                        <select class="form-control" id="archiveYearFilter" style="width: 150px;" onchange="loadArchives()">
+                        <select class="form-control" id="archiveYearFilter" style="width: 150px;" onchange="window.loadArchives()">
                             </select>
                     </div>
                     <div class="table-responsive">
@@ -403,15 +611,17 @@
                         </div>
                         <div class="form-group"><label>Upload Files / URL</label><input type="file" class="form-control" multiple></div>
                     </div>
-                    <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="publishMedia()">Smart Publish Media</button></div>
+                    <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="window.publishMedia()">Smart Publish Media</button></div>
                 </div>
             </div>
 
         </div>
     </main>
 
-    <script>
-        // --- CENTRAL MASTER DATA (Syncs exactly with public events/results pages) ---
+    <script type="module">
+        import { collection, getDocs, getDoc, doc, setDoc, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // --- CENTRAL MASTER DATA (Restored All 17 Calendar Events) ---
         const fullCalendarData = [
             { categoryYear: "2026", title: "1. State Meet for Relay Teams", venue: "Hanumakonda", date: "MAR 2026", isLive: false },
             { categoryYear: "2026", title: "2. State Athletics Championships for Federation Cup", venue: "Mulugu/Hanumakonda", date: "APR 2026", isLive: false },
@@ -432,27 +642,71 @@
             { categoryYear: "2026", title: "17. State Sub Juniors and Juniors Athletics", venue: "Karimnagar", date: "FEB 2027", isLive: false }
         ];
 
-        // --- INITIALIZATION ---
-        window.onload = () => {
-            document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            
-            // Sync Master DB if empty
-            let db = JSON.parse(localStorage.getItem('taa_master_db'));
-            if (!db || db.length === 0) localStorage.setItem('taa_master_db', JSON.stringify(fullCalendarData));
-
-            populateAdminYears();
-            renderAdminUsers();
-            loadRegistrationControl();
-            loadLiveMeetDropdown();
-            loadArchives();
-            addNewDay(); // Adds Day 1 to Live Meet Manager
-            loadCMSValues(); // LOAD CMS DATA
+        // --- AUTO INITIALIZE MASTER ADMIN ---
+        const initMasterAdmin = async () => {
+            try {
+                if(window.db) {
+                    const adminRef = doc(window.db, "users", "TAA-MAS-0001");
+                    const adminSnap = await getDoc(adminRef);
+                    if(!adminSnap.exists()) {
+                        await setDoc(adminRef, {
+                            afi_uid: "TAA-MAS-0001", regType: "Master_Admin", first_name: "Master", last_name: "Admin",
+                            email: "svmk.athlete@gmail.com", mobile: "+91 7093882050", password: "AdminLogin2026!",
+                            status: "Verified", timestamp: new Date().toISOString()
+                        });
+                    } else {
+                        const data = adminSnap.data();
+                        document.getElementById('adminRecEmail').value = data.email || "svmk.athlete@gmail.com";
+                        document.getElementById('adminRecMobile').value = data.mobile || "+91 7093882050";
+                    }
+                }
+            } catch(e) {}
         };
 
-        function toggleSidebar() { document.getElementById('adminSidebar').classList.toggle('collapsed'); }
-        function secureLogout() { localStorage.removeItem('taa_current_district'); window.location.href = "login.html"; }
+        window.onload = async () => {
+            document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            // --- SMART MERGE LOGIC ---
+            let localDb = JSON.parse(localStorage.getItem('taa_master_db')) || [];
+            
+            fullCalendarData.forEach(fc => {
+                let idx = localDb.findIndex(lc => lc.title === fc.title);
+                if (idx === -1) localDb.push(fc);
+            });
 
-        function switchTab(tabId, btn) {
+            try {
+                if(window.db) {
+                    const compSnap = await getDocs(collection(window.db, "competitions"));
+                    compSnap.forEach(doc => {
+                        let cc = doc.data();
+                        let idx = localDb.findIndex(lc => lc.title === cc.title);
+                        if(idx === -1) localDb.push(cc);
+                        else localDb[idx] = {...localDb[idx], ...cc};
+                    });
+                }
+            } catch(e) { console.warn("Cloud sync pending."); }
+            
+            localStorage.setItem('taa_master_db', JSON.stringify(localDb));
+
+            await initMasterAdmin(); 
+            window.populateAdminYears();
+            await window.renderAdminUsers();
+            
+            window.loadRegistrationControl();
+            window.loadLiveMeetDropdown();
+            window.loadArchives();
+            
+            window.addNewDay(); 
+            window.loadCMSValues(); 
+            window.loadExecutiveBody();
+            window.loadDistrictDetails();
+        };
+
+        // --- CORE UI GLOBALS ---
+        window.toggleSidebar = function() { document.getElementById('adminSidebar').classList.toggle('collapsed'); }
+        window.secureLogout = function() { localStorage.removeItem('taa_logged_user'); window.location.href = "login.html"; }
+
+        window.switchTab = function(tabId, btn) {
             document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(m => m.classList.remove('active'));
@@ -460,8 +714,159 @@
             document.getElementById('topbarTitle').innerText = btn.innerText.substring(2).trim(); 
         }
 
-        // --- INJECTED CMS LOGIC ---
-        function loadCMSValues() {
+        // --- CREATE OFFICIAL ACCOUNTS ---
+        window.toggleDistrictField = function() {
+            const role = document.getElementById('createRole').value;
+            document.getElementById('createDistrictGroup').style.display = (role === 'District_Admin') ? 'flex' : 'none';
+        }
+
+        window.generatePassword = function() {
+            const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$";
+            let pass = "";
+            for (let i = 0; i < 10; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            document.getElementById('createPass').value = pass;
+        }
+
+        window.createOfficialAccount = async function() {
+            const role = document.getElementById('createRole').value;
+            const district = role === 'District_Admin' ? document.getElementById('createDistrict').value : "Headquarters";
+            const name = document.getElementById('createName').value.trim();
+            const email = document.getElementById('createEmail').value.trim();
+            const password = document.getElementById('createPass').value;
+
+            if(!name || !email || !password) return alert("Please fill all fields and generate a password.");
+
+            const uid = `TAA-${role.substring(0,3).toUpperCase()}-${Math.floor(Math.random() * 9000) + 1000}`;
+
+            const newUser = {
+                afi_uid: uid, regType: role, first_name: name, email: email, district: district,
+                password: password, status: "Verified", timestamp: new Date().toISOString()
+            };
+
+            try {
+                if(window.db) await setDoc(doc(window.db, "users", uid), newUser);
+                
+                if(window.emailjs) {
+                    await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                        subject: `Your TAA Portal Credentials (${role.replace('_', ' ')})`,
+                        name: name,
+                        message: `An official account has been created for you on the TAA Portal.\n\nRole: ${role.replace('_', ' ')}\nDistrict: ${district}\nUID/Login ID: ${uid}\nPassword: ${password}\n\nPlease log in and change your password immediately.`
+                    });
+                }
+                alert(`Account created successfully! UID: ${uid}. Credentials have been emailed to ${email}.`);
+                document.getElementById('createName').value = ''; document.getElementById('createEmail').value = ''; document.getElementById('createPass').value = '';
+                window.renderAdminUsers();
+            } catch (error) { alert("Error creating account. Check connection."); }
+        }
+
+        // --- INSTITUTION MANAGER ---
+        window.loadExecutiveBody = async function() {
+            try {
+                if(window.db) {
+                    const snap = await getDoc(doc(window.db, "site_settings", "executive_body"));
+                    if(snap.exists()) {
+                        const data = snap.data();
+                        document.getElementById('exec_pres').value = data.president || "";
+                        document.getElementById('exec_work_pres').value = data.working_president || "";
+                        document.getElementById('exec_sec').value = data.general_secretary || "";
+                        document.getElementById('exec_treas').value = data.treasurer || "";
+                    }
+                }
+            } catch(e) {}
+        };
+
+        window.saveExecutiveBody = async function() {
+            const payload = {
+                president: document.getElementById('exec_pres').value,
+                working_president: document.getElementById('exec_work_pres').value,
+                general_secretary: document.getElementById('exec_sec').value,
+                treasurer: document.getElementById('exec_treas').value
+            };
+            try {
+                if(window.db) {
+                    await setDoc(doc(window.db, "site_settings", "executive_body"), payload, { merge: true });
+                    alert("State Executive Body updated in the Cloud!");
+                }
+            } catch(e) { alert("Cloud update failed."); }
+        };
+
+        window.saveInstitutionSettings = async function() {
+            const about = document.getElementById('inst_aboutText').value;
+            const constLink = document.getElementById('inst_constLink').value;
+            const address = document.getElementById('inst_address').value;
+            const phone = document.getElementById('inst_phone').value;
+            const email = document.getElementById('inst_email').value;
+
+            try {
+                if(window.db) {
+                    await setDoc(doc(window.db, "site_settings", "institution"), {
+                        about_history: about, constitution_link: constLink,
+                        contact_address: address, contact_phone: phone, contact_email: email
+                    });
+                }
+                alert("Institution settings saved to Cloud!");
+            } catch(e) { alert("Failed to sync to cloud."); }
+        }
+
+        window.loadDistrictDetails = async function() {
+            const dist = document.getElementById('inst_districtSelect').value;
+            try {
+                if(window.db) {
+                    const snap = await getDocs(collection(window.db, "districts"));
+                    let found = false;
+                    snap.forEach(d => {
+                        const data = d.data();
+                        if(data.name === dist) {
+                            document.getElementById('dist_pres').value = data.president || "";
+                            document.getElementById('dist_sec').value = data.secretary || "";
+                            document.getElementById('dist_treas').value = data.treasurer || "";
+                            document.getElementById('dist_phone').value = data.phone || "";
+                            found = true;
+                        }
+                    });
+                    if(!found) {
+                        document.getElementById('dist_pres').value = ""; document.getElementById('dist_sec').value = "";
+                        document.getElementById('dist_treas').value = ""; document.getElementById('dist_phone').value = "";
+                    }
+                }
+            } catch(e) {}
+        }
+
+        window.saveDistrictDetails = async function() {
+            const dist = document.getElementById('inst_districtSelect').value;
+            const payload = {
+                name: dist, president: document.getElementById('dist_pres').value,
+                secretary: document.getElementById('dist_sec').value,
+                treasurer: document.getElementById('dist_treas').value,
+                phone: document.getElementById('dist_phone').value
+            };
+            try {
+                if(window.db) {
+                    await setDoc(doc(window.db, "districts", dist), payload, { merge: true });
+                    alert(`${dist} District updated in the Cloud!`);
+                }
+            } catch(e) { alert("Cloud update failed."); }
+        }
+
+        window.updateMasterAdminCredentials = async function() {
+            const email = document.getElementById('adminRecEmail').value;
+            const mobile = document.getElementById('adminRecMobile').value;
+            const pass = document.getElementById('adminRecPass').value;
+            
+            try {
+                if(window.db) {
+                    const payload = { email: email, mobile: mobile };
+                    if(pass.trim() !== "") payload.password = pass.trim();
+                    
+                    await updateDoc(doc(window.db, "users", "TAA-MAS-0001"), payload);
+                    alert("Master Admin recovery details updated successfully!");
+                    document.getElementById('adminRecPass').value = ''; 
+                }
+            } catch(e) { alert("Failed to update cloud. Check connection."); }
+        }
+
+        // --- ORIGINAL CMS LOGIC ---
+        window.loadCMSValues = function() {
             const ticker = JSON.parse(localStorage.getItem('taa_home_ticker')) || {};
             const news = JSON.parse(localStorage.getItem('taa_home_news')) || {};
             const athletes = JSON.parse(localStorage.getItem('taa_home_featured_uids')) || [];
@@ -476,13 +881,9 @@
             document.getElementById('cms_videoLink').value = media.video || "";
         }
 
-        function pushAllCMSUpdates() {
+        window.pushAllCMSUpdates = function() {
             const ticker = { text: document.getElementById('cms_tickerText').value, link: document.getElementById('cms_tickerLink').value };
-            const news = { 
-                title: document.getElementById('cms_newsTitle').value, 
-                link: document.getElementById('cms_newsLink').value,
-                date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()
-            };
+            const news = { title: document.getElementById('cms_newsTitle').value, link: document.getElementById('cms_newsLink').value, date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase() };
             const athleteUIDs = document.getElementById('cms_featuredAthletes').value.split(',').map(u => u.trim()).filter(u => u !== "");
             const media = { photo: document.getElementById('cms_photoLink').value, video: document.getElementById('cms_videoLink').value };
 
@@ -490,34 +891,30 @@
             localStorage.setItem('taa_home_news', JSON.stringify(news));
             localStorage.setItem('taa_home_featured_uids', JSON.stringify(athleteUIDs));
             localStorage.setItem('taa_home_media', JSON.stringify(media));
-
             alert("Content Manager: All updates pushed to Home Page!");
         }
 
-        function clearCMSSection(section) {
+        window.clearCMSSection = function(section) {
             if(confirm(`Remove this section from the Home Page?`)) {
                 if(section === 'ticker') { localStorage.removeItem('taa_home_ticker'); }
                 else if(section === 'news') { localStorage.removeItem('taa_home_news'); }
                 else if(section === 'athletes') { localStorage.removeItem('taa_home_featured_uids'); }
                 else if(section === 'media') { localStorage.removeItem('taa_home_media'); }
-                loadCMSValues();
+                window.loadCMSValues();
                 alert("Section cleared.");
             }
         }
 
-        function clearAllCMS() {
+        window.clearAllCMS = function() {
             if(confirm("Wipe all Home Page custom content?")) {
-                localStorage.removeItem('taa_home_ticker');
-                localStorage.removeItem('taa_home_news');
-                localStorage.removeItem('taa_home_featured_uids');
-                localStorage.removeItem('taa_home_media');
-                loadCMSValues();
+                localStorage.removeItem('taa_home_ticker'); localStorage.removeItem('taa_home_news');
+                localStorage.removeItem('taa_home_featured_uids'); localStorage.removeItem('taa_home_media');
+                window.loadCMSValues();
                 alert("Home content wiped.");
             }
         }
 
-        // --- GENERATE YEAR DROPDOWNS ---
-        function populateAdminYears() {
+        window.populateAdminYears = function() {
             let options = "";
             for (let yr = 2000; yr <= 2100; yr++) {
                 const selected = (yr === 2026) ? "selected" : "";
@@ -528,13 +925,21 @@
             document.getElementById('newMeetYear').innerHTML = options;
         }
 
-        // --- 1. EDITABLE MEMBER DATABASE ---
-        function renderAdminUsers() {
-            let portalData = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-            if (portalData.length === 0) {
-                portalData = [{ regType: "Athlete", first_name: "Rahul", last_name: "Kumar", afi_uid: "AFI20261001", dob: "2004-05-12", gender: "Male", mobile: "9876543210", email: "rahul@email.com", district: "Hyderabad", event: "100m", timestamp: "10/04/2026", status: "Verified", password: "password123" }];
-                localStorage.setItem('taa_portal_data', JSON.stringify(portalData));
-            }
+        // --- MEMBER DATABASE (FIREBASE CONVERTED) ---
+        window.cloudUsersCache = [];
+        window.renderAdminUsers = async function() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Loading cloud data...</td></tr>';
+            
+            try {
+                if(window.db) {
+                    const snap = await getDocs(collection(window.db, "users"));
+                    window.cloudUsersCache = [];
+                    snap.forEach(doc => window.cloudUsersCache.push({ id: doc.id, ...doc.data() }));
+                }
+            } catch(e) { console.warn("Using local fallback."); }
+
+            let portalData = window.cloudUsersCache.length > 0 ? window.cloudUsersCache : (JSON.parse(localStorage.getItem('taa_portal_data')) || []);
 
             const searchInput = document.getElementById('adminSearch') ? document.getElementById('adminSearch').value.toLowerCase() : "";
             const roleFilter = document.getElementById('adminRoleFilter') ? document.getElementById('adminRoleFilter').value : "All";
@@ -545,23 +950,23 @@
                 return (nameMatch || uidMatch) && (roleFilter === "All" || u.regType === roleFilter);
             });
 
-            document.getElementById('tableBody').innerHTML = filtered.map((item, index) => {
+            tbody.innerHTML = filtered.map((item, index) => {
                 const type = item.regType || 'Official';
                 const rowId = 'details-' + index;
                 const uid = item.afi_uid || `TEMP-${index}`;
 
                 return `
                     <tr>
-                        <td>${item.timestamp ? item.timestamp.split(',')[0] : 'N/A'}</td>
+                        <td>${item.timestamp ? item.timestamp.split(',')[0].split('T')[0] : 'N/A'}</td>
                         <td style="font-weight:700; color:var(--primary-light);">${uid}</td>
                         <td style="font-weight:600;">${item.first_name} ${item.last_name || ''}</td>
-                        <td><span class="badge ${type==='Athlete'?'bg-blue':'bg-green'}">${type}</span></td>
+                        <td><span class="badge ${type==='Athlete'?'bg-blue': type==='District_Admin'?'bg-purple': type==='Master_Admin'?'bg-orange':'bg-green'}">${type}</span></td>
                         <td><span class="badge bg-green">${item.status || 'Verified'}</span></td>
-                        <td><button class="btn btn-view" onclick="toggleDetails('${rowId}')">Edit Profile</button></td>
+                        <td><button class="btn btn-view" onclick="window.toggleDetails('${rowId}')">Edit Profile</button></td>
                     </tr>
                     <tr id="${rowId}" class="detail-row"><td colspan="6"><div class="detail-container">
                         <div class="detail-item"><b>AFI UID</b><input type="text" class="form-control" id="uid-${uid}" value="${uid}" disabled style="background:#e2e8f0; cursor:not-allowed;"></div>
-                        <div class="detail-item"><b>Role</b><select class="form-control" id="role-${uid}"><option ${item.regType==='Athlete'?'selected':''}>Athlete</option><option ${item.regType==='Coach'?'selected':''}>Coach</option><option ${item.regType==='Official'?'selected':''}>Official</option></select></div>
+                        <div class="detail-item"><b>Role</b><select class="form-control" id="role-${uid}"><option ${item.regType==='Athlete'?'selected':''}>Athlete</option><option ${item.regType==='Coach'?'selected':''}>Coach</option><option ${item.regType==='Official'?'selected':''}>Official</option><option ${item.regType==='District_Admin'?'selected':''}>District_Admin</option><option ${item.regType==='Master_Admin'?'selected':''}>Master_Admin</option></select></div>
                         <div class="detail-item"><b>First Name</b><input type="text" class="form-control" id="fn-${uid}" value="${item.first_name || ''}"></div>
                         <div class="detail-item"><b>Last Name</b><input type="text" class="form-control" id="ln-${uid}" value="${item.last_name || ''}"></div>
                         <div class="detail-item"><b>Gender</b><select class="form-control" id="gen-${uid}"><option ${item.gender==='Male'?'selected':''}>Male</option><option ${item.gender==='Female'?'selected':''}>Female</option></select></div>
@@ -572,95 +977,73 @@
                         <div class="detail-item"><b>Event/Specs</b><input type="text" class="form-control" id="ev-${uid}" value="${item.event || item.specialty || ''}"></div>
                         <div class="detail-item"><b>Status</b><select class="form-control" id="stat-${uid}"><option ${item.status==='Verified'?'selected':''}>Verified</option><option ${item.status==='Pending'?'selected':''}>Pending</option><option ${item.status==='Rejected'?'selected':''}>Rejected</option></select></div>
                         <div class="detail-item"><b>Reset Password</b><input type="text" class="form-control" id="pwd-${uid}" placeholder="Enter new password..."></div>
-                        <div class="detail-item" style="justify-content:flex-end;"><button class="btn-save-inline" onclick="saveUserEdit('${uid}')">💾 Save Changes</button></div>
+                        <div class="detail-item" style="justify-content:flex-end;"><button class="btn-save-inline" onclick="window.saveUserEdit('${uid}', '${item.id || uid}')">💾 Save to Cloud</button></div>
                     </div></td></tr>`;
             }).join('');
         }
 
-        function toggleDetails(id) { const row = document.getElementById(id); row.style.display = (row.style.display === 'table-row') ? 'none' : 'table-row'; }
+        window.toggleDetails = function(id) { const row = document.getElementById(id); row.style.display = (row.style.display === 'table-row') ? 'none' : 'table-row'; }
         
-        function saveUserEdit(uid) {
-            let db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-            let userIndex = db.findIndex(u => u.afi_uid === uid || `TEMP-${db.indexOf(u)}` === uid);
-            if(userIndex > -1) {
-                db[userIndex].regType = document.getElementById(`role-${uid}`).value;
-                db[userIndex].first_name = document.getElementById(`fn-${uid}`).value;
-                db[userIndex].last_name = document.getElementById(`ln-${uid}`).value;
-                db[userIndex].gender = document.getElementById(`gen-${uid}`).value;
-                db[userIndex].dob = document.getElementById(`dob-${uid}`).value;
-                db[userIndex].mobile = document.getElementById(`mob-${uid}`).value;
-                db[userIndex].email = document.getElementById(`em-${uid}`).value;
-                db[userIndex].district = document.getElementById(`dist-${uid}`).value;
-                db[userIndex].event = document.getElementById(`ev-${uid}`).value;
-                db[userIndex].status = document.getElementById(`stat-${uid}`).value;
-                
-                const newPwd = document.getElementById(`pwd-${uid}`).value;
-                if(newPwd.trim() !== "") {
-                    db[userIndex].password = newPwd.trim();
-                }
+        window.saveUserEdit = async function(uid, docId) {
+            const payload = {
+                regType: document.getElementById(`role-${uid}`).value, first_name: document.getElementById(`fn-${uid}`).value,
+                last_name: document.getElementById(`ln-${uid}`).value, gender: document.getElementById(`gen-${uid}`).value,
+                dob: document.getElementById(`dob-${uid}`).value, mobile: document.getElementById(`mob-${uid}`).value,
+                email: document.getElementById(`em-${uid}`).value, district: document.getElementById(`dist-${uid}`).value,
+                event: document.getElementById(`ev-${uid}`).value, status: document.getElementById(`stat-${uid}`).value
+            };
+            const newPwd = document.getElementById(`pwd-${uid}`).value;
+            if(newPwd.trim() !== "") payload.password = newPwd.trim();
 
-                localStorage.setItem('taa_portal_data', JSON.stringify(db));
-                alert("Profile updated successfully!");
-                renderAdminUsers();
+            try {
+                if(window.db) {
+                    await updateDoc(doc(window.db, "users", docId), payload);
+                    alert("Profile updated in Cloud successfully!");
+                    window.renderAdminUsers();
+                }
+            } catch(e) {
+                let db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+                let userIndex = db.findIndex(u => u.afi_uid === uid);
+                if(userIndex > -1) { db[userIndex] = {...db[userIndex], ...payload}; localStorage.setItem('taa_portal_data', JSON.stringify(db)); alert("Saved locally."); window.renderAdminUsers(); }
             }
         }
 
-        function exportFullExcel() { alert("Exporting database to CSV..."); }
-        function clearAll() { if(confirm("DANGER: Wipe database?")) { localStorage.removeItem('taa_portal_data'); renderAdminUsers(); } }
+        window.exportFullExcel = function() { alert("Exporting database to CSV..."); }
+        window.clearAll = function() { if(confirm("DANGER: Wipe database?")) { localStorage.removeItem('taa_portal_data'); window.renderAdminUsers(); } }
 
-        // --- 2. CALENDAR CREATOR (FEEDS MASTER DB) ---
-        function addToCalendar() {
+        // --- CALENDAR & COMPETITIONS ---
+        window.addToCalendar = async function() {
             const name = document.getElementById('newMeetName').value;
             const year = document.getElementById('newMeetYear').value;
             const startDate = document.getElementById('newMeetStart').value;
-            const endDate = document.getElementById('newMeetEnd').value;
             const venue = document.getElementById('newMeetVenue').value;
 
             if(!name || !year || !startDate || !venue) return alert("Please fill all required fields!");
 
             let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
-            
             const dateObj = new Date(startDate);
             const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
             const formattedDate = `${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
 
-            const newMeet = {
-                categoryYear: year,
-                title: `${db.length + 1}. ${name}`,
-                venue: venue,
-                date: formattedDate,
-                isLive: false
-            };
-
+            const newMeet = { categoryYear: year, title: `${db.length + 1}. ${name}`, venue: venue, date: formattedDate, isLive: false };
+            
             db.push(newMeet);
             localStorage.setItem('taa_master_db', JSON.stringify(db));
 
-            alert(`${name} added! It is now synced to Registration Control, Live Manager, and Archives.`);
-            
-            // Clear inputs
-            document.getElementById('newMeetName').value = '';
-            document.getElementById('newMeetStart').value = '';
-            document.getElementById('newMeetEnd').value = '';
-            document.getElementById('newMeetVenue').value = '';
+            try { if(window.db) await addDoc(collection(window.db, "competitions"), newMeet); } catch(e){}
 
-            // Refresh UI
-            loadRegistrationControl();
-            loadLiveMeetDropdown();
-            loadArchives();
+            alert(`${name} added! Synced to Calendar & Cloud.`);
+            document.getElementById('newMeetName').value = ''; document.getElementById('newMeetStart').value = ''; document.getElementById('newMeetEnd').value = ''; document.getElementById('newMeetVenue').value = '';
+            window.loadRegistrationControl(); window.loadLiveMeetDropdown(); window.loadArchives();
         }
 
-        // --- 3. DYNAMIC REGISTRATION CONTROL (FILTERED BY YEAR) ---
-        function loadRegistrationControl() {
+        window.loadRegistrationControl = function() {
             let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
             const activeReg = JSON.parse(localStorage.getItem('taa_active_registration'));
             const selectedYear = document.getElementById('regYearFilter').value;
-            
             const filtered = db.filter(item => item.categoryYear === selectedYear);
 
-            if (filtered.length === 0) {
-                document.getElementById('regControlBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No events found for this calendar year.</td></tr>';
-                return;
-            }
+            if (filtered.length === 0) { document.getElementById('regControlBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No events found for this calendar year.</td></tr>'; return; }
 
             document.getElementById('regControlBody').innerHTML = filtered.map((meet, index) => {
                 const isActive = activeReg && activeReg.meet === meet.title;
@@ -669,28 +1052,27 @@
                         <td style="font-weight:700;">${meet.title}</td>
                         <td><input type="date" class="form-control" id="regDate-${index}" style="padding:6px; width:auto;"></td>
                         <td><span class="badge ${isActive ? 'bg-green' : 'bg-red'}" id="statusBadge${index}">${isActive ? 'ENTRIES OPEN' : 'CLOSED'}</span></td>
-                        <td><label class="toggle-switch"><input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleRegistration(${index}, this, '${meet.title}')"><span class="slider"></span></label></td>
-                        <td><button class="btn btn-primary" id="pushBtn${index}" style="padding: 6px 12px; font-size: 0.8em; ${!isActive ? 'opacity:0.5;' : ''}" ${!isActive ? 'disabled' : ''} onclick="pushToHome('${meet.title}', document.getElementById('regDate-${index}').value)">Push to Home Page</button></td>
+                        <td><label class="toggle-switch"><input type="checkbox" ${isActive ? 'checked' : ''} onchange="window.toggleRegistration(${index}, this, '${meet.title}')"><span class="slider"></span></label></td>
+                        <td><button class="btn btn-primary" id="pushBtn${index}" style="padding: 6px 12px; font-size: 0.8em; ${!isActive ? 'opacity:0.5;' : ''}" ${!isActive ? 'disabled' : ''} onclick="window.pushToHome('${meet.title}', document.getElementById('regDate-${index}').value)">Push to Home Page</button></td>
                     </tr>
                 `;
             }).join('');
         }
 
-        function toggleRegistration(id, checkbox, meetName) {
+        window.toggleRegistration = function(id, checkbox, meetName) {
             const badge = document.getElementById('statusBadge' + id);
             const actionBtn = document.getElementById('pushBtn' + id);
             if (checkbox.checked) { badge.className = 'badge bg-green'; badge.innerText = 'ENTRIES OPEN'; actionBtn.style.opacity = '1'; actionBtn.disabled = false; } 
             else { badge.className = 'badge bg-red'; badge.innerText = 'CLOSED'; actionBtn.style.opacity = '0.5'; actionBtn.disabled = true; localStorage.removeItem('taa_active_registration'); }
         }
 
-        function pushToHome(meetName, deadline) {
+        window.pushToHome = function(meetName, deadline) {
             if(!deadline) return alert("Please select an entry deadline first!");
             localStorage.setItem('taa_active_registration', JSON.stringify({ meet: meetName, deadline: deadline, isActive: true }));
             alert(`Success! Entry banner for ${meetName} is now live on the public Home Page.`);
         }
 
-        // --- 4. LIVE MEET MANAGER (SYNCED DROPDOWN & MULTI-DAY) ---
-        function loadLiveMeetDropdown() {
+        window.loadLiveMeetDropdown = function() {
             let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
             const select = document.getElementById('activeMeetSelect');
             if (db.length === 0) { select.innerHTML = '<option>No Meets in Calendar</option>'; return; }
@@ -698,17 +1080,17 @@
         }
 
         let dayCounter = 0;
-        function addNewDay() {
+        window.addNewDay = function() {
             dayCounter++;
             const container = document.getElementById('scheduleDaysContainer');
             const dayHTML = `
                 <div class="day-accordion">
-                    <div class="day-header" onclick="toggleDayContent(${dayCounter})">
+                    <div class="day-header" onclick="window.toggleDayContent(${dayCounter})">
                         <span>Day ${dayCounter} ▼</span>
                         <input type="date" onclick="event.stopPropagation()">
                     </div>
                     <div class="day-content active" id="dayContent${dayCounter}">
-                        <div style="text-align:right; margin-bottom:10px;"><button class="btn-upload-sm" onclick="addEventRow('dayTable${dayCounter}')">+ Add Event Row</button></div>
+                        <div style="text-align:right; margin-bottom:10px;"><button class="btn-upload-sm" onclick="window.addEventRow('dayTable${dayCounter}')">+ Add Event Row</button></div>
                         <div class="table-responsive schedule-table">
                             <table id="dayTable${dayCounter}">
                                 <thead><tr><th>Time</th><th>Event</th><th>Gender</th><th>Specs</th><th>Round</th><th>Result Upload</th><th>Action</th></tr></thead>
@@ -731,24 +1113,15 @@
             container.insertAdjacentHTML('beforeend', dayHTML);
         }
 
-        function toggleDayContent(id) { document.getElementById(`dayContent${id}`).classList.toggle('active'); }
-
-        function addEventRow(tableId) {
+        window.toggleDayContent = function(id) { document.getElementById(`dayContent${id}`).classList.toggle('active'); }
+        window.addEventRow = function(tableId) {
             const tbody = document.getElementById(tableId).querySelector('tbody');
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><input type="time" class="form-control" style="padding:5px;"></td>
-                <td><input type="text" class="form-control" style="padding:5px;" placeholder="Event"></td>
-                <td><select class="form-control" style="padding:5px;"><option>Men</option><option>Women</option></select></td>
-                <td><input type="text" class="form-control" style="padding:5px;" placeholder="Specs"></td>
-                <td><select class="form-control" style="padding:5px;"><option>Heats</option><option>Final</option></select></td>
-                <td><input type="file" class="form-control" accept=".pdf" style="padding:2px;"></td>
-                <td><button class="publish-row-btn" onclick="alert('Result Updated Live!')">Publish Update</button></td>
-            `;
+            tr.innerHTML = `<td><input type="time" class="form-control" style="padding:5px;"></td><td><input type="text" class="form-control" style="padding:5px;" placeholder="Event"></td><td><select class="form-control" style="padding:5px;"><option>Men</option><option>Women</option></select></td><td><input type="text" class="form-control" style="padding:5px;" placeholder="Specs"></td><td><select class="form-control" style="padding:5px;"><option>Heats</option><option>Final</option></select></td><td><input type="file" class="form-control" accept=".pdf" style="padding:2px;"></td><td><button class="publish-row-btn" onclick="alert('Result Updated Live!')">Publish Update</button></td>`;
             tbody.appendChild(tr);
         }
 
-        function updateYtEmbed() {
+        window.updateYtEmbed = function() {
             let url = document.getElementById('ytInput').value;
             const container = document.getElementById('ytPreviewContainer');
             const iframe = document.getElementById('ytIframe');
@@ -760,44 +1133,72 @@
             else { container.style.display = 'none'; iframe.src = ""; }
         }
 
-        // --- 5. MEDIA SMART ROUTING ---
-        function publishMedia() {
-            const targetPage = document.getElementById('mediaTypeSelect').value;
-            const textName = document.getElementById('mediaTypeSelect').options[document.getElementById('mediaTypeSelect').selectedIndex].text;
-            alert(`Files successfully processed. Automatically routed and published to the public ${textName} section (${targetPage}).`);
-        }
+        window.publishMedia = function() { alert(`Files successfully processed. Automatically routed to public section.`); }
 
-        // --- 6. ARCHIVES LINKER (FILTERED BY YEAR) ---
-        function loadArchives() {
+        window.loadArchives = function() {
             let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
             const selectedYear = document.getElementById('archiveYearFilter').value;
             const filtered = db.filter(item => item.categoryYear === selectedYear);
 
-            if (filtered.length === 0) {
-                document.getElementById('archiveTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No events found for this calendar year.</td></tr>';
-                return;
-            }
+            if (filtered.length === 0) { document.getElementById('archiveTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No events found.</td></tr>'; return; }
 
             document.getElementById('archiveTableBody').innerHTML = filtered.map((meet, index) => `
                 <tr>
                     <td style="font-weight:700;">${meet.title}</td><td>${meet.date || 'TBD'}</td>
-                    <td><select class="form-control" style="width: auto; padding: 6px;"><option>Select Built Page...</option><option>Page: ${meet.title} (Live)</option></select></td>
+                    <td><select class="form-control" style="width: auto; padding: 6px;"><option>Page: ${meet.title} (Live)</option></select></td>
                     <td><span class="badge ${meet.isLive ? 'bg-green' : 'bg-gray'}" id="arcBadge${index}">${meet.isLive ? 'PUBLISHED' : 'DORMANT'}</span></td>
-                    <td><button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8em;" onclick="publishArchiveResult('${meet.title}', ${index})">Publish Result</button></td>
+                    <td><button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8em;" onclick="window.publishArchiveResult('${meet.title}', ${index})">Publish Result</button></td>
                 </tr>
             `).join('');
         }
 
-        function publishArchiveResult(meetTitle, index) {
+        window.publishArchiveResult = async function(meetTitle, index) {
             let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
             const meetIndex = db.findIndex(m => m.title === meetTitle);
             if(meetIndex > -1) { db[meetIndex].isLive = true; localStorage.setItem('taa_master_db', JSON.stringify(db)); }
+            
+            try { if(window.db) await setDoc(doc(window.db, "competitions", meetTitle), { isLive: true }, { merge: true }); } catch(e){}
+
             const badge = document.getElementById(`arcBadge${index}`);
             badge.className = 'badge bg-green'; badge.innerText = 'PUBLISHED';
-            alert(`Result Published! The "View Results" button for ${meetTitle} is now active on the public Results page.`);
+            alert(`Result Published! The "View Results" button is now active on the public page.`);
         }
 
-        function handleBulkUpload() { alert("Results CSV processed! Data synced to the Global Rankings."); }
+        window.handleBulkUpload = function() {
+            const fileInput = document.getElementById('csvFile');
+            if (!fileInput.files.length) return alert("Please select a CSV file first.");
+
+            Papa.parse(fileInput.files[0], {
+                header: true, skipEmptyLines: true,
+                complete: async function(results) {
+                    const data = results.data;
+                    let successCount = 0;
+
+                    for(const row of data) {
+                        try {
+                            if(window.db && row.uid) {
+                                await setDoc(doc(window.db, "users", row.uid), {
+                                    pb: row.performance, latest_meet: row.competition_name || "Recent Meet",
+                                    latest_position: row.position || "-", total_points: parseInt(row.points || "1000")
+                                }, { merge: true });
+                                
+                                if(row.district && row.position) {
+                                    const distRef = doc(window.db, "districts", row.district);
+                                    let updateData = { total_score: 100 };
+                                    if(row.position.includes("1")) updateData.gold = 1;
+                                    if(row.position.includes("2")) updateData.silver = 1;
+                                    if(row.position.includes("3")) updateData.bronze = 1;
+                                    await setDoc(distRef, updateData, { merge: true });
+                                }
+                                successCount++;
+                            }
+                        } catch(e) { console.error("Error updating row", row, e); }
+                    }
+                    alert(`✅ Cloud Sync Complete! Successfully parsed and updated ${successCount} records. Global Rankings are now updated.`);
+                    fileInput.value = "";
+                }
+            });
+        }
     </script>
 </body>
 </html>

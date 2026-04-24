@@ -6,6 +6,8 @@
     <title>Photo Gallery - Telangana Athletics Association</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root {
             --primary: #0056b3;
@@ -197,9 +199,11 @@
             </div>
     </div>
 
-    <script>
-        // Mock Database of Photo Albums synced to Calendar Years
-        const albums = [
+    <script type="module">
+        import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // --- 1. PRESERVED HARDCODED DATABASE ---
+        const localAlbums = [
             { 
                 title: "State Meet for Relay Teams", 
                 date: "March 2026", 
@@ -250,8 +254,8 @@
             }
         ];
 
-        // Populate the 2000-2100 dropdown
-        function populateGalleryYears() {
+        // --- 2. POPULATE YEARS (2000-2100) ---
+        window.populateGalleryYears = function() {
             let options = "";
             const currentYear = 2026; 
             for (let yr = 2000; yr <= 2100; yr++) {
@@ -261,27 +265,55 @@
             document.getElementById('galleryYearFilter').innerHTML = options;
         }
 
-        // Filter Grid based on selected year
-        function filterGallery() {
+        // --- 3. FILTER & CLOUD SYNC LOGIC ---
+        window.filterGallery = async function() {
             const selectedYear = document.getElementById('galleryYearFilter').value;
             const grid = document.getElementById('galleryGrid');
+            
+            // Fetch hardcoded data first
+            let filteredAlbums = localAlbums.filter(album => album.categoryYear === selectedYear);
+
+            // Fetch extra cloud albums from Firebase
+            try {
+                if (window.db) {
+                    const q = query(collection(window.db, "gallery"));
+                    const snap = await getDocs(q);
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        if (data.categoryYear === selectedYear) {
+                            filteredAlbums.push({
+                                title: data.title,
+                                date: data.date,
+                                level: data.level || "State",
+                                img: data.img || "https://via.placeholder.com/800x600?text=Image+Unavailable",
+                                photosCount: data.photosCount || 0,
+                                isCloud: true
+                            });
+                        }
+                    });
+                }
+            } catch(e) { console.warn("Cloud gallery sync pending."); }
+
             grid.innerHTML = '';
 
-            const filteredAlbums = albums.filter(album => album.categoryYear === selectedYear);
-
+            // Empty state handling
             if (filteredAlbums.length === 0) {
                 grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #64748b; font-weight: 700; font-size: 1.2em; padding: 40px 0;">No albums published for this season yet.</p>';
                 return;
             }
 
+            // Render cards
             filteredAlbums.forEach(album => {
+                // Add a "NEW" badge if it came from the cloud database
+                const badge = album.isCloud ? `<span style="background:var(--accent); color:white; padding:2px 6px; border-radius:4px; font-size:0.65em; margin-left:8px; vertical-align:middle;">NEW</span>` : "";
+                
                 grid.innerHTML += `
                     <div class="album-card" onclick="alert('Opening ${album.title} gallery view...')">
                         <div class="album-img-wrapper">
                             <img src="${album.img}" alt="${album.title}" onerror="this.src='https://via.placeholder.com/800x600?text=Image+Unavailable'">
                         </div>
                         <div class="album-info">
-                            <h3>${album.title}</h3>
+                            <h3>${album.title} ${badge}</h3>
                             <p>
                                 <span>📅 ${album.date} &nbsp; • &nbsp; 📸 ${album.photosCount}</span>
                                 <span class="level-tag">${album.level}</span>
@@ -292,12 +324,11 @@
             });
         }
 
-        // Initialize Page
+        // --- Initialize Page ---
         window.onload = () => {
-            populateGalleryYears();
-            filterGallery();
+            window.populateGalleryYears();
+            window.filterGallery();
         };
-
     </script>
 
     <div id="footer-container"></div>

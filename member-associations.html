@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Member Associations - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Open Sans', sans-serif; background-color: #f4f7f6; color: #333; line-height: 1.6; }
@@ -44,39 +47,51 @@
         @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         
         .close-modal { position: absolute; right: 25px; top: 20px; font-size: 30px; cursor: pointer; color: #64748b; }
-        .modal-header { border-bottom: 3px solid #FF8C00; padding-bottom: 15px; margin-bottom: 25px; }
+        
+        .modal-header { border-bottom: 3px solid #FF8C00; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
         .modal-header h2 { font-family: 'Montserrat'; text-transform: uppercase; color: #0056b3; }
+        
+        .btn-contact { background: #f1f5f9; border: 1px solid #cbd5e1; color: #0056b3; padding: 8px 15px; border-radius: 6px; font-family: 'Montserrat'; font-weight: 700; font-size: 0.8em; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
+        .btn-contact:hover { background: #0056b3; color: white; border-color: #0056b3; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { text-align: left; background: #f8fafc; padding: 12px; font-family: 'Montserrat'; font-size: 0.8em; color: #64748b; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
         td { padding: 15px 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.9em; font-weight: 600; }
         .pos-col { color: #FF8C00; font-weight: 800; width: 40%; }
 
-        @media (max-width: 768px) { .modal-content { padding: 20px; width: 95%; } }
+        @media (max-width: 768px) { 
+            .modal-content { padding: 20px; width: 95%; } 
+            .modal-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        }
     </style>
 </head>
 <body>
 
     <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
 
     <header class="hero">
         <div class="hero-content">
-            <img src="LOGO.JFIF" alt="TAA Logo" class="hero-logo">
+            <img src="LOGO.jfif" alt="TAA Logo" class="hero-logo">
             <div class="hero-text"><h1>Member Associations</h1></div>
         </div>
     </header>
 
     <div class="container">
         <h2 class="section-title"><span>33 District Associations</span></h2>
-        <div class="districts-grid" id="districtsContainer"></div>
+        <div class="districts-grid" id="districtsContainer">
+            </div>
     </div>
 
     <div id="districtModal" class="modal">
         <div class="modal-content">
-            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <span class="close-modal" onclick="window.closeModal()">&times;</span>
             <div class="modal-header">
-                <h2 id="modalDistrictName">District Name</h2>
-                <p id="modalDistrictContact" style="font-weight:700; color:#64748b; margin-top:5px;"></p>
+                <div>
+                    <h2 id="modalDistrictName">District Name</h2>
+                    <p id="modalDistrictContact" style="font-weight:700; color:#64748b; margin-top:5px;"></p>
+                </div>
+                <button class="btn-contact" id="modalContactBtn">✉️ Contact District</button>
             </div>
             <table>
                 <thead>
@@ -90,9 +105,10 @@
         </div>
     </div>
 
-    <script src="navbar.js"></script>
-    <script>
-        // Helper function to generate the full empty committee structure
+    <script type="module">
+        import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // --- 1. DEFAULT COMMITTEE HELPER ---
         const generateFullCommittee = (pres = "TBA", sec = "TBA", treas = "TBA") => {
             return [
                 {pos: "President", name: pres},
@@ -110,89 +126,130 @@
             ];
         };
 
-        const districtsData = [
-            { 
-                name: "Hyderabad", president: "A. Rajeshwar Rao", secretary: "K. Sarangapani", treasurer: "S.M. Ali", 
-                phone: "98480XXXXX", email: "hyd.athletics@gmail.com",
-                committee: [
-                    {pos: "President", name: "A. Rajeshwar Rao"},
-                    {pos: "Secretary", name: "K. Sarangapani"},
-                    {pos: "Treasurer", name: "S.M. Ali"},
-                    {pos: "Organizing Secretary", name: "P. Srinivas"},
-                    {pos: "Vice President", name: "Dr. V. Satyanarayana"},
-                    {pos: "Vice President", name: "M. Chandra Shekar"},
-                    {pos: "Joint Secretary", name: "B. Laxmi Narayana"},
-                    {pos: "Joint Secretary", name: "G. Ravinder"},
-                    {pos: "Executive Member", name: "N. Ramesh (Dronacharya Awardee)"},
-                    {pos: "Executive Member", name: "K. Ramakrishna"},
-                    {pos: "Member", name: "D. Sridhar"},
-                    {pos: "Member", name: "J. Anitha"}
-                ]
-            },
-            { 
-                name: "Warangal", president: "B. Stanley Jones", secretary: "G. Murali", treasurer: "T. Ramesh", 
-                phone: "94400XXXXX", email: "warangal.athletics@gmail.com",
-                // Uses the helper to fill in the rest of the roles with TBA
-                committee: generateFullCommittee("B. Stanley Jones", "G. Murali", "T. Ramesh")
-            }
-            // ... Add specific logic for other districts here as needed
-        ];
+        // EMPTIED: All districts will now default to TBA until updated in the cloud.
+        const originalDistrictsData = [];
 
         const allDistrictNames = [
             "Adilabad", "Bhadradri Kothagudem", "Hanumakonda", "Hyderabad", "Jagtial", "Jangaon", "Jayashankar Bhupalpally", 
             "Jogulamba Gadwal", "Kamareddy", "Karimnagar", "Khammam", "Kumuram Bheem Asifabad", "Mahabubabad", "Mahabubnagar", 
-            "Mancherial", "Medak", "Medchal−Malkajgiri", "Mulugu", "Nagarkurnool", "Nalgonda", "Narayanpet", "Nirmal", 
-            "Nizamabad", "Peddapalli", "Rajanna Sircilla", "Rangareddy", "Sangareddy", "Siddipet", "Suryapet", "Vikarabad", 
+            "Mancherial", "Medak", "Medchal-Malkajgiri", "Mulugu", "Nagarkurnool", "Nalgonda", "Narayanpet", "Nirmal", 
+            "Nizamabad", "Peddapalli", "Rajanna Sircilla", "Ranga Reddy", "Sangareddy", "Siddipet", "Suryapet", "Vikarabad", 
             "Wanaparthy", "Warangal", "Yadadri Bhuvanagiri"
         ];
 
-        const container = document.getElementById('districtsContainer');
+        // --- 2. CLOUD SYNC & RENDERING ---
+        window.loadDistricts = async function() {
+            let cloudData = [];
+            
+            // Try fetching from Firebase if Admin has updated any district data
+            try {
+                if (window.db) {
+                    const snap = await getDocs(collection(window.db, "districts"));
+                    snap.forEach(doc => cloudData.push({id: doc.id, ...doc.data()}));
+                }
+            } catch(e) { console.warn("Cloud sync pending. Using local defaults."); }
 
-        allDistrictNames.sort().forEach(name => {
-            // Find specific data if it exists, otherwise generate a completely empty default structure
-            const data = districtsData.find(d => d.name === name) || {
-                name: name, president: "TBA", secretary: "TBA", treasurer: "TBA", phone: "N/A", email: `info.${name.toLowerCase().replace(/ /g, '')}@taa.com`,
-                committee: generateFullCommittee() // This fixes the bug! Generates the full 12-row table.
-            };
+            const container = document.getElementById('districtsContainer');
+            container.innerHTML = '';
 
-            const card = document.createElement('div');
-            card.className = 'district-card';
-            card.onclick = () => openModal(data);
-            card.innerHTML = `
-                <h3>${data.name}</h3>
-                <div class="key-bearer"><b>President</b> <span>${data.president}</span></div>
-                <div class="key-bearer"><b>Secretary</b> <span>${data.secretary}</span></div>
-                <div class="key-bearer"><b>Treasurer</b> <span>${data.treasurer}</span></div>
-                <div class="contact-info">
-                    📞 ${data.phone} | ✉️ ${data.email}
-                </div>
-                <div class="view-more-hint">Click to view full committee ▾</div>
-            `;
-            container.appendChild(card);
-        });
+            allDistrictNames.sort().forEach(name => {
+                // Step A: Base template (Clean TBA Slate)
+                let data = {
+                    name: name, president: "TBA", secretary: "TBA", treasurer: "TBA", phone: "N/A", email: `info.${name.toLowerCase().replace(/ /g, '')}@taa.in`,
+                    committee: generateFullCommittee()
+                };
 
-        function openModal(data) {
+                // Step B: Apply Local overrides (Empty for now)
+                const localMatch = originalDistrictsData.find(d => d.name === name);
+                if (localMatch) data = { ...data, ...localMatch };
+
+                // Step C: Apply Cloud overrides (if admin added data online)
+                const cloudMatch = cloudData.find(d => d.name === name);
+                if (cloudMatch) {
+                    data.president = cloudMatch.president || data.president;
+                    data.secretary = cloudMatch.secretary || data.secretary;
+                    data.treasurer = cloudMatch.treasurer || data.treasurer;
+                    data.phone = cloudMatch.phone || data.phone;
+                    
+                    // If Admin uploaded full committee structure via cloud
+                    if (cloudMatch.committee && Array.isArray(cloudMatch.committee)) {
+                        data.committee = cloudMatch.committee;
+                    } else {
+                        // Dynamically update the top 3 in the table based on cloud inputs
+                        data.committee = generateFullCommittee(data.president, data.secretary, data.treasurer);
+                    }
+                }
+
+                // Step D: Render Card
+                const card = document.createElement('div');
+                card.className = 'district-card';
+                card.onclick = () => window.openModal(data);
+                card.innerHTML = `
+                    <h3>${data.name}</h3>
+                    <div class="key-bearer"><b>President</b> <span>${data.president}</span></div>
+                    <div class="key-bearer"><b>Secretary</b> <span>${data.secretary}</span></div>
+                    <div class="key-bearer"><b>Treasurer</b> <span>${data.treasurer}</span></div>
+                    <div class="contact-info">📞 ${data.phone} | ✉️ ${data.email}</div>
+                    <div class="view-more-hint">Click to view full committee ▾</div>
+                `;
+                container.appendChild(card);
+            });
+        };
+
+        // --- 3. MODAL LOGIC & EMAILJS INTEGRATION ---
+        window.openModal = function(data) {
             document.getElementById('modalDistrictName').innerText = data.name + " District Athletics Association";
             document.getElementById('modalDistrictContact').innerText = `Contact: ${data.phone} | Email: ${data.email}`;
+            
+            // Populate Table
             const tbody = document.getElementById('modalTableBody');
             tbody.innerHTML = data.committee.map(member => `
-                <tr>
-                    <td class="pos-col">${member.pos}</td>
-                    <td>${member.name}</td>
-                </tr>
+                <tr><td class="pos-col">${member.pos}</td><td>${member.name}</td></tr>
             `).join('');
-            document.getElementById('districtModal').style.display = 'block';
-            document.body.style.overflow = 'hidden'; // Prevent scroll
-        }
 
-        function closeModal() {
+            // Setup Email Button
+            const contactBtn = document.getElementById('modalContactBtn');
+            contactBtn.onclick = () => window.sendDistrictEmail(data.name, data.email);
+
+            document.getElementById('districtModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; 
+        };
+
+        window.closeModal = function() {
             document.getElementById('districtModal').style.display = 'none';
             document.body.style.overflow = 'auto';
-        }
+        };
 
         window.onclick = function(event) {
-            if (event.target == document.getElementById('districtModal')) closeModal();
-        }
+            if (event.target == document.getElementById('districtModal')) window.closeModal();
+        };
+
+        // EmailJS Send Function
+        window.sendDistrictEmail = async function(districtName, districtEmail) {
+            const userEmail = prompt(`Enter your email to contact ${districtName} District:`);
+            if (!userEmail) return;
+            
+            const userMessage = prompt(`Enter your inquiry for the ${districtName} Association:`);
+            if (!userMessage) return;
+
+            try {
+                if (window.emailjs) {
+                    await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                        subject: `Inquiry for ${districtName} District Association`,
+                        name: "Portal Visitor",
+                        message: `Message from ${userEmail} intended for ${districtName} (${districtEmail}): \n\n${userMessage}`
+                    });
+                    alert(`Message sent to ${districtName} successfully!`);
+                } else {
+                    alert("Email system offline. Please copy their email address directly.");
+                }
+            } catch (err) { alert("Failed to send message. Please try again."); }
+        };
+
+        // Initialize Page
+        window.onload = () => {
+            window.loadDistricts();
+        };
     </script>
 
     <div id="footer-container"></div>

@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Official Circulars - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root {
             --primary: #0056b3;
@@ -32,10 +35,10 @@
         /* --- Main Container --- */
         .container { max-width: 1100px; margin: -25px auto 60px; padding: 0 20px; position: relative; z-index: 10; }
 
-        /* --- Tabs --- */
+        /* --- Tabs & Subscribe --- */
+        .top-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
         .tabs-wrapper { 
-            display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; 
-            background: white; padding: 15px; border-radius: 12px; 
+            display: flex; gap: 15px; background: white; padding: 10px; border-radius: 12px; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.05); flex-wrap: wrap; 
         }
         .tab-btn { 
@@ -46,6 +49,13 @@
         }
         .tab-btn:hover { color: var(--primary); background: #f1f5f9; }
         .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(0, 86, 179, 0.3); }
+
+        .btn-subscribe {
+            background: var(--accent); color: white; border: none; padding: 12px 25px;
+            border-radius: 8px; font-family: 'Montserrat'; font-weight: 800; font-size: 0.9em;
+            cursor: pointer; text-transform: uppercase; transition: 0.3s; box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+        }
+        .btn-subscribe:hover { background: #e67e00; transform: translateY(-2px); }
 
         /* --- Filter Section --- */
         .filter-card {
@@ -95,11 +105,12 @@
             display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; text-transform: uppercase;
         }
         .btn-download:hover { background: var(--primary); color: white; }
-        .btn-download.afi-btn:hover { background: var(--accent); }
+        .btn-download.afi-btn:hover { background: var(--accent); color: white; }
 
         .empty-state { text-align: center; padding: 40px; color: var(--text-muted); font-weight: 600; background: white; border-radius: 10px; border: 1px dashed #cbd5e1; }
 
         @media (max-width: 768px) {
+            .top-controls { justify-content: center; }
             .circular-item { flex-direction: column; align-items: flex-start; }
             .btn-download { width: 100%; justify-content: center; }
             .circular-date { display: flex; align-items: center; gap: 10px; padding: 5px 10px; width: auto; min-width: 0; }
@@ -125,19 +136,22 @@
 
     <div class="container">
         
-        <div class="tabs-wrapper">
-            <button class="tab-btn active" onclick="switchSource('TAA', this)">🔵 Telangana State Circulars</button>
-            <button class="tab-btn" onclick="switchSource('AFI', this)">🟠 AFI National Circulars</button>
+        <div class="top-controls">
+            <div class="tabs-wrapper">
+                <button class="tab-btn active" onclick="window.switchSource('TAA', this)">🔵 Telangana State Circulars</button>
+                <button class="tab-btn" onclick="window.switchSource('AFI', this)">🟠 AFI National Circulars</button>
+            </div>
+            <button class="btn-subscribe" onclick="window.subscribeToCirculars()">✉️ Subscribe to Alerts</button>
         </div>
 
         <div class="filter-card">
             <div class="filter-group" style="flex-grow: 2;">
                 <label>Search Keyword</label>
-                <input type="text" id="searchInput" class="filter-control" placeholder="Search by title or circular ID..." onkeyup="filterCirculars()">
+                <input type="text" id="searchInput" class="filter-control" placeholder="Search by title or circular ID..." onkeyup="window.filterCirculars()">
             </div>
             <div class="filter-group">
                 <label>Category</label>
-                <select id="categoryFilter" class="filter-control" onchange="filterCirculars()">
+                <select id="categoryFilter" class="filter-control" onchange="window.filterCirculars()">
                     <option value="All">All Categories</option>
                     <option value="Events">Competitions & Events</option>
                     <option value="Technical">Technical Officials</option>
@@ -147,9 +161,9 @@
             </div>
             <div class="filter-group">
                 <label>Year</label>
-                <select id="yearFilter" class="filter-control" onchange="filterCirculars()">
+                <select id="yearFilter" class="filter-control" onchange="window.filterCirculars()">
                     <option value="All">All Years</option>
-                    </select>
+                </select>
             </div>
         </div>
 
@@ -158,13 +172,14 @@
 
     </div>
 
-    <script>
-        // Global State for current active tab
-        let currentSource = 'TAA';
+    <script type="module">
+        import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // Master Database (Contains both TAA placeholders and REAL AFI Circulars)
-        const circularsDatabase = [
-            
+        // Global State
+        window.currentSource = 'TAA';
+
+        // Base Database (Hardcoded fallbacks)
+        let circularsDatabase = [
             // --- ACTUAL 2026 AFI CIRCULARS (Hardcoded for persistence) ---
             { source: "AFI", id: "AFI/CIR/38/2026", date: "2026-03-25", title: "24th National Junior (U20) Athletics Federation Competition 2026", category: "Events", year: "2026", link: "https://indianathletics.in/wp-content/uploads/2026/03/Circular-No.-38.pdf" },
             { source: "AFI", id: "AFI/CIR/32/2026", date: "2026-03-14", title: "Indian Athletics Series – 4 (Ranchi, Jharkhand)", category: "Events", year: "2026", link: "https://indianathletics.in/wp-content/uploads/2026/03/Circular-No.-32_Indian-Athletics-Series-4.pdf" },
@@ -181,19 +196,19 @@
         ];
 
         // Format Date Helper
-        function formatDate(dateString) {
+        window.formatDate = function(dateString) {
             const date = new Date(dateString);
             const day = date.getDate().toString().padStart(2, '0');
             const month = date.toLocaleString('default', { month: 'short' });
             const year = date.getFullYear();
             return { day, monthYear: `${month} ${year}` };
-        }
+        };
 
-        // --- NEW: Automated Year Populator ---
-        function populateYears() {
+        // Automated Year Populator
+        window.populateYears = function() {
             const yearSelect = document.getElementById('yearFilter');
-            const currentYear = new Date().getFullYear(); // Gets the real current year
-            const startYear = 2024; // Base archive year
+            const currentYear = new Date().getFullYear(); 
+            const startYear = 2024; 
 
             for (let year = currentYear; year >= startYear; year--) {
                 const option = document.createElement('option');
@@ -201,18 +216,39 @@
                 option.text = year.toString();
                 yearSelect.appendChild(option);
             }
-        }
+        };
 
         // Tab Switcher
-        function switchSource(source, btnElement) {
-            currentSource = source;
+        window.switchSource = function(source, btnElement) {
+            window.currentSource = source;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             btnElement.classList.add('active');
-            filterCirculars(); // Refresh the list
-        }
+            window.filterCirculars(); 
+        };
+
+        // EmailJS Subscription Logic
+        window.subscribeToCirculars = async function() {
+            const email = prompt("Enter your email address to receive new circular alerts:");
+            if (!email) return;
+
+            try {
+                if (window.emailjs) {
+                    await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                        subject: "New Circular Alert Subscription",
+                        name: "TAA Administration",
+                        message: `User with email ${email} has subscribed to receive Official Circular alerts.`
+                    });
+                    alert("Successfully subscribed to Circular Alerts!");
+                } else {
+                    alert("Email system is currently offline.");
+                }
+            } catch (error) {
+                alert("Failed to subscribe. Please try again later.");
+            }
+        };
 
         // Render Function
-        function renderCirculars(data) {
+        window.renderCirculars = function(data) {
             const container = document.getElementById('circularsContainer');
             container.innerHTML = '';
 
@@ -222,8 +258,9 @@
             }
 
             data.forEach(item => {
-                const dateData = formatDate(item.date);
+                const dateData = window.formatDate(item.date);
                 const isAFI = item.source === "AFI";
+                const botBadge = item.isCloud ? `<span style="background:#10b981; color:white; padding:2px 6px; border-radius:4px; font-size:0.65em; margin-left:8px; vertical-align:middle;">AUTO-SYNCED</span>` : "";
                 
                 const circularHTML = `
                     <div class="circular-item ${isAFI ? 'source-afi' : ''}">
@@ -233,7 +270,7 @@
                         </div>
                         <div class="circular-details">
                             <div class="circular-meta"><span>${item.category}</span> | ${item.id}</div>
-                            <h3 class="circular-title">${item.title}</h3>
+                            <h3 class="circular-title">${item.title} ${botBadge}</h3>
                         </div>
                         <a href="${item.link}" class="btn-download ${isAFI ? 'afi-btn' : ''}" ${isAFI ? 'target="_blank"' : ''}>
                             📄 View PDF
@@ -242,22 +279,17 @@
                 `;
                 container.innerHTML += circularHTML;
             });
-        }
+        };
 
         // Filter Logic
-        function filterCirculars() {
+        window.filterCirculars = function() {
             const searchVal = document.getElementById('searchInput').value.toLowerCase();
             const catVal = document.getElementById('categoryFilter').value;
             const yearVal = document.getElementById('yearFilter').value;
 
             const filteredData = circularsDatabase.filter(item => {
-                // 1. Must match the current active tab (TAA vs AFI)
-                const matchSource = item.source === currentSource;
-                
-                // 2. Must match search terms
+                const matchSource = item.source === window.currentSource;
                 const matchSearch = item.title.toLowerCase().includes(searchVal) || item.id.toLowerCase().includes(searchVal);
-                
-                // 3. Must match dropdowns
                 const matchCat = catVal === "All" || item.category === catVal;
                 const matchYear = yearVal === "All" || item.year === yearVal;
 
@@ -267,13 +299,38 @@
             // Sort by date (newest first)
             filteredData.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            renderCirculars(filteredData);
-        }
+            window.renderCirculars(filteredData);
+        };
 
         // Initial Load Update
-        window.onload = () => {
-            populateYears();
-            filterCirculars();
+        window.onload = async () => {
+            window.populateYears();
+            
+            // --- Smart Merge with Firebase (Bot Receiver) ---
+            try {
+                if (window.db) {
+                    const snap = await getDocs(collection(window.db, "circulars"));
+                    if (!snap.empty) {
+                        snap.forEach(doc => {
+                            const cloudData = doc.data();
+                            cloudData.isCloud = true; // Tag for the AUTO-SYNCED badge
+                            
+                            // Check for duplicates to prevent rendering the same circular twice
+                            const existingIdx = circularsDatabase.findIndex(c => c.id === cloudData.id);
+                            if (existingIdx > -1) {
+                                circularsDatabase[existingIdx] = cloudData;
+                            } else {
+                                circularsDatabase.push(cloudData);
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                console.warn("Firebase fetch error. Loading base circulars only.");
+            }
+            // --------------------------------------
+
+            window.filterCirculars();
         };
     </script>
 

@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Competition Calendar - Telangana Athletics Association</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root {
             --primary: #0056b3;
@@ -25,141 +28,64 @@
             line-height: 1.6; 
         }
 
-        /* --- Navigation Styles for navbar.js --- */
-        .navbar {
-            background: var(--white);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            position: sticky;
-            top: 0;
-            z-index: 9999;
-            padding: 5px 0;
-        }
-        .nav-container {
-            max-width: 1300px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-        }
+        /* --- Navigation --- */
+        .navbar { background: var(--white); box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 9999; padding: 5px 0; }
+        .nav-container { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
         .nav-logo img { width: 55px; height: 55px; }
         .logo-text { display: flex; flex-direction: column; }
         .main-title { color: var(--primary); font-weight: 800; font-size: 1.1em; line-height: 1; font-family: 'Montserrat'; }
         .sub-title { color: #64748b; font-weight: 600; font-size: 0.75em; letter-spacing: 1px; }
-
         .nav-menu { display: flex; list-style: none; gap: 15px; align-items: center; margin: 0; padding: 0; }
         .nav-menu li { position: relative; }
-        .nav-menu a { 
-            text-decoration: none; color: #1a1a1a; font-weight: 700; 
-            font-size: 0.82em; transition: 0.3s; padding: 15px 5px;
-            font-family: 'Montserrat'; text-transform: uppercase;
-        }
+        .nav-menu a { text-decoration: none; color: #1a1a1a; font-weight: 700; font-size: 0.82em; transition: 0.3s; padding: 15px 5px; font-family: 'Montserrat'; text-transform: uppercase; }
         .nav-menu a:hover, .nav-menu a.active { color: var(--accent); }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: var(--white);
-            min-width: 220px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            top: 100%; left: 0;
-            border-top: 3px solid var(--accent);
-        }
+        .dropdown-content { display: none; position: absolute; background-color: var(--white); min-width: 220px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); top: 100%; left: 0; border-top: 3px solid var(--accent); }
         .dropdown:hover .dropdown-content { display: block; }
         .dropdown-content a { color: #333; padding: 12px 16px; display: block; text-transform: none; font-size: 0.85em; border-bottom: 1px solid #f1f1f1; }
-
         .ors-btn { background: var(--primary) !important; color: white !important; padding: 10px 22px !important; border-radius: 50px; margin-left: 10px; }
 
         /* --- Hero Banner --- */
-        .hero { 
-            background: linear-gradient(135deg, #0056b3 0%, var(--dark-blue) 100%); 
-            color: white; 
-            padding: 60px 20px; 
-            text-align: center; 
-        }
+        .hero { background: linear-gradient(135deg, #0056b3 0%, var(--dark-blue) 100%); color: white; padding: 60px 20px; text-align: center; }
         .hero h1 { font-family: 'Montserrat'; font-size: 2.2em; text-transform: uppercase; margin-bottom: 5px; }
         .hero p { opacity: 0.9; font-weight: 600; font-size: 0.9em; letter-spacing: 1px; }
 
         /* --- Filter Section --- */
-        .filter-section {
-            max-width: 1100px;
-            margin: 20px auto 0;
-            padding: 0 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+        .filter-section { max-width: 1100px; margin: 20px auto 0; padding: 0 20px; display: flex; align-items: center; gap: 15px; }
         .filter-label { font-family: 'Montserrat'; font-weight: 800; color: var(--primary); font-size: 0.9em; }
-        .year-select {
-            padding: 8px 25px;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-            font-family: 'Montserrat';
-            font-weight: 800;
-            color: var(--primary);
-            cursor: pointer;
-            background: white;
-            outline: none;
-        }
+        .year-select { padding: 8px 25px; border-radius: 6px; border: 1px solid #ddd; font-family: 'Montserrat'; font-weight: 800; color: var(--primary); cursor: pointer; background: white; outline: none; }
 
         /* --- Event Cards --- */
         .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
-        
-        .event-card {
-            background: white;
-            border-radius: 12px;
-            display: flex;
-            margin-bottom: 20px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            transition: 0.3s;
-        }
+        .event-card { background: white; border-radius: 12px; display: flex; margin-bottom: 20px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: 0.3s; }
         .event-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
 
-        .event-date {
-            background: var(--accent);
-            color: white;
-            padding: 25px;
-            min-width: 150px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            font-family: 'Montserrat';
-            text-align: center;
-        }
+        .event-date { background: var(--accent); color: white; padding: 25px; min-width: 150px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'Montserrat'; text-align: center; }
         .event-date .month { font-size: 1.2em; font-weight: 800; text-transform: uppercase; }
         .event-date .year { font-size: 1.1em; opacity: 0.9; }
 
-        .event-details { padding: 25px; flex-grow: 1; }
+        .event-details { padding: 25px; flex-grow: 1; display: flex; justify-content: space-between; align-items: center; }
         .event-details h3 { font-family: 'Montserrat'; color: var(--primary); margin-bottom: 12px; font-size: 1.05em; line-height: 1.4; }
         
         .event-info { display: flex; flex-wrap: wrap; gap: 20px; font-size: 0.85em; color: #64748b; font-weight: 600; }
         .info-item { display: flex; align-items: center; gap: 6px; }
 
-        /* --- Maps Redirection Hover --- */
-        .venue-link {
-            text-decoration: none;
-            color: inherit;
-            transition: 0.2s;
-        }
-        .venue-link:hover {
-            color: var(--primary);
-            text-decoration: underline;
-        }
+        .venue-link { text-decoration: none; color: inherit; transition: 0.2s; }
+        .venue-link:hover { color: var(--primary); text-decoration: underline; }
 
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            background: white;
-            border-radius: 12px;
-            border: 2px dashed #ddd;
+        .btn-inquiry {
+            background: #f1f5f9; border: 1px solid #cbd5e1; color: var(--primary);
+            padding: 8px 15px; border-radius: 6px; font-family: 'Montserrat'; font-weight: 700;
+            font-size: 0.75em; cursor: pointer; transition: 0.2s;
         }
+        .btn-inquiry:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 12px; border: 2px dashed #ddd; }
 
         @media (max-width: 768px) {
             .event-card { flex-direction: column; }
             .event-date { padding: 15px; min-width: 100%; flex-direction: row; gap: 10px; }
+            .event-details { flex-direction: column; align-items: flex-start; gap: 15px; }
             .nav-menu { display: none; }
         }
     </style>
@@ -183,7 +109,10 @@
     <div class="container" id="eventsContainer">
     </div>
 
-    <script>
+    <script type="module">
+        import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // --- 1. YOUR ORIGINAL MASTER DATA (STRICTLY PRESERVED) ---
         const masterData = [
             { categoryYear: "2026", title: "1. State Meet for Relay Teams", venue: "Hanumakonda", date: "MAR 2026", fullDate: "March 15, 2026" },
             { categoryYear: "2026", title: "2. State Athletics Championships for Federation Cup (U-20, Men, Women & Combined Events)", venue: "Mulugu/Hanumakonda", date: "APR 2026", fullDate: "April 11 - 12, 2026" },
@@ -204,7 +133,8 @@
             { categoryYear: "2026", title: "17. State Sub Juniors and Juniors Athletics Championship", venue: "Karimnagar", date: "FEB 2027", fullDate: "February 07, 2027" }
         ];
 
-        function populateYears() {
+        // --- 2. POPULATE YEARS (STRICTLY 2000 - 2100) ---
+        window.populateYears = function() {
             const selector = document.getElementById('yearFilter');
             let options = "";
             for (let yr = 2000; yr <= 2100; yr++) {
@@ -214,10 +144,34 @@
             selector.innerHTML = options;
         }
 
-        function loadDynamicContent() {
+        // --- 3. DYNAMIC CONTENT LOADING (MERGED WITH CLOUD) ---
+        window.loadDynamicContent = async function() {
             const container = document.getElementById('eventsContainer');
             const selectedYear = document.getElementById('yearFilter').value;
-            const filtered = masterData.filter(item => item.categoryYear === selectedYear);
+            
+            // Filter from your hardcoded 17 items
+            let filtered = masterData.filter(item => item.categoryYear === selectedYear);
+
+            // Fetch Additional Updates from Admin Cloud
+            try {
+                if (window.db) {
+                    const q = query(collection(window.db, "competitions"), orderBy("startDate", "asc"));
+                    const querySnapshot = await getDocs(q);
+                    querySnapshot.forEach((doc) => {
+                        const cloudMeet = doc.data();
+                        const cloudYear = new Date(cloudMeet.startDate).getFullYear().toString();
+                        if (cloudYear === selectedYear) {
+                            filtered.push({
+                                title: cloudMeet.title,
+                                venue: cloudMeet.venue,
+                                date: cloudMeet.startDate,
+                                fullDate: cloudMeet.startDate,
+                                isCloud: true
+                            });
+                        }
+                    });
+                }
+            } catch (e) { console.warn("Cloud connection offline."); }
 
             if (filtered.length === 0) {
                 container.innerHTML = `
@@ -229,29 +183,47 @@
             }
 
             container.innerHTML = filtered.map(meet => {
-                // --- MAPS REDIRECTION LOGIC ---
-                const mapSearchUrl = `https://www.google.com/maps/search/${encodeURIComponent(meet.venue)}`;
+                const mapSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(meet.venue + " Telangana")}`;
+                const badge = meet.isCloud ? `<span style="background:var(--primary); color:white; padding:2px 8px; border-radius:4px; font-size:0.7em; margin-left:10px;">NEW</span>` : "";
                 
                 return `
                 <div class="event-card">
                     <div class="event-date">
                         <span class="month">${meet.date.split(' ')[0]}</span>
-                        <span class="year">${meet.date.split(' ')[1]}</span>
+                        <span class="year">${meet.date.split(' ')[1] || selectedYear}</span>
                     </div>
                     <div class="event-details">
-                        <h3>${meet.title}</h3>
-                        <div class="event-info">
-                            <div class="info-item">
-                                <a href="${mapSearchUrl}" target="_blank" class="venue-link">
-                                    📍 ${meet.venue}
-                                </a>
+                        <div class="event-text">
+                            <h3>${meet.title} ${badge}</h3>
+                            <div class="event-info">
+                                <div class="info-item">
+                                    <a href="${mapSearchUrl}" target="_blank" class="venue-link">📍 ${meet.venue}</a>
+                                </div>
+                                <div class="info-item">🗓️ ${meet.fullDate}</div>
                             </div>
-                            <div class="info-item">🗓️ ${meet.fullDate}</div>
                         </div>
+                        <button class="btn-inquiry" onclick="sendInquiry('${meet.title}')">Inquiry ✉️</button>
                     </div>
                 </div>
                 `;
             }).join('');
+        }
+
+        // --- 4. EMAILJS INQUIRY LOGIC ---
+        window.sendInquiry = async function(eventTitle) {
+            const userEmail = prompt("Enter your email to inquire about: " + eventTitle);
+            if (!userEmail) return;
+
+            try {
+                if (window.emailjs) {
+                    await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                        subject: `Event Inquiry: ${eventTitle}`,
+                        name: "Portal User",
+                        message: `A user (${userEmail}) is requesting details for: ${eventTitle}`
+                    });
+                    alert("Inquiry sent! TAA team will contact you shortly.");
+                }
+            } catch (err) { alert("Error sending inquiry."); }
         }
 
         window.onload = () => {

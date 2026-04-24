@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Press Releases - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root {
             --primary: #0056b3;
@@ -32,10 +35,10 @@
         /* --- Main Container --- */
         .container { max-width: 1100px; margin: -25px auto 60px; padding: 0 20px; position: relative; z-index: 10; }
 
-        /* --- Tabs --- */
+        /* --- Tabs & Subscribe --- */
+        .top-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
         .tabs-wrapper { 
-            display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; 
-            background: white; padding: 15px; border-radius: 12px; 
+            display: flex; gap: 15px; background: white; padding: 10px; border-radius: 12px; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.05); flex-wrap: wrap; 
         }
         .tab-btn { 
@@ -46,6 +49,13 @@
         }
         .tab-btn:hover { color: var(--primary); background: #f1f5f9; }
         .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(0, 86, 179, 0.3); }
+
+        .btn-subscribe {
+            background: var(--accent); color: white; border: none; padding: 12px 25px;
+            border-radius: 8px; font-family: 'Montserrat'; font-weight: 800; font-size: 0.9em;
+            cursor: pointer; text-transform: uppercase; transition: 0.3s; box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+        }
+        .btn-subscribe:hover { background: #e67e00; transform: translateY(-2px); }
 
         /* --- Filter Section --- */
         .filter-card {
@@ -95,6 +105,10 @@
         .source-afi .btn-read:hover { color: var(--primary); }
 
         .empty-state { text-align: center; padding: 50px; color: var(--text-muted); font-weight: 600; background: white; border-radius: 10px; border: 1px dashed #cbd5e1; }
+
+        @media (max-width: 768px) {
+            .top-controls { justify-content: center; }
+        }
     </style>
 </head>
 <body>
@@ -114,9 +128,12 @@
 
     <div class="container">
         
-        <div class="tabs-wrapper">
-            <button class="tab-btn active" onclick="switchSource('TAA', this)">🔵 Telangana State Press</button>
-            <button class="tab-btn" onclick="switchSource('AFI', this)">🟠 AFI National Press</button>
+        <div class="top-controls">
+            <div class="tabs-wrapper">
+                <button class="tab-btn active" onclick="switchSource('TAA', this)">🔵 Telangana State Press</button>
+                <button class="tab-btn" onclick="switchSource('AFI', this)">🟠 AFI National Press</button>
+            </div>
+            <button class="btn-subscribe" onclick="subscribeToPress()">✉️ Subscribe to Alerts</button>
         </div>
 
         <div class="filter-card">
@@ -137,7 +154,7 @@
                 <label>Year</label>
                 <select id="yearFilter" class="filter-control" onchange="filterPress()">
                     <option value="All">All Years</option>
-                    </select>
+                </select>
             </div>
         </div>
 
@@ -146,33 +163,37 @@
 
     </div>
 
-    <script>
+    <script type="module">
+        import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
         let currentSource = 'TAA';
 
-        // Master Database for Press Releases
-        const pressDatabase = [
-            // --- AFI PRESS RELEASES (Simulated National News) ---
+        // Master Database (Preserved Fallback)
+        const localDatabase = [
+            // --- AFI PRESS RELEASES ---
             { source: "AFI", date: "2026-03-20", title: "Indian Athletics Squad Announced for Asian Championships 2026", excerpt: "The Athletics Federation of India today announced a 45-member contingent for the upcoming Asian Athletics Championships...", category: "Competitions", year: "2026", link: "https://indianathletics.in" },
             { source: "AFI", date: "2026-02-14", title: "AFI Partners with Global Brands for Grassroots Development", excerpt: "In a landmark move to boost grassroots athletics, AFI has secured major sponsorships aimed at equipping district-level academies...", category: "Administration", year: "2026", link: "https://indianathletics.in" },
             { source: "AFI", date: "2025-11-05", title: "National Open Athletics Championships Concludes with 5 New Records", excerpt: "The 2025 season closed on a high note as athletes broke five national records across sprint and throwing events...", category: "Achievements", year: "2025", link: "https://indianathletics.in" },
 
-            // --- TAA PRESS RELEASES (State News) ---
+            // --- TAA PRESS RELEASES ---
             { source: "TAA", date: "2026-04-02", title: "Telangana Athletes Secure 12 Medals at South Zone Nationals", excerpt: "The Telangana State athletic squad delivered a stellar performance at the South Zone Championships, bringing home 5 Gold medals...", category: "Achievements", year: "2026", link: "#" },
             { source: "TAA", date: "2026-03-10", title: "Launch of the Unified TAA Digital Portal", excerpt: "The Telangana Athletics Association officially launches its new state-of-the-art web portal to streamline athlete registrations and live rankings.", category: "Administration", year: "2026", link: "#" },
             { source: "TAA", date: "2025-12-15", title: "State Junior Athletics Meet Dates Announced", excerpt: "The Annual State Junior Athletics Meet will be held at the GMC Balayogi Stadium. Over 1,500 athletes are expected to participate...", category: "Competitions", year: "2025", link: "#" }
         ];
 
+        let liveDatabase = [...localDatabase]; // Start with local data
+
         // Format Date Helper
-        function formatDate(dateString) {
+        window.formatDate = function(dateString) {
             const options = { year: 'numeric', month: 'long', day: 'numeric' };
             return new Date(dateString).toLocaleDateString('en-IN', options);
         }
 
-        // --- NEW: Automated Year Populator ---
-        function populateYears() {
+        // Automated Year Populator
+        window.populateYears = function() {
             const yearSelect = document.getElementById('yearFilter');
-            const currentYear = new Date().getFullYear(); // Gets the real current year
-            const startYear = 2024; // The year this database logic effectively begins
+            const currentYear = new Date().getFullYear();
+            const startYear = 2024; 
 
             for (let year = currentYear; year >= startYear; year--) {
                 const option = document.createElement('option');
@@ -183,48 +204,38 @@
         }
 
         // Tab Switcher
-        function switchSource(source, btnElement) {
+        window.switchSource = function(source, btnElement) {
             currentSource = source;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             btnElement.classList.add('active');
-            filterPress(); 
+            window.filterPress(); 
         }
 
-        // Render Function
-        function renderPress(data) {
-            const container = document.getElementById('pressContainer');
-            container.innerHTML = '';
-
-            if (data.length === 0) {
-                container.innerHTML = `<div class="empty-state">No press releases found matching your search criteria.</div>`;
-                return;
+        // Cloud Data Fetcher (Ready for the Node.js Bot)
+        window.fetchCloudReleases = async function() {
+            try {
+                if (window.db) {
+                    const q = query(collection(window.db, "press_releases"));
+                    const snap = await getDocs(q);
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        data.isCloud = true; // Flag for UI badge
+                        liveDatabase.push(data);
+                    });
+                }
+            } catch(e) {
+                console.warn("Cloud sync pending. Displaying local data.");
             }
-
-            data.forEach(item => {
-                const isAFI = item.source === "AFI";
-                
-                const pressHTML = `
-                    <div class="press-item ${isAFI ? 'source-afi' : ''}">
-                        <div class="press-header">
-                            <span class="press-date">📅 ${formatDate(item.date)}</span>
-                            <span class="press-category">${item.category}</span>
-                        </div>
-                        <h3 class="press-title">${item.title}</h3>
-                        <p class="press-excerpt">${item.excerpt}</p>
-                        <a href="${item.link}" class="btn-read" ${isAFI ? 'target="_blank"' : ''}>Read Full Release ➞</a>
-                    </div>
-                `;
-                container.innerHTML += pressHTML;
-            });
+            window.filterPress();
         }
 
         // Filter Logic
-        function filterPress() {
+        window.filterPress = function() {
             const searchVal = document.getElementById('searchInput').value.toLowerCase();
             const catVal = document.getElementById('categoryFilter').value;
             const yearVal = document.getElementById('yearFilter').value;
 
-            const filteredData = pressDatabase.filter(item => {
+            const filteredData = liveDatabase.filter(item => {
                 const matchSource = item.source === currentSource;
                 const matchSearch = item.title.toLowerCase().includes(searchVal) || item.excerpt.toLowerCase().includes(searchVal);
                 const matchCat = catVal === "All" || item.category === catVal;
@@ -239,9 +250,60 @@
             renderPress(filteredData);
         }
 
+        // Render Function
+        window.renderPress = function(data) {
+            const container = document.getElementById('pressContainer');
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = `<div class="empty-state">No press releases found matching your search criteria.</div>`;
+                return;
+            }
+
+            data.forEach(item => {
+                const isAFI = item.source === "AFI";
+                const botBadge = item.isCloud ? `<span style="background:#10b981; color:white; padding:2px 6px; border-radius:4px; font-size:0.65em; margin-left:8px; vertical-align:middle;">AUTO-SYNCED</span>` : "";
+                
+                const pressHTML = `
+                    <div class="press-item ${isAFI ? 'source-afi' : ''}">
+                        <div class="press-header">
+                            <span class="press-date">📅 ${window.formatDate(item.date)}</span>
+                            <span class="press-category">${item.category}</span>
+                        </div>
+                        <h3 class="press-title">${item.title} ${botBadge}</h3>
+                        <p class="press-excerpt">${item.excerpt}</p>
+                        <a href="${item.link}" class="btn-read" ${isAFI ? 'target="_blank"' : ''}>Read Full Release ➞</a>
+                    </div>
+                `;
+                container.innerHTML += pressHTML;
+            });
+        }
+
+        // EmailJS Subscription Logic
+        window.subscribeToPress = async function() {
+            const email = prompt("Enter your email address to receive TAA & AFI press alerts:");
+            if (!email) return;
+
+            try {
+                if (window.emailjs) {
+                    await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                        subject: "New Press Alert Subscription",
+                        name: "Media Team",
+                        message: `User with email ${email} has subscribed to the Press Release alerts.`
+                    });
+                    alert("Successfully subscribed to Press Alerts!");
+                } else {
+                    alert("Email system is currently offline.");
+                }
+            } catch (error) {
+                alert("Failed to subscribe. Please try again later.");
+            }
+        }
+
+        // Initialize
         window.onload = () => {
-            populateYears(); // Generates the dropdown options first
-            filterPress();   // Then loads the list
+            window.populateYears();
+            window.fetchCloudReleases(); // Fetches cloud data, which calls filterPress() automatically
         };
     </script>
 

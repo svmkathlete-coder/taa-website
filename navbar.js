@@ -84,12 +84,15 @@ const layoutHTML = `
             .hero { padding: 50px 15px; }
             .hero-text h1 { font-size: 1.8em; }
             .reg-banner { flex-direction: column; text-align: center; gap: 15px; }
-            .footer-grid { grid-template-columns: 1fr; text-align: center; }
             .grid { grid-template-columns: 1fr !important; } /* Forces forms to 1 column */
             .news-header, .gallery-header { flex-direction: column; gap: 15px; text-align: center; }
             .btn-row { flex-direction: column-reverse; gap: 15px; }
             .btn-row .btn { width: 100%; }
             .stepper-container { max-width: 100%; padding: 0 10px; }
+            
+            /* --- FOOTER MOBILE FIX (Smart 2-Column Grid) --- */
+            .footer-grid { grid-template-columns: 1fr 1fr; text-align: left; gap: 25px; }
+            .footer-col:first-child { grid-column: span 2; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
         }
     </style>
 

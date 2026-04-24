@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Official Dashboard - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root { --primary: #001a35; --primary-light: #0056b3; --accent: #FF8C00; --bg: #f1f5f9; --text: #334155; --white: #ffffff; --sidebar-w: 260px; --border: #e2e8f0; --success: #10b981; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -74,6 +77,7 @@
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 700; font-family: 'Montserrat'; cursor: pointer; transition: 0.2s; font-size: 0.85em; text-transform: uppercase; }
         .btn-primary { background: var(--primary-light); color: white; }
         .btn-primary:hover { background: var(--primary); }
+        .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -134,8 +138,10 @@
             <div id="tab-duties" class="tab-content">
                 <div class="card">
                     <div class="card-header">
-                        <h3>My Meet Assignments</h3>
-                        <p style="margin-top:5px; font-size:0.85em; color:#64748b; text-transform:none;">Official competition duties assigned to you by the State Administration.</p>
+                        <div>
+                            <h3>My Meet Assignments</h3>
+                            <p style="margin-top:5px; font-size:0.85em; color:#64748b; text-transform:none;">Official competition duties published by the State Administration.</p>
+                        </div>
                     </div>
                     <div class="table-responsive">
                         <table>
@@ -161,7 +167,7 @@
                         <h4 style="font-family:'Montserrat'; color:var(--primary); margin-bottom: 15px;">Upload Exam/Certification Document</h4>
                         <div style="display: flex; gap: 15px; align-items: center;">
                             <input type="file" class="form-control" style="max-width: 400px;" accept=".pdf, image/*">
-                            <button class="btn btn-primary" onclick="alert('Certification uploaded for admin review. Your level will be updated upon approval.')">Submit Document</button>
+                            <button class="btn btn-primary" onclick="alert('Certification uploaded for admin review. Your level will be updated upon approval in the cloud database.')">Submit Document</button>
                         </div>
                     </div>
                 </div>
@@ -170,8 +176,10 @@
             <div id="tab-vault" class="tab-content">
                 <div class="card">
                     <div class="card-header">
-                        <h3>Verified Identity (Read-Only)</h3>
-                        <p style="margin-top:5px; font-size:0.85em; color:#ef4444; text-transform:none;">These fields are locked based on your initial registration. Contact Admin for corrections.</p>
+                        <div>
+                            <h3>Verified Identity (Read-Only)</h3>
+                            <p style="margin-top:5px; font-size:0.85em; color:#ef4444; text-transform:none;">These fields are locked based on your initial registration. Contact Admin for corrections.</p>
+                        </div>
                     </div>
                     <div class="grid-3">
                         <div class="info-vault"><small>Full Name</small><p id="viewName">-</p></div>
@@ -192,57 +200,76 @@
                             <input type="email" id="editEmail" class="form-control">
                         </div>
                     </div>
-                    <button class="btn btn-primary" style="margin-top:20px;" onclick="updateContactInfo()">💾 Save Preferences</button>
+                    <button class="btn btn-primary" id="saveContactBtn" style="margin-top:20px;" onclick="updateContactInfo()">💾 Save Preferences</button>
                 </div>
             </div>
 
         </div>
     </main>
 
-    <script>
+    <script type="module">
+        import { collection, query, where, getDocs, doc, updateDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
         let currentUser = null;
-        let portalData = [];
+        let userDocId = null;
 
         // --- 1. INITIALIZATION & SECURITY ---
-        window.onload = () => {
-            portalData = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-            
-            // Grab UID from the URL
+        window.onload = async () => {
+            // Check Session Data (created during login)
+            const sessionStr = sessionStorage.getItem('taa_logged_user');
             const urlParams = new URLSearchParams(window.location.search);
             const uidParam = urlParams.get('uid');
 
-            if (!uidParam) {
+            if (!sessionStr || !uidParam) {
                 alert("Unauthorized Access. Please login.");
                 window.location.href = "login.html";
                 return;
             }
 
-            // Find Official (Case-Insensitive)
-            currentUser = portalData.find(u => 
-                (u.regType === "Official" || u.role === "Official") && 
-                (u.afi_uid || "").toUpperCase() === uidParam.toUpperCase()
-            );
-
-            if (!currentUser) {
-                alert("Official profile not found. Please contact administration.");
+            const sessionUser = JSON.parse(sessionStr);
+            if(sessionUser.afi_uid !== uidParam) {
+                alert("UID mismatch. Redirecting to login.");
                 window.location.href = "login.html";
                 return;
             }
 
-            populateDashboard();
-            loadDuties();
+            // Fetch live user from Firestore to ensure we have the absolute latest status
+            try {
+                const q = query(collection(window.db, "users"), where("afi_uid", "==", uidParam));
+                const snap = await getDocs(q);
+                snap.forEach(d => {
+                    userDocId = d.id;
+                    currentUser = d.data();
+                });
+
+                if(!currentUser || (currentUser.regType !== "Official" && currentUser.role !== "Official")) {
+                    throw new Error("Invalid official profile.");
+                }
+
+                populateDashboard();
+                loadDuties();
+
+            } catch (err) {
+                alert("Error loading profile. Please contact admin.");
+                window.location.href = "login.html";
+            }
         };
 
-        function toggleSidebar() { document.getElementById('officialSidebar').classList.toggle('collapsed'); }
-        function secureLogout() { window.location.href = "login.html"; }
+        // --- GLOBAL UI HELPERS ---
+        window.toggleSidebar = () => document.getElementById('officialSidebar').classList.toggle('collapsed');
+        
+        window.secureLogout = () => { 
+            sessionStorage.removeItem('taa_logged_user'); 
+            window.location.href = "login.html"; 
+        };
 
-        function switchTab(tabId, element) {
+        window.switchTab = (tabId, element) => {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             element.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             document.getElementById('topbarTitle').innerText = element.innerText.substring(2).trim();
-        }
+        };
 
         // --- 2. POPULATE DASHBOARD UI ---
         function populateDashboard() {
@@ -267,48 +294,87 @@
             document.getElementById('viewDob').innerText = currentUser.dob || "N/A";
             document.getElementById('viewBlood').innerText = currentUser.blood_group || "N/A";
             
+            // Editable Inputs
             document.getElementById('editMobile').value = currentUser.mobile || "";
             document.getElementById('editEmail').value = currentUser.email || "";
         }
 
-        // --- 3. FETCH MOCK DUTY ASSIGNMENTS ---
-        function loadDuties() {
-            const masterDb = JSON.parse(localStorage.getItem('taa_master_db')) || [];
-            
-            // We will grab the first 2 upcoming events from the master calendar to act as "assigned duties"
-            const upcomingMeets = masterDb.slice(0, 2);
-            
-            document.getElementById('dutyCountDisplay').innerText = upcomingMeets.length;
+        // --- 3. FETCH LIVE DUTY ASSIGNMENTS (FROM FIREBASE) ---
+        async function loadDuties() {
             const tbody = document.getElementById('dutiesBody');
             
-            if (upcomingMeets.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No upcoming duty assignments.</td></tr>`;
-                return;
-            }
+            try {
+                // Fetch upcoming meets from competitions collection
+                const q = query(collection(window.db, "competitions"), orderBy("startDate", "asc"), limit(2));
+                const snap = await getDocs(q);
+                let meets = [];
+                snap.forEach(doc => meets.push(doc.data()));
 
-            tbody.innerHTML = upcomingMeets.map(meet => `
-                <tr>
-                    <td style="font-weight:600; color:#64748b;">${meet.date}</td>
-                    <td style="font-weight:700; color:var(--primary-light);">${meet.title}</td>
-                    <td>${meet.venue || 'TBA'}</td>
-                    <td><span class="badge bg-blue">${currentUser.specialty || 'General Duty'}</span></td>
-                    <td><span class="badge bg-orange">Assigned</span></td>
-                </tr>
-            `).join('');
+                document.getElementById('dutyCountDisplay').innerText = meets.length;
+
+                if (meets.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No upcoming duty assignments in the cloud.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = meets.map(meet => `
+                    <tr>
+                        <td style="font-weight:600; color:#64748b;">${meet.date || meet.startDate}</td>
+                        <td style="font-weight:700; color:var(--primary-light);">${meet.title}</td>
+                        <td>${meet.venue || 'TBA'}</td>
+                        <td><span class="badge bg-blue">${currentUser.specialty || 'General Duty'}</span></td>
+                        <td><span class="badge bg-orange">Assigned</span></td>
+                    </tr>
+                `).join('');
+
+            } catch(e) {
+                console.warn("Could not load cloud duties.");
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Cloud connection pending...</td></tr>`;
+            }
         }
 
-        // --- 4. VAULT SAVE LOGIC ---
-        function updateContactInfo() {
-            currentUser.mobile = document.getElementById('editMobile').value;
-            currentUser.email = document.getElementById('editEmail').value;
-            
-            const idx = portalData.findIndex(u => u.afi_uid === currentUser.afi_uid);
-            if(idx > -1) {
-                portalData[idx] = currentUser;
-                localStorage.setItem('taa_portal_data', JSON.stringify(portalData));
-                alert("Communication preferences updated successfully!");
+        // --- 4. VAULT SAVE LOGIC (CLOUD UPDATE + EMAILJS) ---
+        window.updateContactInfo = async function() {
+            const newMobile = document.getElementById('editMobile').value.trim();
+            const newEmail = document.getElementById('editEmail').value.trim();
+            const btn = document.getElementById('saveContactBtn');
+
+            if(!newMobile || !newEmail) { alert("Please fill both fields."); return; }
+
+            btn.disabled = true;
+            btn.innerText = "Saving...";
+
+            try {
+                // 1. Update Firestore
+                const userRef = doc(window.db, "users", userDocId);
+                await updateDoc(userRef, { 
+                    mobile: newMobile, 
+                    email: newEmail 
+                });
+
+                // 2. Send Email Notification
+                if(window.emailjs && window.EMAIL_SERVICE_ID) {
+                    await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                        subject: "Profile Updated - TAA Portal",
+                        name: currentUser.first_name,
+                        message: `Your communication preferences have been successfully updated in the TAA Cloud Database. \nNew Email: ${newEmail} \nNew Mobile: ${newMobile}`
+                    });
+                }
+
+                // 3. Update local session state
+                currentUser.mobile = newMobile;
+                currentUser.email = newEmail;
+                sessionStorage.setItem('taa_logged_user', JSON.stringify(currentUser));
+
+                alert("Preferences saved and notification sent!");
+            } catch (err) {
+                console.error(err);
+                alert("Failed to update profile. Please try again.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "💾 Save Preferences";
             }
-        }
+        };
     </script>
 </body>
 </html>

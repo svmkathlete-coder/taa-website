@@ -7,6 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         body { font-family: 'Open Sans', sans-serif; background: #f4f7f6; padding: 20px; }
         .container { max-width: 1300px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-top: 8px solid #0056b3; }
@@ -76,11 +78,30 @@
     </table>
 </div>
 
-<script>
-    function loadData() {
-        const portalData = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-        const officialData = JSON.parse(localStorage.getItem('taa_officials')) || [];
-        const combined = [...portalData, ...officialData];
+<script type="module">
+    import { collection, getDocs, writeBatch, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // Attach functions to global window object so HTML inline onclick handlers still work
+    window.loadData = loadData;
+    window.handleBulkUpload = handleBulkUpload;
+    window.toggleDetails = toggleDetails;
+    window.exportFullExcel = exportFullExcel;
+    window.clearAll = clearAll;
+
+    async function loadData() {
+        let combined = [];
+        try {
+            if (window.db) {
+                const usersSnap = await getDocs(collection(window.db, "users"));
+                const officialsSnap = await getDocs(collection(window.db, "officials"));
+                usersSnap.forEach(d => combined.push(d.data()));
+                officialsSnap.forEach(d => combined.push(d.data()));
+            }
+        } catch (error) {
+            console.error("Firebase fetch error:", error);
+            alert("Could not load data from the cloud.");
+            return;
+        }
         
         combined.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         const body = document.getElementById('tableBody');
@@ -121,7 +142,6 @@
         });
     }
 
-    // --- UPDATED BULK UPLOAD LOGIC ---
     function handleBulkUpload() {
         const fileInput = document.getElementById('csvFile');
         if (!fileInput.files[0]) return alert("Please select a results CSV file.");
@@ -129,10 +149,9 @@
         Papa.parse(fileInput.files[0], {
             header: true,
             skipEmptyLines: true,
-            complete: function(results) {
+            complete: async function(results) {
                 const newPerformanceData = results.data;
                 
-                // VALIDATION: Ensure the critical columns exist in the CSV
                 const requiredCols = ['uid', 'competition_name', 'level', 'performance', 'measurement_type'];
                 const headers = results.meta.fields;
                 const missing = requiredCols.filter(c => !headers.includes(c));
@@ -141,14 +160,21 @@
                     return alert("Error: Missing columns in CSV: " + missing.join(", "));
                 }
 
-                let existingResults = JSON.parse(localStorage.getItem('taa_results')) || [];
-                
-                // Merge and save
-                const updatedResults = [...existingResults, ...newPerformanceData];
-                localStorage.setItem('taa_results', JSON.stringify(updatedResults));
-                
-                alert(`SUCCESS: ${newPerformanceData.length} performances synced with full competition metadata.`);
-                fileInput.value = ""; 
+                try {
+                    if (window.db) {
+                        const batch = writeBatch(window.db);
+                        newPerformanceData.forEach(perf => {
+                            const newDocRef = doc(collection(window.db, "results"));
+                            batch.set(newDocRef, perf);
+                        });
+                        await batch.commit();
+                        alert(`SUCCESS: ${newPerformanceData.length} performances synced with full competition metadata.`);
+                        fileInput.value = ""; 
+                    }
+                } catch (error) {
+                    console.error("Firebase sync failed:", error);
+                    alert("Failed to sync results to the cloud.");
+                }
             }
         });
     }
@@ -158,15 +184,25 @@
         row.style.display = (row.style.display === 'table-row') ? 'none' : 'table-row';
     }
 
-    function exportFullExcel() {
-        const portalData = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-        const officialData = JSON.parse(localStorage.getItem('taa_officials')) || [];
-        const combined = [...portalData, ...officialData];
+    async function exportFullExcel() {
+        let combined = [];
+        try {
+            if (window.db) {
+                const usersSnap = await getDocs(collection(window.db, "users"));
+                const officialsSnap = await getDocs(collection(window.db, "officials"));
+                usersSnap.forEach(d => combined.push(d.data()));
+                officialsSnap.forEach(d => combined.push(d.data()));
+            }
+        } catch (error) {
+            console.error("Firebase fetch error:", error);
+            return alert("Failed to fetch data for export.");
+        }
+
         if(combined.length === 0) return alert("No data!");
 
         let csv = "Timestamp,Type,First Name,Last Name,ID,DOB,Mobile,Email,District\n";
         combined.forEach(i => {
-            csv += `"${i.timestamp}","${i.regType || 'Official'}","${i.first_name}","${i.last_name}","${i.afi_id || i.afi_uid}","${i.dob}","${i.mobile}","${i.email}","${i.district}"\n`;
+            csv += `"${i.timestamp || ''}","${i.regType || 'Official'}","${i.first_name || ''}","${i.last_name || ''}","${i.afi_id || i.afi_uid || ''}","${i.dob || ''}","${i.mobile || ''}","${i.email || ''}","${i.district || ''}"\n`;
         });
 
         const blob = new Blob([csv], { type: 'text/csv' });
@@ -177,9 +213,20 @@
         a.click();
     }
 
-    function clearAll() {
+    async function clearAll() {
         if(confirm("DANGER: Wipe entire database?")) {
-            localStorage.clear();
+            try {
+                if (window.db) {
+                    const usersSnap = await getDocs(collection(window.db, "users"));
+                    usersSnap.forEach(async (d) => await deleteDoc(doc(window.db, "users", d.id)));
+                    const officialsSnap = await getDocs(collection(window.db, "officials"));
+                    officialsSnap.forEach(async (d) => await deleteDoc(doc(window.db, "officials", d.id)));
+                    alert("Database wiped successfully from the cloud.");
+                }
+            } catch (error) {
+                console.error("Firebase wipe failed:", error);
+                alert("Failed to wipe database.");
+            }
             loadData();
         }
     }

@@ -38,6 +38,26 @@
             background: #f8fafc; border-left: 5px solid #0056b3; padding: 20px; margin-bottom: 30px; font-style: italic;
         }
 
+        /* --- Dynamic Button --- */
+        .const-btn {
+            display: inline-block;
+            background: #0056b3;
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-family: 'Montserrat';
+            font-weight: 700;
+            margin-top: 15px;
+            transition: 0.3s;
+            text-transform: uppercase;
+            font-size: 0.85em;
+        }
+        .const-btn:hover {
+            background: #FF8C00;
+            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+        }
+
         @media (max-width: 768px) {
             .hero-content { flex-direction: column; text-align: center; }
             .hero-text { text-align: center; }
@@ -50,7 +70,7 @@
 
     <header class="hero">
         <div class="hero-content">
-            <img src="LOGO.jfif" alt="TAA Logo" class="hero-logo">
+            <img src="LOGO.JFIF" alt="TAA Logo" class="hero-logo">
             <div class="hero-text">
                 <h1>About TAA</h1>
                 <p class="tagline">History, Constitution, and the Vision for 2050.</p>
@@ -61,15 +81,20 @@
     <div class="container">
         <div class="content-card">
             <h2>Our History</h2>
-            <p>The Telangana Athletics Association was formed on <strong>1-6-2014</strong> with 10 District associations as members after the bifurcation of the state from Andhra Pradesh. The newly formed association started to function to its full capacity from 2-6-2014.</p>
             
-            <p>The first elected body was formed on 1-6-2015 with Mr. Sabyasachi Ghosh IAS as President, Mr. K. Ranga Rao as Secretary, and Mr. B.E. Stanley Jones as Treasurer. Later, the Government of Telangana increased the number of districts to 33. The Telangana Athletics Association formed a committee to establish new associations in these districts; the committee has successfully formed all the 33 district associations.</p>
+            <div id="dynamicHistory">
+                <p>The Telangana Athletics Association was formed on <strong>1-6-2014</strong> with 10 District associations as members after the bifurcation of the state from Andhra Pradesh. The newly formed association started to function to its full capacity from 2-6-2014.</p>
+                
+                <p>The first elected body was formed on 1-6-2015 with Mr. Sabyasachi Ghosh IAS as President, Mr. K. Ranga Rao as Secretary, and Mr. B.E. Stanley Jones as Treasurer. Later, the Government of Telangana increased the number of districts to 33. The Telangana Athletics Association formed a committee to establish new associations in these districts; the committee has successfully formed all the 33 district associations.</p>
 
-            <div class="history-highlight">
-                "The Athletics Association of former unified A.P. and present Telangana acknowledge the service rendered by <strong>Prof. K. Ranga Rao</strong> for his selfless service to the field of Athletics."
+                <div class="history-highlight">
+                    "The Athletics Association of former unified A.P. and present Telangana acknowledge the service rendered by <strong>Prof. K. Ranga Rao</strong> for his selfless service to the field of Athletics."
+                </div>
+
+                <p>The present Executive Committee was formed on 28-12-2018 with Mr. B.E. Stanley Jones as President, Mr. K. Sarangapani as Secretary, and Dr. Rajesh Kumar as Treasurer.</p>
             </div>
 
-            <p>The present Executive Committee was formed on 28-12-2018 with Mr. B.E. Stanley Jones as President, Mr. K. Sarangapani as Secretary, and Dr. Rajesh Kumar as Treasurer.</p>
+            <div id="constitutionContainer" style="text-align: center;"></div>
         </div>
 
         <div class="content-card">
@@ -79,8 +104,41 @@
         </div>
     </div>
 
-    <script src="navbar.js"></script>
+    <script type="module" src="firebase-init.js"></script>
 
+    <script type="module">
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        window.onload = async () => {
+            try {
+                if (window.db) {
+                    const docRef = doc(window.db, "site_settings", "institution");
+                    const docSnap = await getDoc(docRef);
+
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        
+                        // Update About History if provided in the Master Admin Panel
+                        if (data.about_history && data.about_history.trim() !== "") {
+                            // Convert newlines to breaks for proper paragraph formatting
+                            const formattedText = data.about_history.replace(/\n/g, '<br><br>');
+                            document.getElementById('dynamicHistory').innerHTML = `<p>${formattedText}</p>`;
+                        }
+
+                        // Inject Constitution button if link is provided in Master Admin Panel
+                        if (data.constitution_link && data.constitution_link.trim() !== "") {
+                            const btnHtml = `<a href="${data.constitution_link}" target="_blank" class="const-btn">📄 View Official Constitution</a>`;
+                            document.getElementById('constitutionContainer').innerHTML = btnHtml;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn("Cloud connection issue. Loading static history fallback.");
+            }
+        };
+    </script>
+
+    <script src="navbar.js"></script>
     <div id="footer-container"></div>
 </body>
 </html>

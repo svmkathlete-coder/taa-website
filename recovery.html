@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account Recovery - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root { --primary: #0056b3; --accent: #FF8C00; --bg: #f8fafc; --white: #ffffff; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -59,6 +62,7 @@
 
         .btn-primary { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: 800; font-family: 'Montserrat'; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; transition: 0.2s; }
         .btn-primary:hover { background: #004494; transform: translateY(-2px); }
+        .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
 
         /* --- OTP & SUCCESS MESSAGES --- */
         .info-box { background: #e0f2fe; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 0.85em; color: #0369a1; font-weight: 600; text-align: center; border: 1px solid #bae6fd; }
@@ -110,8 +114,8 @@
             <p class="subtitle">Securely retrieve your UID or reset your password.</p>
 
             <div class="tab-toggles">
-                <button class="tab-btn active" id="btn-uid" onclick="switchTab('uid')">Recover UID</button>
-                <button class="tab-btn" id="btn-pass" onclick="switchTab('pass')">Reset Password</button>
+                <button class="tab-btn active" id="btn-uid" onclick="window.switchTab('uid')">Recover UID</button>
+                <button class="tab-btn" id="btn-pass" onclick="window.switchTab('pass')">Reset Password</button>
             </div>
 
             <div id="section-uid" class="form-section active">
@@ -132,21 +136,21 @@
                         <input type="text" id="recContact" class="form-control" placeholder="Enter Mobile No. or Email ID">
                     </div>
                     
-                    <button class="btn-primary" onclick="requestUidOTP()">Send OTP</button>
+                    <button class="btn-primary" id="uidBtn1" onclick="window.requestUidOTP()">Send OTP to Email</button>
                 </div>
 
                 <div id="uid-step-2" style="display: none;">
-                    <div class="info-box">A 6-digit OTP has been sent to your contact details.</div>
+                    <div class="info-box">A 6-digit OTP has been sent to your registered email address.</div>
                     <div class="form-group">
                         <label>Enter 6-Digit OTP</label>
                         <input type="text" id="uidOTP" class="form-control" placeholder="0 0 0 0 0 0" maxlength="6" style="text-align: center; font-size: 1.2em; letter-spacing: 8px;">
                     </div>
-                    <button class="btn-primary" onclick="verifyUidOTP()">Verify & Email My UID</button>
+                    <button class="btn-primary" id="uidBtn2" onclick="window.verifyUidOTP()">Verify & Email My UID</button>
                 </div>
 
                 <div id="uidSuccess" class="success-box">
                     <h3>✅ Verification Successful!</h3>
-                    <p style="font-size: 0.9em; line-height: 1.5;">Your Official AFI UID has been securely sent to your registered email address and mobile via SMS.</p>
+                    <p style="font-size: 0.9em; line-height: 1.5;">Your Official AFI UID has been securely sent to your registered email address.</p>
                 </div>
             </div>
 
@@ -165,7 +169,7 @@
                         <label>Registered Mobile or Email</label>
                         <input type="text" id="resetContact" class="form-control" placeholder="Enter Mobile No. or Email ID">
                     </div>
-                    <button class="btn-primary" onclick="requestPassOTP()">Send OTP</button>
+                    <button class="btn-primary" id="passBtn1" onclick="window.requestPassOTP()">Send OTP to Email</button>
                 </div>
 
                 <div id="pass-step-2" style="display: none;">
@@ -176,9 +180,9 @@
                     </div>
                     <div class="form-group">
                         <label>Create New Password</label>
-                        <input type="password" id="newPass" class="form-control" placeholder="Minimum 8 characters">
+                        <input type="password" id="newPass" class="form-control" placeholder="Minimum 6 characters">
                     </div>
-                    <button class="btn-primary" onclick="setNewPassword()">Secure New Password</button>
+                    <button class="btn-primary" id="passBtn2" onclick="window.setNewPassword()">Secure New Password</button>
                 </div>
 
                 <div id="passSuccess" class="success-box">
@@ -192,14 +196,25 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Global state for recovery flow
+        window.recoveredUser = null;
+        window.resetDocId = null;
+        window.resetUserEmail = null;
+        
+        // Live generated OTPs
+        window.activeUidOTP = null;
+        window.activePassOTP = null;
+
         // Tab switching logic
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
-            if(urlParams.get('tab') === 'pass') switchTab('pass');
+            if(urlParams.get('tab') === 'pass') window.switchTab('pass');
         };
 
-        function switchTab(tab) {
+        window.switchTab = function(tab) {
             document.getElementById('btn-uid').classList.remove('active');
             document.getElementById('btn-pass').classList.remove('active');
             document.getElementById('section-uid').classList.remove('active');
@@ -210,88 +225,207 @@
         }
 
         // ==========================================
-        //  UID RECOVERY LOGIC
+        //  UID RECOVERY LOGIC (CLOUD CONNECTED)
         // ==========================================
-        function requestUidOTP() {
+        window.requestUidOTP = async function() {
             const name = document.getElementById('recName').value.trim().toLowerCase();
             const dob = document.getElementById('recDob').value;
             const contact = document.getElementById('recContact').value.trim();
+            const btn = document.getElementById('uidBtn1');
             
-            const db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-            
-            // Look for a user where name, dob, AND contact matches
-            const userExists = db.find(u => 
-                (u.first_name || "").toLowerCase() === name && 
-                u.dob === dob && 
-                (u.mobile === contact || u.email === contact)
-            );
-            
-            // In a real system, we simulate sending the OTP to prevent data scraping
-            if (name !== "" && dob !== "" && contact !== "") {
-                if (userExists || true) { // 'or true' keeps the simulation smooth without crashing if the test db is empty
-                    document.getElementById('uid-step-1').style.display = 'none';
-                    document.getElementById('uid-step-2').style.display = 'block';
+            if (name === "" || dob === "" || contact === "") {
+                alert("Please fill in all fields (Name, DOB, and Contact).");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Verifying Identity...";
+
+            try {
+                // Fetch users to verify identity
+                const usersRef = collection(window.db, "users");
+                const snapshot = await getDocs(usersRef);
+                
+                let foundUser = null;
+                snapshot.forEach(d => {
+                    const data = d.data();
+                    if ((data.first_name || "").toLowerCase() === name && 
+                        data.dob === dob && 
+                        (data.mobile === contact || data.email === contact)) {
+                        foundUser = data;
+                    }
+                });
+
+                if (foundUser && foundUser.email) {
+                    window.recoveredUser = foundUser;
+                    
+                    // Generate a live 6-digit OTP
+                    window.activeUidOTP = Math.floor(100000 + Math.random() * 900000).toString();
+
+                    // Send the OTP via EmailJS
+                    if(window.emailjs) {
+                        await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                            subject: "TAA Portal - Your UID Recovery OTP",
+                            name: foundUser.first_name,
+                            message: `You requested to recover your AFI UID. \n\nYour One-Time Password (OTP) is: ${window.activeUidOTP} \n\nDo not share this code. It is valid for this session only.`
+                        });
+                        
+                        document.getElementById('uid-step-1').style.display = 'none';
+                        document.getElementById('uid-step-2').style.display = 'block';
+                    } else {
+                        alert("Email system is currently offline. Please try again later.");
+                    }
+                } else {
+                    alert("No account found matching those details, or no email address is linked to this account.");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Error connecting to database or email server. Please try again.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Send OTP to Email";
+            }
+        }
+
+        window.verifyUidOTP = async function() {
+            const enteredOtp = document.getElementById('uidOTP').value.trim();
+            const btn = document.getElementById('uidBtn2');
+
+            // Compare entered OTP with the dynamically generated one
+            if (enteredOtp === window.activeUidOTP) {
+                btn.disabled = true;
+                btn.innerText = "Emailing UID...";
+
+                // Send the actual UID via EmailJS
+                try {
+                    if(window.emailjs && window.recoveredUser.email) {
+                        await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                            subject: "Your TAA Portal UID",
+                            name: window.recoveredUser.first_name,
+                            message: `Authentication successful. \n\nYour official AFI UID is: ${window.recoveredUser.afi_uid} \n\nPlease keep this secure and use it to log into the portal.`
+                        });
+                    }
+                    
+                    document.getElementById('uid-step-2').style.display = 'none';
+                    document.getElementById('uidSuccess').style.display = 'block';
+                    window.activeUidOTP = null; // Clear OTP for security
+                } catch(e) {
+                    alert("OTP was correct, but failed to send the final email. Please contact support.");
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = "Verify & Email My UID";
                 }
             } else {
-                alert("Please fill in all fields (Name, DOB, and Contact).");
-            }
-        }
-
-        function verifyUidOTP() {
-            const otp = document.getElementById('uidOTP').value.trim();
-            if (otp === "123456") {
-                document.getElementById('uid-step-2').style.display = 'none';
-                document.getElementById('uidSuccess').style.display = 'block';
-            } else {
-                alert("Incorrect OTP. Please try again. (Hint: Use 123456)");
+                alert("Incorrect OTP. Please check your email and try again.");
             }
         }
 
         // ==========================================
-        //  PASSWORD RESET LOGIC
+        //  PASSWORD RESET LOGIC (CLOUD CONNECTED)
         // ==========================================
-        let resetTargetIndex = -1;
-
-        function requestPassOTP() {
-            const uid = document.getElementById('resetUID').value.trim();
+        window.requestPassOTP = async function() {
+            const uid = document.getElementById('resetUID').value.trim().toUpperCase();
             const dob = document.getElementById('resetDOB').value;
             const contact = document.getElementById('resetContact').value.trim();
+            const btn = document.getElementById('passBtn1');
             
-            const db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-            
-            // Find user matching UID, DOB, AND Contact
-            resetTargetIndex = db.findIndex(u => 
-                u.afi_uid === uid && 
-                u.dob === dob && 
-                (u.mobile === contact || u.email === contact)
-            );
-
-            if (uid !== "" && dob !== "" && contact !== "") {
-                if (resetTargetIndex !== -1) {
-                    document.getElementById('pass-step-1').style.display = 'none';
-                    document.getElementById('pass-step-2').style.display = 'block';
-                } else {
-                    alert("No matching account found for that UID, DOB, and Contact combination.");
-                }
-            } else {
+            if (uid === "" || dob === "" || contact === "") {
                 alert("Please fill in all fields (UID, DOB, and Contact).");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Searching...";
+
+            try {
+                const usersRef = collection(window.db, "users");
+                const snapshot = await getDocs(usersRef);
+                
+                let foundDocId = null;
+                let foundEmail = null;
+                let foundName = null;
+
+                snapshot.forEach(d => {
+                    const data = d.data();
+                    if ((data.afi_uid || "").toUpperCase() === uid && 
+                        data.dob === dob && 
+                        (data.mobile === contact || data.email === contact)) {
+                        foundDocId = d.id;
+                        foundEmail = data.email;
+                        foundName = data.first_name;
+                    }
+                });
+
+                if (foundDocId && foundEmail) {
+                    window.resetDocId = foundDocId;
+                    window.resetUserEmail = foundEmail;
+                    
+                    // Generate a live 6-digit OTP
+                    window.activePassOTP = Math.floor(100000 + Math.random() * 900000).toString();
+
+                    // Send the OTP via EmailJS
+                    if(window.emailjs) {
+                        await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                            subject: "TAA Portal - Password Reset OTP",
+                            name: foundName,
+                            message: `You requested a password reset for UID ${uid}. \n\nYour One-Time Password (OTP) is: ${window.activePassOTP} \n\nDo not share this code. It is valid for this session only.`
+                        });
+
+                        document.getElementById('pass-step-1').style.display = 'none';
+                        document.getElementById('pass-step-2').style.display = 'block';
+                    } else {
+                        alert("Email system is currently offline. Please try again later.");
+                    }
+                } else {
+                    alert("No matching account found, or no email address is linked to this account.");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Database error. Please try again.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Send OTP to Email";
             }
         }
 
-        function setNewPassword() {
-            const otp = document.getElementById('resetOTP').value.trim();
+        window.setNewPassword = async function() {
+            const enteredOtp = document.getElementById('resetOTP').value.trim();
             const newPass = document.getElementById('newPass').value.trim();
+            const btn = document.getElementById('passBtn2');
 
-            if (otp === "123456" && newPass.length >= 6) {
-                // Save new password to browser storage
-                const db = JSON.parse(localStorage.getItem('taa_portal_data'));
-                db[resetTargetIndex].password = newPass;
-                localStorage.setItem('taa_portal_data', JSON.stringify(db));
+            // Compare entered OTP with the dynamically generated one
+            if (enteredOtp === window.activePassOTP && newPass.length >= 6) {
+                btn.disabled = true;
+                btn.innerText = "Securing Password...";
 
-                document.getElementById('pass-step-2').style.display = 'none';
-                document.getElementById('passSuccess').style.display = 'block';
+                try {
+                    // Overwrite the password field in the user's specific Firestore document
+                    const userRef = doc(window.db, "users", window.resetDocId);
+                    await updateDoc(userRef, { password: newPass });
+
+                    // Optional: Send confirmation email
+                    if(window.emailjs && window.resetUserEmail) {
+                        window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                            subject: "TAA Portal Password Updated",
+                            name: "User",
+                            message: "Your password was successfully reset. If you did not make this change, please contact administration immediately."
+                        });
+                    }
+
+                    document.getElementById('pass-step-2').style.display = 'none';
+                    document.getElementById('passSuccess').style.display = 'block';
+                    window.activePassOTP = null; // Clear OTP for security
+                } catch(e) {
+                    console.error(e);
+                    alert("Failed to update password in database. Please try again.");
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = "Secure New Password";
+                }
+            } else if (newPass.length < 10) {
+                alert("Password is too short (minimum 10 characters).");
             } else {
-                alert("Incorrect OTP or password is too short (minimum 6 characters).");
+                alert("Incorrect OTP. Please check your email and try again.");
             }
         }
     </script>

@@ -1,9 +1,9 @@
 /**
- * TAA Master Event Engine 2026-27
- * Professional Version: Gender-Specific Specs & Multi-Category Logic
+ * TAA Technical Rulebook 2026-27
+ * Purpose: Mapping events, weights, and heights per AFI Guidelines
  */
 
-const TAA_MASTER_DATA = {
+export const TAA_MASTER_DATA = {
     season: "2026-27",
     defaultCutOff: "2026-12-31",
 
@@ -97,3 +97,5 @@ const TAA_MASTER_DATA = {
         return "Seniors";
     }
 };
+
+window.TAA_MASTER_DATA = TAA_MASTER_DATA;

@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Member Profile - TAA Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root { --primary: #0056b3; --accent: #FF8C00; --sidebar: #0f172a; --bg: #f8fafc; --text: #334155; --border: #e2e8f0; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -80,10 +83,10 @@
             </div>
         </div>
         <div class="nav-items">
-            <button class="nav-btn active" onclick="window.location.href='taa-admin.html'">👥 Member Database</button>
-            <button class="nav-btn" onclick="window.location.href='taa-admin.html'">📅 Season Calendar</button>
-            <button class="nav-btn" onclick="window.location.href='taa-admin.html'">📝 Registration Control</button>
-            <button class="nav-btn" onclick="window.location.href='taa-admin.html'">🔴 Live Meet Manager</button>
+            <button class="nav-btn active" onclick="window.location.href='admin-dashboard.html'">👥 Member Database</button>
+            <button class="nav-btn" onclick="window.location.href='admin-dashboard.html'">📅 Season Calendar</button>
+            <button class="nav-btn" onclick="window.location.href='admin-dashboard.html'">📝 Registration Control</button>
+            <button class="nav-btn" onclick="window.location.href='admin-dashboard.html'">🔴 Live Meet Manager</button>
         </div>
     </aside>
 
@@ -93,7 +96,7 @@
         </header>
 
         <div class="workspace">
-            <a href="taa-admin.html" class="back-link">← Back to Member Database</a>
+            <a href="admin-dashboard.html" class="back-link">← Back to Member Database</a>
             
             <h1 class="profile-header-title" id="displayFullName">Loading Profile...</h1>
             <span class="profile-uid" id="displayUID">AFI UID / User ID: --------</span>
@@ -169,7 +172,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Member Role</label>
-                                <select id="editRole" class="form-control" onchange="toggleRolePanels()">
+                                <select id="editRole" class="form-control" onchange="window.toggleRolePanels()">
                                     <option value="Athlete">Athlete</option>
                                     <option value="Coach">Coach</option>
                                     <option value="Official">Official</option>
@@ -251,7 +254,7 @@
                             <h3>System Actions</h3>
                         </div>
                         <span class="status-badge" id="accountStatus">Verified Account</span>
-                        <button class="btn-primary" onclick="saveProfileChanges()">💾 Save All Changes</button>
+                        <button class="btn-primary" onclick="window.saveProfileChanges()">💾 Save All Changes</button>
                         
                         <hr style="border: none; border-top: 1px solid #cbd5e1; margin: 25px 0;">
                         
@@ -285,115 +288,194 @@
         </div>
     </main>
 
-    <script>
-        let currentUserIndex = -1;
-        let database = [];
+    <script type="module">
+        import { collection, query, where, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // UI Logic to switch panels based on Role
-        function toggleRolePanels() {
+        // State tracking variables for Firebase
+        window.currentDocId = null;
+        window.currentCollectionName = null;
+        window.originalEmail = null;
+
+        // Make functions globally available for inline onclicks
+        window.toggleRolePanels = function() {
             const role = document.getElementById('editRole').value;
-            // Hide all
             document.querySelectorAll('.role-section').forEach(p => p.classList.remove('active'));
-            // Show selected
             const activePanel = document.getElementById(`panel-${role}`);
             if(activePanel) activePanel.classList.add('active');
-        }
+        };
 
-        window.onload = function() {
+        window.onload = async function() {
             const urlParams = new URLSearchParams(window.location.search);
             const targetUID = urlParams.get('uid');
 
-            database = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-            currentUserIndex = database.findIndex(u => u.afi_uid === targetUID);
-
-            if (currentUserIndex === -1) {
-                alert("Profile not found in the database. Returning to Admin Panel.");
-                window.location.href = 'taa-admin.html';
+            if (!targetUID) {
+                alert("No User ID provided in URL.");
+                window.location.href = 'admin-dashboard.html';
                 return;
             }
 
-            const user = database[currentUserIndex];
+            let foundUser = null;
 
-            // Header Setup
-            document.getElementById('displayFullName').innerText = `${user.first_name || ''} ${user.last_name || ''}`;
-            document.getElementById('displayUID').innerText = `AFI UID / USER ID: ${user.afi_uid}`;
-            
-            // Standard Fields
-            document.getElementById('editUID').value = user.afi_uid || '';
-            document.getElementById('editEmail').value = user.email || '';
-            document.getElementById('editMobile').value = user.mobile || '';
-            document.getElementById('editPassword').value = user.password || ''; // Usually masked, shown here for admin override
-            
-            document.getElementById('editFirstName').value = user.first_name || '';
-            document.getElementById('editLastName').value = user.last_name || '';
-            document.getElementById('editDOB').value = user.dob || '';
-            document.getElementById('editGender').value = user.gender || 'Male';
-            
-            document.getElementById('editRole').value = user.role || 'Athlete';
-            document.getElementById('editDistrict').value = user.dist || 'Hyderabad';
-            
-            // Specific Fields Loading
-            if(user.role === 'Athlete') {
-                document.getElementById('editFatherName').value = user.father_name || '';
-                document.getElementById('editBloodGroup').value = user.blood_group || '';
-                document.getElementById('editMappedCoach').value = user.coach || '';
-            } else if (user.role === 'Coach') {
-                document.getElementById('editCoachCert').value = user.cert_level || 'NIS Diploma';
-                document.getElementById('editAcademy').value = user.academy || '';
-            } else if (user.role === 'Official') {
-                document.getElementById('editOfficialCert').value = user.cert_level || 'State Technical Official (STO)';
-                document.getElementById('editSpecialization').value = user.specialization || 'Track / Starter';
+            try {
+                if (window.db) {
+                    // Search in 'users' collection first (Athletes & Coaches)
+                    const qUsers = query(collection(window.db, "users"), where("afi_uid", "==", targetUID));
+                    const snapUsers = await getDocs(qUsers);
+                    
+                    if (!snapUsers.empty) {
+                        foundUser = snapUsers.docs[0].data();
+                        window.currentDocId = snapUsers.docs[0].id;
+                        window.currentCollectionName = "users";
+                    } else {
+                        // If not found, search in 'officials' collection
+                        const qOfficials = query(collection(window.db, "officials"), where("afi_uid", "==", targetUID));
+                        const snapOfficials = await getDocs(qOfficials);
+                        if (!snapOfficials.empty) {
+                            foundUser = snapOfficials.docs[0].data();
+                            window.currentDocId = snapOfficials.docs[0].id;
+                            window.currentCollectionName = "officials";
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn("Cloud connection error. Searching local database fallback.");
             }
 
-            // Trigger the panel visibility
-            toggleRolePanels();
+            // --- LOCAL STORAGE FALLBACK ---
+            if (!foundUser) {
+                let localDb = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+                let localIndex = localDb.findIndex(u => u.afi_uid === targetUID);
+                
+                if (localIndex > -1) {
+                    foundUser = localDb[localIndex];
+                    window.currentDocId = localIndex; // Use index as ID for local updates
+                    window.currentCollectionName = "local";
+                }
+            }
+
+            if (!foundUser) {
+                alert("Profile not found in the database. Returning to Admin Panel.");
+                window.location.href = 'admin-dashboard.html';
+                return;
+            }
+
+            // Save original email to use for notifications
+            window.originalEmail = foundUser.email || '';
+
+            // Populate Header Setup
+            document.getElementById('displayFullName').innerText = `${foundUser.first_name || ''} ${foundUser.last_name || ''}`;
+            document.getElementById('displayUID').innerText = `AFI UID / USER ID: ${foundUser.afi_uid}`;
+            
+            // Populate Standard Fields
+            document.getElementById('editUID').value = foundUser.afi_uid || '';
+            document.getElementById('editEmail').value = foundUser.email || '';
+            document.getElementById('editMobile').value = foundUser.mobile || '';
+            document.getElementById('editPassword').value = ''; // Don't expose current password, leave blank to keep
+            
+            document.getElementById('editFirstName').value = foundUser.first_name || '';
+            document.getElementById('editLastName').value = foundUser.last_name || '';
+            document.getElementById('editDOB').value = foundUser.dob || '';
+            document.getElementById('editGender').value = foundUser.gender || 'Male';
+            
+            document.getElementById('editRole').value = foundUser.role || foundUser.regType || 'Athlete';
+            
+            // Ensure district exists in the dropdown or just set it
+            const distSelect = document.getElementById('editDistrict');
+            const userDist = foundUser.dist || foundUser.district || 'Hyderabad';
+            let optionExists = Array.from(distSelect.options).some(opt => opt.value === userDist);
+            if(!optionExists) {
+                distSelect.innerHTML += `<option value="${userDist}">${userDist}</option>`;
+            }
+            distSelect.value = userDist;
+            
+            // Populate Specific Fields Loading
+            const role = document.getElementById('editRole').value;
+            if(role === 'Athlete') {
+                document.getElementById('editFatherName').value = foundUser.father_name || '';
+                document.getElementById('editBloodGroup').value = foundUser.blood_group || '';
+                document.getElementById('editMappedCoach').value = foundUser.coach || '';
+            } else if (role === 'Coach') {
+                document.getElementById('editCoachCert').value = foundUser.cert_level || 'NIS Diploma';
+                document.getElementById('editAcademy').value = foundUser.academy || '';
+            } else if (role === 'Official') {
+                document.getElementById('editOfficialCert').value = foundUser.cert_level || 'State Technical Official (STO)';
+                document.getElementById('editSpecialization').value = foundUser.specialization || 'Track / Starter';
+            }
+
+            // Trigger the panel visibility based on fetched data
+            window.toggleRolePanels();
         };
 
-        function saveProfileChanges() {
-            if (currentUserIndex === -1) return;
+        window.saveProfileChanges = async function() {
+            if (window.currentDocId === null || !window.currentCollectionName) {
+                alert("Error: Cannot find active document to update.");
+                return;
+            }
 
-            // Save Standard Fields
-            database[currentUserIndex].email = document.getElementById('editEmail').value;
-            database[currentUserIndex].mobile = document.getElementById('editMobile').value;
+            // Collect Standard Fields
+            const updatedData = {
+                email: document.getElementById('editEmail').value,
+                mobile: document.getElementById('editMobile').value,
+                first_name: document.getElementById('editFirstName').value,
+                last_name: document.getElementById('editLastName').value,
+                dob: document.getElementById('editDOB').value,
+                gender: document.getElementById('editGender').value,
+                role: document.getElementById('editRole').value,
+                dist: document.getElementById('editDistrict').value
+            };
             
             // Only update password if admin typed something new
             const newPass = document.getElementById('editPassword').value;
             if(newPass.trim() !== '') {
-                database[currentUserIndex].password = newPass;
+                updatedData.password = newPass;
             }
 
-            database[currentUserIndex].first_name = document.getElementById('editFirstName').value;
-            database[currentUserIndex].last_name = document.getElementById('editLastName').value;
-            database[currentUserIndex].dob = document.getElementById('editDOB').value;
-            database[currentUserIndex].gender = document.getElementById('editGender').value;
-            
-            const selectedRole = document.getElementById('editRole').value;
-            database[currentUserIndex].role = selectedRole;
-            database[currentUserIndex].dist = document.getElementById('editDistrict').value;
-
-            // Save Specific Fields based on Role
+            // Collect Specific Fields based on Role
+            const selectedRole = updatedData.role;
             if(selectedRole === 'Athlete') {
-                database[currentUserIndex].father_name = document.getElementById('editFatherName').value;
-                database[currentUserIndex].blood_group = document.getElementById('editBloodGroup').value;
-                database[currentUserIndex].coach = document.getElementById('editMappedCoach').value;
+                updatedData.father_name = document.getElementById('editFatherName').value;
+                updatedData.blood_group = document.getElementById('editBloodGroup').value;
+                updatedData.coach = document.getElementById('editMappedCoach').value;
             } else if (selectedRole === 'Coach') {
-                database[currentUserIndex].cert_level = document.getElementById('editCoachCert').value;
-                database[currentUserIndex].academy = document.getElementById('editAcademy').value;
+                updatedData.cert_level = document.getElementById('editCoachCert').value;
+                updatedData.academy = document.getElementById('editAcademy').value;
             } else if (selectedRole === 'Official') {
-                database[currentUserIndex].cert_level = document.getElementById('editOfficialCert').value;
-                database[currentUserIndex].specialization = document.getElementById('editSpecialization').value;
+                updatedData.cert_level = document.getElementById('editOfficialCert').value;
+                updatedData.specialization = document.getElementById('editSpecialization').value;
             }
 
-            // Push to local storage
-            localStorage.setItem('taa_portal_data', JSON.stringify(database));
+            try {
+                if (window.currentCollectionName === "local") {
+                    // Update Local Storage Fallback
+                    let db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+                    db[window.currentDocId] = { ...db[window.currentDocId], ...updatedData };
+                    localStorage.setItem('taa_portal_data', JSON.stringify(db));
+                } else {
+                    // Update specific document in Firestore
+                    const docRef = doc(window.db, window.currentCollectionName, window.currentDocId);
+                    await updateDoc(docRef, updatedData);
+                }
 
-            // UI Refresh
-            const updatedName = `${database[currentUserIndex].first_name} ${database[currentUserIndex].last_name}`;
-            document.getElementById('displayFullName').innerText = updatedName;
-            document.getElementById('editPassword').value = ''; // clear password field after save
+                // UI Refresh
+                const updatedName = `${updatedData.first_name} ${updatedData.last_name}`;
+                document.getElementById('displayFullName').innerText = updatedName;
+                document.getElementById('editPassword').value = ''; 
 
-            alert(`Success: ${updatedName}'s profile has been securely updated!`);
-        }
+                // Send Email Notification if Password was changed
+                if (newPass.trim() !== '' && window.emailjs && window.originalEmail) {
+                    await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                        subject: "TAA Portal - Account Credentials Updated",
+                        name: updatedData.first_name,
+                        message: `Your TAA Portal account has been updated by the Master Administration.\n\nYour new password is: ${newPass}\n\nPlease log in and keep this secure.`
+                    });
+                }
+
+                alert(`Success: ${updatedName}'s profile has been securely updated!`);
+            } catch (error) {
+                console.error("Error saving changes:", error);
+                alert("Failed to save changes. Please check your connection.");
+            }
+        };
     </script>
 </body>
 </html>

@@ -6,6 +6,8 @@
     <title>Press Articles - Telangana Athletics Association</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root {
             --primary: #0056b3;
@@ -145,6 +147,7 @@
             font-weight: 800;
             text-transform: uppercase;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 2;
         }
 
         .article-content {
@@ -226,9 +229,11 @@
             </div>
     </div>
 
-    <script>
-        // Mock Database of Press Articles Synced to Calendar Years
-        const articles = [
+    <script type="module">
+        import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // --- 1. PRESERVED HARDCODED DATABASE ---
+        const localArticles = [
             { 
                 title: "Telangana Athletics Association Launches Revolutionary Digital Portal", 
                 publisher: "The Times of India",
@@ -276,8 +281,8 @@
             }
         ];
 
-        // Populate the 2000-2100 dropdown
-        function populateArticleYears() {
+        // --- 2. POPULATE YEARS (2000-2100) ---
+        window.populateArticleYears = function() {
             let options = "";
             const currentYear = 2026; 
             for (let yr = 2000; yr <= 2100; yr++) {
@@ -287,13 +292,37 @@
             document.getElementById('articleYearFilter').innerHTML = options;
         }
 
-        // Filter Grid based on selected year
-        function filterArticles() {
+        // --- 3. FILTER & CLOUD SYNC LOGIC ---
+        window.filterArticles = async function() {
             const selectedYear = document.getElementById('articleYearFilter').value;
             const grid = document.getElementById('articleGrid');
-            grid.innerHTML = '';
+            
+            // 1. Fetch local hardcoded articles
+            let filteredArticles = localArticles.filter(article => article.categoryYear === selectedYear);
 
-            const filteredArticles = articles.filter(article => article.categoryYear === selectedYear);
+            // 2. Fetch extra cloud articles from Firebase
+            try {
+                if (window.db) {
+                    const q = query(collection(window.db, "press_articles"));
+                    const snap = await getDocs(q);
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        if (data.categoryYear === selectedYear) {
+                            filteredArticles.push({
+                                title: data.title,
+                                publisher: data.publisher || "TAA Update",
+                                date: data.date,
+                                excerpt: data.excerpt || "",
+                                img: data.img || "https://via.placeholder.com/800x400?text=News+Image",
+                                link: data.link || "#",
+                                isCloud: true
+                            });
+                        }
+                    });
+                }
+            } catch(e) { console.warn("Cloud news sync pending."); }
+
+            grid.innerHTML = '';
 
             if (filteredArticles.length === 0) {
                 grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #64748b; font-weight: 700; font-size: 1.2em; padding: 40px 0;">No media coverage archived for this season yet.</p>';
@@ -301,6 +330,9 @@
             }
 
             filteredArticles.forEach(article => {
+                // Add a "NEW" badge to the title if it was pulled from the cloud
+                const cloudBadge = article.isCloud ? `<span style="background:var(--accent); color:white; padding:2px 6px; border-radius:4px; font-size:0.65em; margin-left:8px; vertical-align:middle;">NEW</span>` : "";
+
                 grid.innerHTML += `
                     <a href="${article.link}" class="article-card" target="_blank">
                         <div class="article-img-wrapper">
@@ -309,7 +341,7 @@
                         </div>
                         <div class="article-content">
                             <div class="article-date">📅 ${article.date}</div>
-                            <h3 class="article-title">${article.title}</h3>
+                            <h3 class="article-title">${article.title} ${cloudBadge}</h3>
                             <p class="article-excerpt">${article.excerpt}</p>
                             <div class="read-more">Read Full Article</div>
                         </div>
@@ -320,8 +352,8 @@
 
         // Initialize Page
         window.onload = () => {
-            populateArticleYears();
-            filterArticles();
+            window.populateArticleYears();
+            window.filterArticles();
         };
 
     </script>

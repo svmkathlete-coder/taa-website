@@ -6,14 +6,16 @@
     <title>Education Hub - Telangana Athletics Association</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root {
-            /* Standard TAA Variables for Navbar */
+            /* Standard TAA Variables */
             --primary: #0056b3;
             --accent: #FF8C00;
             --white: #ffffff;
             
-            /* Education Page Specific Variables */
+            /* Education Page Specific */
             --wa-blue: #0056b3;
             --wa-light: #35CAFE;
             --wa-orange: #FF8C00;
@@ -25,7 +27,7 @@
         
         body { 
             font-family: 'Open Sans', sans-serif; 
-            background: linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), 
+            background: linear-gradient(rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.92)), 
                         url('https://images.unsplash.com/photo-1530549387634-e797ca3501a3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80'); 
             background-size: cover;
             background-attachment: fixed;
@@ -34,43 +36,47 @@
             min-height: 100vh;
         }
 
-        /* --- Standard TAA Navigation Styles for navbar.js --- */
-        .navbar { background: var(--white); box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 9999; padding: 5px 0; }
-        .nav-container { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
-        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-logo img { width: 55px; height: 55px; }
-        .logo-text { display: flex; flex-direction: column; }
-        .main-title { color: var(--primary); font-weight: 800; font-size: 1.1em; line-height: 1; font-family: 'Montserrat'; }
-        .sub-title { color: #64748b; font-weight: 600; font-size: 0.75em; letter-spacing: 1px; }
-        .nav-menu { display: flex; list-style: none; gap: 15px; align-items: center; margin: 0; padding: 0; }
-        .nav-menu li { position: relative; } 
-        .nav-menu a { text-decoration: none; color: #1a1a1a; font-weight: 700; font-size: 0.82em; transition: 0.3s; padding: 15px 5px; font-family: 'Montserrat'; text-transform: uppercase; display: block; }
-        .nav-menu a:hover { color: var(--accent); }
-        .dropdown-content { display: none; position: absolute; background-color: var(--white); min-width: 220px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); z-index: 1; top: 100%; left: 0; border-top: 3px solid var(--accent); }
-        .dropdown-content a { color: #333; padding: 12px 16px; text-decoration: none; display: block; text-transform: none; font-size: 0.85em; border-bottom: 1px solid #f1f1f1; }
-        .dropdown-content a:hover { background-color: #f9f9f9; color: var(--primary); }
-        .dropdown:hover .dropdown-content { display: block; }
-        .ors-btn { background: var(--primary) !important; color: white !important; padding: 10px 22px !important; border-radius: 50px; margin-left: 10px; box-shadow: 0 4px 12px rgba(0, 86, 179, 0.2); display: inline-block !important; }
-        @media (max-width: 768px) { .nav-menu { display: none; } }
-
-        /* --- Hero Section --- */
-        .hero { padding: 100px 20px; text-align: center; background: radial-gradient(circle at center, rgba(53, 202, 254, 0.1) 0%, transparent 70%); }
-        .hero h1 { font-family: 'Montserrat'; font-weight: 800; font-size: 3.5em; text-transform: uppercase; letter-spacing: -2px; margin-bottom: 15px; background: linear-gradient(to right, #fff, var(--wa-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        /* Hero Section */
+        .hero { padding: 100px 20px 60px; text-align: center; background: radial-gradient(circle at center, rgba(53, 202, 254, 0.1) 0%, transparent 70%); }
+        .hero h1 { 
+            font-family: 'Montserrat'; font-weight: 800; font-size: 3.5em; 
+            text-transform: uppercase; letter-spacing: -2px; margin-bottom: 15px; 
+            background: linear-gradient(to right, #fff, var(--wa-light)); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+        }
         .hero p { max-width: 700px; margin: 0 auto; opacity: 0.8; font-size: 1.1em; letter-spacing: 0.5px; }
 
-        /* --- Resource Grid --- */
+        /* Resource Grid */
         .container { max-width: 1200px; margin: 0 auto 100px; padding: 0 20px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px; }
 
-        .card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 40px; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; }
+        .card { 
+            background: var(--glass); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 20px; 
+            padding: 40px; 
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            position: relative; 
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
         .card:hover { transform: translateY(-10px); background: rgba(255, 255, 255, 0.15); border-color: var(--wa-light); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
         .card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--wa-orange); }
 
-        .badge { display: inline-block; padding: 5px 12px; background: rgba(53, 202, 254, 0.2); color: var(--wa-light); font-weight: 800; font-size: 0.65em; border-radius: 5px; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1px; }
+        .badge { display: inline-block; padding: 5px 12px; background: rgba(53, 202, 254, 0.2); color: var(--wa-light); font-weight: 800; font-size: 0.65em; border-radius: 5px; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1px; width: fit-content; }
         .card h3 { font-family: 'Montserrat'; font-size: 1.3em; margin-bottom: 15px; color: #fff; }
-        .card p { color: #cbd5e1; font-size: 0.9em; margin-bottom: 30px; height: 60px; overflow: hidden; }
+        .card p { color: #cbd5e1; font-size: 0.9em; margin-bottom: 30px; line-height: 1.7; }
         
-        .btn-dl { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px; background: var(--wa-blue); color: #fff; text-decoration: none; border-radius: 10px; font-weight: 800; font-family: 'Montserrat'; font-size: 0.8em; text-transform: uppercase; transition: 0.3s; }
+        .btn-dl { 
+            display: flex; align-items: center; justify-content: center; gap: 10px; 
+            padding: 14px; background: var(--wa-blue); color: #fff; 
+            text-decoration: none; border-radius: 10px; font-weight: 800; 
+            font-family: 'Montserrat'; font-size: 0.8em; text-transform: uppercase; 
+            transition: 0.3s; margin-top: auto;
+        }
         .btn-dl:hover { background: var(--wa-orange); box-shadow: 0 5px 15px rgba(255, 140, 0, 0.4); }
 
         @media (max-width: 768px) { .hero h1 { font-size: 2.5em; } .grid { grid-template-columns: 1fr; } }
@@ -83,51 +89,63 @@
 
     <header class="hero">
         <h1>Global Education Portal</h1>
-        <p>Direct access to World Athletics™ Technical Manuals, AFI Coaching Modules, and NADA Integrity Standards.</p>
+        <p>Direct access to World Athletics™ Technical Manuals, AFI Coaching Modules, and Anti-Doping Integrity Standards for 2026.</p>
     </header>
 
     <div class="container">
         <div class="grid">
             
             <div class="card">
-                <span class="badge">Technical Info</span>
-                <h3>WA Competition Rules 2026</h3>
-                <p>The definitive 2026 edition of technical and competition rules for track, field, and road running.</p>
+                <div>
+                    <span class="badge">Technical Info</span>
+                    <h3>WA Competition Rules 2026</h3>
+                    <p>The definitive 2026 edition of technical and competition rules for track, field, and road running. Essential for officials and coaches.</p>
+                </div>
                 <a href="https://worldathletics.org/about-iaaf/documents/technical-information" target="_blank" class="btn-dl">Download Official PDF</a>
             </div>
 
             <div class="card">
-                <span class="badge">Infrastructure</span>
-                <h3>Track & Field Facilities Manual</h3>
-                <p>Global standards for track marking plans, synthetic surface testing, and stadium equipment specifications.</p>
+                <div>
+                    <span class="badge">Infrastructure</span>
+                    <h3>Track & Field Facilities Manual</h3>
+                    <p>Global standards for track marking plans, synthetic surface testing, and stadium equipment specifications required for WA certification.</p>
+                </div>
                 <a href="https://worldathletics.org/about-iaaf/documents/technical-information" target="_blank" class="btn-dl">Access Manuals</a>
             </div>
 
             <div class="card">
-                <span class="badge">Development</span>
-                <h3>CECS Coaching System</h3>
-                <p>The 5-Level Coaches Education and Certification System (CECS) framework for professional development.</p>
+                <div>
+                    <span class="badge">Development</span>
+                    <h3>CECS Coaching System</h3>
+                    <p>The 5-Level Coaches Education and Certification System (CECS) framework. Learn the pathways to becoming a World Athletics certified coach.</p>
+                </div>
                 <a href="https://worldathletics.org/news/news/the-iaaf-coaches-education-and-certification" target="_blank" class="btn-dl">Explore 5-Levels</a>
             </div>
 
             <div class="card">
-                <span class="badge" style="background: rgba(40, 167, 69, 0.2); color: #28a745;">Interactive</span>
-                <h3>WA e-Learning Platform</h3>
-                <p>Online courses, webinars, and certification modules for coaches, officials, and athletes.</p>
-                <a href="https://idp.worldathletics.org/login?client_id=1fii9kveoj2c500vg4pqn98r34&response_type=code&response_mode=&scope=aws.cognito.signin.user.admin+email+openid+profile&redirect_uri=https%3A%2F%2Fworldathletics.backend.prod.cls-eu-west-1-alpha.thelearning-lab.com%2Fapi%2Fsso%2Fsign-in&state=YLYvPCKGCts8aAMh" target="_blank" class="btn-dl">Launch Learning Hub</a>
-            </div>
-
-            <div class="card" style="border-top-color: #dc3545;">
-                <span class="badge" style="background: rgba(220, 53, 69, 0.2); color: #dc3545;">Integrity</span>
-                <h3>WADA Clean Sports 2026</h3>
-                <p>Latest TUE processes and the prohibited substance list from the World Anti-Doping Agency.</p>
-                <a href="https://www.wada-ama.org/en/resources" target="_blank" class="btn-dl">View NADA Guidelines</a>
+                <div>
+                    <span class="badge" style="background: rgba(40, 167, 69, 0.2); color: #28a745;">Interactive</span>
+                    <h3>WA e-Learning Platform</h3>
+                    <p>Official online courses and certification modules for coaches, technical officials, and elite athletes to stay updated globally.</p>
+                </div>
+                <a href="https://idp.worldathletics.org/" target="_blank" class="btn-dl">Launch Learning Hub</a>
             </div>
 
             <div class="card">
-                <span class="badge">Strategy</span>
-                <h3>World Athletics Plan 2030</h3>
-                <p>Strategic roadmap for the growth, sustainability, and global future of athletics (2022-2030).</p>
+                <div>
+                    <span class="badge" style="background: rgba(220, 53, 69, 0.2); color: #dc3545;">Integrity</span>
+                    <h3>WADA Clean Sports 2026</h3>
+                    <p>Latest Prohibited Substance list and TUE (Therapeutic Use Exemptions) processes from the World Anti-Doping Agency and NADA India.</p>
+                </div>
+                <a href="https://www.wada-ama.org/en/resources" target="_blank" class="btn-dl">View Integrity Guidelines</a>
+            </div>
+
+            <div class="card">
+                <div>
+                    <span class="badge">Strategy</span>
+                    <h3>World Athletics Plan 2030</h3>
+                    <p>The strategic roadmap for growth, sustainability, and the global future of athletics. Shaping the sport for the next decade.</p>
+                </div>
                 <a href="https://worldathletics.org/about-iaaf/documents/strategic-plans-and-reports" target="_blank" class="btn-dl">View Strategic Report</a>
             </div>
 

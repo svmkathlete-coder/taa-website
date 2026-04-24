@@ -6,6 +6,8 @@
     <title>Official Registration - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root {
             --primary: #0056b3;
@@ -148,7 +150,45 @@
             <h3>3. Address Details</h3>
             <div class="input-group"><label>Address*</label><textarea name="address" rows="2" required></textarea></div>
             <div class="grid">
-                <div class="input-group"><label>District*</label><input type="text" name="district" required></div>
+                <div class="input-group">
+                    <label>District*</label>
+                    <select name="district" required style="width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 8px; outline: none; font-size: 0.95em;">
+                        <option value="">Select District</option>
+                        <option value="Adilabad">Adilabad</option>
+                        <option value="Bhadradri Kothagudem">Bhadradri Kothagudem</option>
+                        <option value="Hanumakonda">Hanumakonda</option>
+                        <option value="Hyderabad">Hyderabad</option>
+                        <option value="Jagtial">Jagtial</option>
+                        <option value="Jangaon">Jangaon</option>
+                        <option value="Jayashankar Bhupalpally">Jayashankar Bhupalpally</option>
+                        <option value="Jogulamba Gadwal">Jogulamba Gadwal</option>
+                        <option value="Kamareddy">Kamareddy</option>
+                        <option value="Karimnagar">Karimnagar</option>
+                        <option value="Khammam">Khammam</option>
+                        <option value="Kumuram Bheem Asifabad">Kumuram Bheem Asifabad</option>
+                        <option value="Mahabubabad">Mahabubabad</option>
+                        <option value="Mahabubnagar">Mahabubnagar</option>
+                        <option value="Mancherial">Mancherial</option>
+                        <option value="Medak">Medak</option>
+                        <option value="Medchal-Malkajgiri">Medchal-Malkajgiri</option>
+                        <option value="Mulugu">Mulugu</option>
+                        <option value="Nagarkurnool">Nagarkurnool</option>
+                        <option value="Nalgonda">Nalgonda</option>
+                        <option value="Narayanpet">Narayanpet</option>
+                        <option value="Nirmal">Nirmal</option>
+                        <option value="Nizamabad">Nizamabad</option>
+                        <option value="Peddapalli">Peddapalli</option>
+                        <option value="Rajanna Sircilla">Rajanna Sircilla</option>
+                        <option value="Ranga Reddy">Ranga Reddy</option>
+                        <option value="Sangareddy">Sangareddy</option>
+                        <option value="Siddipet">Siddipet</option>
+                        <option value="Suryapet">Suryapet</option>
+                        <option value="Vikarabad">Vikarabad</option>
+                        <option value="Wanaparthy">Wanaparthy</option>
+                        <option value="Warangal">Warangal</option>
+                        <option value="Yadadri Bhuvanagiri">Yadadri Bhuvanagiri</option>
+                    </select>
+                </div>
                 <div class="input-group"><label>Pincode*</label><input type="text" name="pincode" maxlength="6" required></div>
             </div>
 
@@ -183,7 +223,7 @@
             </div>
 
             <div class="submit-row">
-                <button type="submit" class="btn-submit">Register</button>
+                <button type="submit" class="btn-submit" id="submitBtn">Register</button>
             </div>
         </form>
     </div>
@@ -205,7 +245,11 @@
         </div>
     </div>
 
-<script>
+<script type="module">
+    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import { doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // Dynamic Dropdown Logic
     const levelsMap = {
         "International Technical Official": ["WA Referee Bronze", "WA Referee Silver", "WA Race Walk Judge Bronze", "WA Race Walk Judge Silver", "WA Competition Director"],
         "National Technical Official": ["NTO", "Level 1 (TOECS Level 1)", "National Race Walk Judge"],
@@ -228,10 +272,10 @@
         }
     });
 
-    document.getElementById('officialForm').addEventListener('submit', function(e) {
+    document.getElementById('officialForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        // NEW: Password Validation check
+        // Password Validation check
         const pwd = document.getElementById('reg_pwd').value;
         const pwdConfirm = document.getElementById('reg_pwd_confirm').value;
         if (pwd !== pwdConfirm) {
@@ -241,27 +285,108 @@
             return;
         }
 
+        const submitBtn = document.getElementById('submitBtn');
+        const originalBtnText = submitBtn.innerText;
+        submitBtn.innerText = "Checking Database...";
+        submitBtn.disabled = true;
+
         const formData = new FormData(this);
         const data = {};
         formData.forEach((value, key) => {
             data[key] = (value instanceof File) ? value.name : value;
         });
         
-        // NEW: Ensure the entered UID is saved in uppercase
         const enteredUID = document.getElementById('reg_afi_uid').value.toUpperCase();
-        data.afi_uid = enteredUID;
+        const aadhaarVal = data.aadhaar;
 
-        data.regType = "Official";
-        data.status = "Pending"; // Set to pending for Admin verification
-        data.timestamp = new Date().toLocaleString();
+        try {
+            // --- BULLETPROOF CROSS-COLLECTION DUPLICATE CHECK ---
+            if (window.db) {
+                // Scans BOTH the 'users' and 'officials' collections to ensure total security
+                const qUIDUsers = query(collection(window.db, "users"), where("afi_uid", "==", enteredUID));
+                const qAadhaarUsers = query(collection(window.db, "users"), where("aadhaar", "==", aadhaarVal));
+                const qUIDOff = query(collection(window.db, "officials"), where("afi_uid", "==", enteredUID));
+                const qAadhaarOff = query(collection(window.db, "officials"), where("aadhaar", "==", aadhaarVal));
+                
+                const [snapUID1, snapAadhaar1, snapUID2, snapAadhaar2] = await Promise.all([
+                    getDocs(qUIDUsers), getDocs(qAadhaarUsers), getDocs(qUIDOff), getDocs(qAadhaarOff)
+                ]);
 
-        let list = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-        list.push(data);
-        localStorage.setItem('taa_portal_data', JSON.stringify(list));
+                if (!snapUID1.empty || !snapUID2.empty) {
+                    alert("Registration Error: This AFI Official ID is already registered in our system. Please proceed to the Login page.");
+                    submitBtn.innerText = originalBtnText; 
+                    submitBtn.disabled = false;
+                    return;
+                }
+                if (!snapAadhaar1.empty || !snapAadhaar2.empty) {
+                    alert("Registration Error: This Aadhaar Number is already linked to an existing account. Please proceed to the Login page.");
+                    submitBtn.innerText = originalBtnText; 
+                    submitBtn.disabled = false;
+                    return;
+                }
+            }
+            // ---------------------------------------------------
 
-        // NEW: Show Success Popup instead of alert/redirect
-        document.getElementById('popupUID').innerText = enteredUID;
-        document.getElementById('successModal').style.display = 'flex';
+            submitBtn.innerText = "Creating Account...";
+
+            data.afi_uid = enteredUID;
+            data.regType = "Official";
+            data.role = "Official";
+            data.status = "Pending"; 
+            data.timestamp = new Date().toISOString();
+            
+            const email = data.email;
+            const password = data.password;
+            const firstName = data.first_name;
+            
+            // SECURITY: Delete password from data object
+            delete data.password;
+
+            if (window.auth && window.db) {
+                // 1. Create secure account in Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
+                const authId = userCredential.user.uid;
+
+                // 2. Save profile data to Firestore ('officials' Collection to match CMS architecture)
+                // We use enteredUID as the document ID for consistency across collections
+                await setDoc(doc(window.db, "officials", enteredUID), data);
+            } else {
+                // Fallback to local storage if offline
+                let localDb = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+                data.password = password; // Add password back just for local storage fallback testing
+                localDb.push(data);
+                localStorage.setItem('taa_portal_data', JSON.stringify(localDb));
+            }
+
+            // 3. Send Automated Welcome Email via EmailJS
+            if (window.emailjs) {
+                try {
+                    await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
+                        subject: "Welcome to Telangana Athletics Association (Official Portal)",
+                        name: firstName,
+                        message: `Your Technical Official Registration has been received and is pending verification. \n\nYour official AFI ID is: ${enteredUID}\n\nPlease keep your credentials safe and use this ID to log into the Official portal.`
+                    });
+                } catch(emailErr) {
+                    console.warn("Email failed to send, but registration was successful.");
+                }
+            }
+
+            // Show Success Popup
+            document.getElementById('popupUID').innerText = enteredUID;
+            document.getElementById('successModal').style.display = 'flex';
+
+        } catch (error) {
+            console.error("Registration Error:", error);
+            
+            if(error.code === 'auth/email-already-in-use') {
+                alert("Registration Error: This Email Address is already registered. Please log in.");
+            } else {
+                alert("Registration failed: " + error.message);
+            }
+            
+            submitBtn.innerText = originalBtnText;
+            submitBtn.disabled = false;
+        }
     });
 </script>
 

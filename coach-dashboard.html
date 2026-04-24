@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coach Dashboard - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root { --primary: #001a35; --primary-light: #0056b3; --accent: #FF8C00; --bg: #f1f5f9; --text: #334155; --white: #ffffff; --sidebar-w: 260px; --border: #e2e8f0; --success: #10b981; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -87,21 +90,21 @@
             </div>
         </div>
         <div class="nav-links">
-            <div class="nav-item active" onclick="switchTab('tab-home', this)"><span class="nav-icon">🏠</span> Dashboard Home</div>
-            <div class="nav-item" onclick="switchTab('tab-athletes', this)"><span class="nav-icon">🏃</span> My Athletes</div>
-            <div class="nav-item" onclick="switchTab('tab-certifications', this)"><span class="nav-icon">📜</span> Certifications</div>
-            <div class="nav-item" onclick="switchTab('tab-vault', this)"><span class="nav-icon">🔐</span> Identity Vault</div>
+            <div class="nav-item active" onclick="window.switchTab('tab-home', this)"><span class="nav-icon">🏠</span> Dashboard Home</div>
+            <div class="nav-item" onclick="window.switchTab('tab-athletes', this)"><span class="nav-icon">🏃</span> My Athletes</div>
+            <div class="nav-item" onclick="window.switchTab('tab-certifications', this)"><span class="nav-icon">📜</span> Certifications</div>
+            <div class="nav-item" onclick="window.switchTab('tab-vault', this)"><span class="nav-icon">🔐</span> Identity Vault</div>
             <a href="index.html" class="nav-item" style="text-decoration:none; color:inherit;"><span class="nav-icon">🌍</span> Public Website</a>
         </div>
         <div class="user-profile">
-            <button class="logout-btn" onclick="secureLogout()">Logout</button>
+            <button class="logout-btn" onclick="window.secureLogout()">Logout</button>
         </div>
     </aside>
 
     <main class="main-content">
         <header class="topbar">
             <div class="topbar-left">
-                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Toggle Sidebar">☰</button>
+                <button class="toggle-sidebar-btn" onclick="window.toggleSidebar()" title="Toggle Sidebar">☰</button>
                 <h1 id="topbarTitle">Dashboard Home</h1>
             </div>
             <div style="font-weight: 700; color: #6b21a8; background: #f3e8ff; padding: 5px 15px; border-radius: 20px; font-size: 0.9em;" id="uidBadge">UID: Loading...</div>
@@ -195,22 +198,34 @@
                             <input type="email" id="editEmail" class="form-control">
                         </div>
                     </div>
-                    <button class="btn btn-primary" style="margin-top:20px;" onclick="updateContactInfo()">💾 Save Preferences</button>
+                    <button class="btn btn-primary" style="margin-top:20px;" onclick="window.updateContactInfo()">💾 Save Preferences</button>
                 </div>
             </div>
 
         </div>
     </main>
 
-    <script>
-        let currentUser = null;
-        let portalData = [];
+    <script type="module">
+        import { collection, query, where, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // --- 1. INITIALIZATION & SECURITY ---
-        window.onload = () => {
-            portalData = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-            
-            // Grab UID from the URL
+        // Global State Variables
+        window.currentUser = null;
+        window.currentDocId = null;
+
+        // UI toggles exposed to window
+        window.toggleSidebar = function() { document.getElementById('coachSidebar').classList.toggle('collapsed'); };
+        window.secureLogout = function() { window.location.href = "login.html"; };
+
+        window.switchTab = function(tabId, element) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('topbarTitle').innerText = element.innerText.substring(2).trim();
+        };
+
+        // --- 1. INITIALIZATION & CLOUD SECURITY ---
+        window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const uidParam = urlParams.get('uid');
 
@@ -220,69 +235,94 @@
                 return;
             }
 
-            // Find Coach
-            currentUser = portalData.find(u => u.afi_uid === uidParam && (u.regType === "Coach" || u.role === "Coach"));
-
-            if (!currentUser) {
-                alert("Coach profile not found. Please contact administration.");
-                window.location.href = "login.html";
-                return;
+            // Cloud Fetch
+            try {
+                if (window.db) {
+                    const q = query(collection(window.db, "users"), where("afi_uid", "==", uidParam));
+                    const snap = await getDocs(q);
+                    
+                    if (!snap.empty) {
+                        const docData = snap.docs[0].data();
+                        if (docData.regType === "Coach" || docData.role === "Coach") {
+                            window.currentUser = docData;
+                            window.currentDocId = snap.docs[0].id;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn("Firebase fetch error. Using local fallback.");
             }
 
-            populateDashboard();
-            loadAthletes();
-            calculateMockRank();
+            // Local Fallback
+            if (!window.currentUser) {
+                let localDb = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+                let localUser = localDb.find(u => u.afi_uid === uidParam && (u.regType === "Coach" || u.role === "Coach"));
+                if(localUser) {
+                    window.currentUser = localUser;
+                } else {
+                    alert("Coach profile not found. Please contact administration.");
+                    window.location.href = "login.html";
+                    return;
+                }
+            }
+
+            window.populateDashboard();
+            await window.loadAthletes();
+            window.calculateMockRank();
         };
 
-        function toggleSidebar() { document.getElementById('coachSidebar').classList.toggle('collapsed'); }
-        function secureLogout() { window.location.href = "login.html"; }
-
-        function switchTab(tabId, element) {
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            element.classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.getElementById('topbarTitle').innerText = element.innerText.substring(2).trim();
-        }
-
         // --- 2. POPULATE DASHBOARD UI ---
-        function populateDashboard() {
-            const fullName = `${currentUser.first_name} ${currentUser.last_name || ''}`.trim();
+        window.populateDashboard = function() {
+            const fullName = `${window.currentUser.first_name} ${window.currentUser.last_name || ''}`.trim();
             
             // Topbar & Sidebar
             document.getElementById('sidebarName').innerText = fullName;
-            document.getElementById('sidebarAvatar').innerText = currentUser.first_name.charAt(0).toUpperCase();
-            document.getElementById('uidBadge').innerText = `UID: ${currentUser.afi_uid}`;
+            document.getElementById('sidebarAvatar').innerText = window.currentUser.first_name.charAt(0).toUpperCase();
+            document.getElementById('uidBadge').innerText = `UID: ${window.currentUser.afi_uid}`;
             
             // Home Tab Stats
-            document.getElementById('statusDisplay').innerText = currentUser.status || "Verified";
+            document.getElementById('statusDisplay').innerText = window.currentUser.status || "Verified";
             
             // Certifications
-            document.getElementById('certLevel').innerText = currentUser.level || "Not Specified";
-            document.getElementById('certSpecialty').innerText = currentUser.specialty || "General Athletics";
-            document.getElementById('certExp').innerText = currentUser.experience ? `${currentUser.experience} Years` : "Not Specified";
+            document.getElementById('certLevel').innerText = window.currentUser.cert_level || window.currentUser.level || "Not Specified";
+            document.getElementById('certSpecialty').innerText = window.currentUser.specialty || "General Athletics";
+            document.getElementById('certExp').innerText = window.currentUser.experience ? `${window.currentUser.experience} Years` : "Not Specified";
 
             // Identity Vault
             document.getElementById('viewName').innerText = fullName;
-            document.getElementById('viewDob').innerText = currentUser.dob || "N/A";
-            document.getElementById('viewAcademy').innerText = currentUser.academy || currentUser.coaching_place || "N/A";
-            document.getElementById('viewDistrict').innerText = currentUser.district || "N/A";
-            document.getElementById('viewBlood').innerText = currentUser.blood_group || "N/A";
+            document.getElementById('viewDob').innerText = window.currentUser.dob || "N/A";
+            document.getElementById('viewAcademy').innerText = window.currentUser.academy || window.currentUser.coaching_place || "N/A";
+            document.getElementById('viewDistrict').innerText = window.currentUser.dist || window.currentUser.district || "N/A";
+            document.getElementById('viewBlood').innerText = window.currentUser.blood_group || "N/A";
             
-            document.getElementById('editMobile').value = currentUser.mobile || "";
-            document.getElementById('editEmail').value = currentUser.email || "";
-        }
+            document.getElementById('editMobile').value = window.currentUser.mobile || "";
+            document.getElementById('editEmail').value = window.currentUser.email || "";
+        };
 
-        // --- 3. FETCH LINKED ATHLETES ---
-        function loadAthletes() {
-            // Find all athletes whose current_coach_id matches this coach's UID (Case-Insensitive Fix applied)
-            const myAthletes = portalData.filter(u => 
-                (u.regType === "Athlete" || u.role === "Athlete") && 
-                (u.current_coach_id || "").toUpperCase() === currentUser.afi_uid.toUpperCase()
-            );
+        // --- 3. FETCH LINKED ATHLETES FROM CLOUD ---
+        window.loadAthletes = async function() {
+            const tbody = document.getElementById('athletesBody');
+            let myAthletes = [];
+
+            try {
+                if (window.db) {
+                    // Find all users where their 'current_coach_id' matches this coach's UID
+                    const q = query(collection(window.db, "users"), where("current_coach_id", "==", window.currentUser.afi_uid));
+                    const snap = await getDocs(q);
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        if (data.regType === "Athlete" || data.role === "Athlete") {
+                            myAthletes.push(data);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.warn("Failed to fetch linked athletes from cloud. Checking local.");
+                let localDb = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+                myAthletes = localDb.filter(u => (u.regType === "Athlete" || u.role === "Athlete") && u.current_coach_id === window.currentUser.afi_uid);
+            }
             
             document.getElementById('athleteCountDisplay').innerText = myAthletes.length;
-            const tbody = document.getElementById('athletesBody');
             
             if (myAthletes.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No athletes are currently linked to your profile. Instruct your athletes to add your UID in their dashboard.</td></tr>`;
@@ -298,32 +338,52 @@
                     <td><span class="badge bg-green">Active</span></td>
                 </tr>
             `).join('');
-        }
+        };
 
         // --- MOCK RANK CALCULATION ---
-        function calculateMockRank() {
-            // In the future, this will scan taa_results for athlete points. For now, mock a rank if they have athletes.
-            const athleteCount = parseInt(document.getElementById('athleteCountDisplay').innerText);
+        window.calculateMockRank = function() {
+            const athleteCount = parseInt(document.getElementById('athleteCountDisplay').innerText) || 0;
             const rankDisplay = document.getElementById('coachRankDisplay');
             if (athleteCount > 0) {
-                rankDisplay.innerText = "#3"; 
+                // Temporary logic: the more athletes linked, the better the fake rank
+                const pseudoRank = Math.max(1, 15 - athleteCount);
+                rankDisplay.innerText = `#${pseudoRank}`; 
             } else {
                 rankDisplay.innerText = "N/A";
             }
-        }
+        };
 
-        // --- 4. VAULT SAVE LOGIC ---
-        function updateContactInfo() {
-            currentUser.mobile = document.getElementById('editMobile').value;
-            currentUser.email = document.getElementById('editEmail').value;
+        // --- 4. VAULT SAVE LOGIC (CLOUD) ---
+        window.updateContactInfo = async function() {
+            window.currentUser.mobile = document.getElementById('editMobile').value;
+            window.currentUser.email = document.getElementById('editEmail').value;
             
-            const idx = portalData.findIndex(u => u.afi_uid === currentUser.afi_uid);
-            if(idx > -1) {
-                portalData[idx] = currentUser;
-                localStorage.setItem('taa_portal_data', JSON.stringify(portalData));
-                alert("Communication preferences updated successfully!");
+            if (!window.currentDocId) {
+                // Update Local Storage Fallback
+                let localDb = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
+                let idx = localDb.findIndex(u => u.afi_uid === window.currentUser.afi_uid);
+                if(idx > -1) {
+                    localDb[idx].mobile = window.currentUser.mobile;
+                    localDb[idx].email = window.currentUser.email;
+                    localStorage.setItem('taa_portal_data', JSON.stringify(localDb));
+                    alert("Preferences updated locally.");
+                }
+                return;
             }
-        }
+
+            try {
+                // Update Cloud Storage
+                const docRef = doc(window.db, "users", window.currentDocId);
+                await updateDoc(docRef, {
+                    mobile: window.currentUser.mobile,
+                    email: window.currentUser.email
+                });
+                alert("Communication preferences updated successfully in the cloud!");
+            } catch (e) {
+                console.error("Failed to update cloud profile:", e);
+                alert("Error saving preferences to the database.");
+            }
+        };
     </script>
 </body>
 </html>

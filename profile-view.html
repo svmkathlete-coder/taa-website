@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Athlete Profile - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root { --primary: #0056b3; --accent: #FF8C00; --bg: #f4f7f6; }
         body { font-family: 'Open Sans', sans-serif; background: var(--bg); margin: 0; color: #333; }
         
         .profile-header { background: linear-gradient(135deg, var(--primary), #001a35); color: white; padding: 60px 20px; text-align: center; }
-        .profile-avatar { width: 120px; height: 120px; background: white; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 3.5em; color: var(--primary); font-weight: 800; border: 5px solid rgba(255,255,255,0.1); }
+        .profile-avatar { width: 120px; height: 120px; background: white; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 3.5em; color: var(--primary); font-weight: 800; border: 5px solid rgba(255,255,255,0.1); text-transform: uppercase; }
         .profile-header h1 { font-family: 'Montserrat'; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
         .event-tag { display: inline-block; background: var(--accent); color: white; padding: 5px 15px; border-radius: 50px; font-size: 0.85em; font-weight: 800; margin-top: 10px; }
 
@@ -36,17 +39,27 @@
         .pos-badge { background: var(--primary); color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.8em; font-weight: 800; }
 
         .back-btn { display: inline-block; margin-bottom: 20px; color: white; text-decoration: none; font-weight: 700; font-size: 0.9em; transition: 0.2s; cursor: pointer; }
-        .back-btn:hover { opacity: 0.8; }
+        .back-btn:hover { opacity: 0.8; text-decoration: underline; }
     </style>
 </head>
 <body>
 
-    <div id="profilePage"></div>
+    <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
 
-    <script>
-        window.onload = function() {
+    <div id="profilePage">
+        <div style="text-align:center; padding:100px;">
+            <h2 style="color:var(--text-muted);">Fetching Profile Data...</h2>
+        </div>
+    </div>
+
+    <script type="module">
+        import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        window.onload = async function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const uid = urlParams.get('id'); // Using 'id' to match your Home Page links
+            // Support both 'id' (from home page) and 'uid' (from profiles grid)
+            const uidParam = urlParams.get('id') || urlParams.get('uid'); 
             const from = urlParams.get('from');
             const ref = urlParams.get('ref');
             
@@ -62,52 +75,91 @@
                 backText = "← Back to Rankings";
             }
 
-            const db = JSON.parse(localStorage.getItem('taa_profiles_db')) || [];
-            let user = db.find(u => u.uid === uid);
+            let user = null;
 
-            // Mock Data for Demo Purposes
-            if (!user && (uid === "rahul" || uid === "AFI20261001")) {
-                user = {
-                    uid: "AFI20261001", name: "K. Rahul", role: "Athlete", dist: "Hyderabad",
-                    father: "S. Vijay Kumar", dob: "12 May 2005", blood: "B+", event: "100m Sprint", coach: "P. Srinivas",
-                    pb: "10.42s", sb: "10.42s", rank: "#1 State",
-                    history: [
-                        { date: "Mar 15, 2026", meet: "State Athletics Championships", venue: "Hanumakonda", perf: "10.42s", pos: "1st" }
-                    ]
-                };
-            } else if (!user && uid === "anitha") {
-                user = {
-                    uid: "AFI20262002", name: "P. Anitha", role: "Athlete", dist: "Warangal",
-                    father: "M. Rajamouli", dob: "22 Aug 2004", blood: "A+", event: "Long Jump", coach: "G. Kishan",
-                    pb: "6.15m", sb: "6.02m", rank: "#2 State",
-                    history: [
-                        { date: "Feb 10, 2026", meet: "District Level Meet", venue: "Warangal", perf: "6.02m", pos: "1st" }
-                    ]
-                };
+            // --- 1. FETCH FROM CLOUD DATABASE ---
+            if (uidParam) {
+                try {
+                    if (window.db) {
+                        const q = query(collection(window.db, "users"), where("afi_uid", "==", uidParam.toUpperCase()));
+                        const snap = await getDocs(q);
+                        
+                        if (!snap.empty) {
+                            const data = snap.docs[0].data();
+                            user = {
+                                uid: data.afi_uid || "PENDING",
+                                name: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
+                                role: data.regType || data.role || "Athlete",
+                                dist: data.district || "N/A",
+                                father: data.father_name || "N/A",
+                                dob: data.dob || "N/A",
+                                blood: data.blood_group || "N/A",
+                                event: data.event || data.specialty || "Athletics",
+                                coach: data.coach || "N/A",
+                                pb: data.pb || "N/A",
+                                sb: data.sb || "N/A",
+                                rank: data.rank || "Unranked",
+                                history: data.history || [] // Array of past meets if available in cloud
+                            };
+                        }
+                    }
+                } catch (error) {
+                    console.warn("Cloud fetch error:", error);
+                }
+            }
+
+            // --- 2. FALLBACK TO LOCAL STORAGE OR HARDCODED DEMO DATA ---
+            if (!user) {
+                const localDb = JSON.parse(localStorage.getItem('taa_profiles_db')) || [];
+                user = localDb.find(u => u.uid === uidParam);
+
+                if (!user && (uidParam === "rahul" || uidParam === "AFI20261001")) {
+                    user = {
+                        uid: "AFI20261001", name: "K. Rahul", role: "Athlete", dist: "Hyderabad",
+                        father: "S. Vijay Kumar", dob: "12 May 2005", blood: "B+", event: "100m Sprint", coach: "P. Srinivas",
+                        pb: "10.42s", sb: "10.42s", rank: "#1 State",
+                        history: [
+                            { date: "Mar 15, 2026", meet: "State Athletics Championships", venue: "Hanumakonda", perf: "10.42s", pos: "1st" }
+                        ]
+                    };
+                } else if (!user && uidParam === "anitha") {
+                    user = {
+                        uid: "AFI20262002", name: "P. Anitha", role: "Athlete", dist: "Warangal",
+                        father: "M. Rajamouli", dob: "22 Aug 2004", blood: "A+", event: "Long Jump", coach: "G. Kishan",
+                        pb: "6.15m", sb: "6.02m", rank: "#2 State",
+                        history: [
+                            { date: "Feb 10, 2026", meet: "District Level Meet", venue: "Warangal", perf: "6.02m", pos: "1st" }
+                        ]
+                    };
+                }
             }
 
             const display = document.getElementById('profilePage');
             
-            // Handling "Profile Not Found" with Smart Back Button
+            // --- 3. ERROR HANDLING ---
             if (!user) {
                 display.innerHTML = `
                     <div style='text-align:center; padding:100px;'>
                         <h1 style="font-family: 'Montserrat'; color: var(--primary); margin-bottom: 20px;">Profile Not Found</h1>
+                        <p style="color: #64748b; margin-bottom: 20px;">This UID may be incorrect or the profile is pending verification.</p>
                         <a href='${backUrl}' style="color: var(--accent); font-weight: 700; text-decoration: none; font-size: 1.1em;">${backText}</a>
                     </div>`;
                 return;
             }
 
-            const maskedUID = user.uid.substring(0, 7) + "****";
+            // Safe Masking (Accounts for shorter "PENDING" strings)
+            const maskedUID = user.uid.length > 7 ? user.uid.substring(0, 7) + "****" : user.uid;
+            const initial = user.name ? user.name.charAt(0) : "A";
 
+            // --- 4. RENDER UI ---
             display.innerHTML = `
                 <div class="profile-header">
                     <div class="container" style="margin:0 auto; text-align:left;">
                         <a href="${backUrl}" class="back-btn">${backText}</a>
                     </div>
-                    <div class="profile-avatar">${user.name.charAt(0)}</div>
+                    <div class="profile-avatar">${initial}</div>
                     <h1>${user.name}</h1>
-                    <div class="event-tag">${user.event || 'Athletics'}</div>
+                    <div class="event-tag">${user.event || user.role}</div>
                 </div>
 
                 <div class="container">
@@ -119,7 +171,7 @@
                             <div class="info-item"><label>Father's Name</label><span>${user.father || 'N/A'}</span></div>
                             <div class="info-item"><label>Date of Birth</label><span>${user.dob || 'N/A'}</span></div>
                             <div class="info-item"><label>Blood Group</label><span>${user.blood || 'N/A'}</span></div>
-                            <div class="info-item"><label>District</label><span>${user.dist}</span></div>
+                            <div class="info-item"><label>District Affiliation</label><span>${user.dist}</span></div>
                             <div class="info-item"><label>Present Coach</label><span>${user.coach || 'N/A'}</span></div>
                         </div>
                     </div>
@@ -147,7 +199,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${user.history ? user.history.map(h => `
+                                    ${(user.history && user.history.length > 0) ? user.history.map(h => `
                                         <tr>
                                             <td style="color:#64748b; font-size:0.85em;">${h.date}</td>
                                             <td>${h.meet}</td>
@@ -155,7 +207,7 @@
                                             <td style="color:var(--primary); font-weight:800;">${h.perf}</td>
                                             <td><span class="pos-badge">${h.pos}</span></td>
                                         </tr>
-                                    `).join('') : '<tr><td colspan="5" style="text-align:center;">No records found</td></tr>'}
+                                    `).join('') : '<tr><td colspan="5" style="text-align:center; padding: 30px; color:#64748b;">No verified competition records found in the database.</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
@@ -164,5 +216,7 @@
             `;
         }
     </script>
+
+    <div id="footer-container"></div>
 </body>
 </html>

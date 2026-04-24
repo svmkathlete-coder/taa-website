@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact Us - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root {
             --primary: #0056b3;
@@ -30,7 +33,6 @@
         .hero-text p { font-weight: 600; opacity: 0.9; margin-top: 5px; }
 
         /* --- Main Container --- */
-        /* FIX: Changed margin from -40px to 40px to remove the overlap */
         .container { max-width: 1200px; margin: 40px auto 60px; padding: 0 20px; }
 
         .contact-grid {
@@ -82,6 +84,7 @@
             letter-spacing: 1px; box-shadow: 0 4px 15px rgba(0, 86, 179, 0.2);
         }
         .btn-submit:hover { background: #004494; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 86, 179, 0.3); }
+        .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
 
         /* Success Message */
         #successMessage {
@@ -99,6 +102,7 @@
 <body>
 
     <div id="navbar-container"></div>
+    <script src="navbar.js"></script>
 
     <header class="hero">
         <div class="hero-content">
@@ -120,7 +124,7 @@
                     <div class="info-icon">📍</div>
                     <div class="info-text">
                         <h4>State Headquarters</h4>
-                        <p>Telangana Athletics Association<br>Room No : 12, First Floor, Block-2,<br>Lal Bahadur Stadium, Hyderabad, 500001.</p>
+                        <p id="dynamicAddress">Telangana Athletics Association<br>Room No : 12, First Floor, Block-2,<br>Lal Bahadur Stadium, Hyderabad, 500001.</p>
                     </div>
                 </div>
 
@@ -128,7 +132,7 @@
                     <div class="info-icon">📞</div>
                     <div class="info-text">
                         <h4>Phone</h4>
-                        <p>040 2324 0228 (Landline)<br>+91 98480 60999 (Mobile)</p>
+                        <p id="dynamicPhone">040 2324 0228 (Landline)<br>+91 98480 60999 (Mobile)</p>
                     </div>
                 </div>
 
@@ -136,12 +140,12 @@
                     <div class="info-icon">✉️</div>
                     <div class="info-text">
                         <h4>Email</h4>
-                        <p>telanganaathletics@gmail.com</p>
+                        <p id="dynamicEmail">telanganaathletics@gmail.com</p>
                     </div>
                 </div>
 
                 <div class="map-container">
-                    <iframe src="https://maps.google.com/maps?q=Lal+Bahadur+Stadium,+Hyderabad&t=&z=14&ie=UTF8&iwloc=&output=embed" allowfullscreen="" loading="lazy"></iframe>
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3807.5020163353593!2d78.47355157493475!3d17.387635683495074!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb97793614270b%3A0xc48b9f0412389146!2sL.B.%20Stadium!5e0!3m2!1sen!2sin!4v1714000000000!5m2!1sen!2sin" allowfullscreen="" loading="lazy"></iframe>
                 </div>
             </div>
 
@@ -149,10 +153,10 @@
                 <h2>Send a Message</h2>
                 
                 <div id="successMessage">
-                    ✅ Thank you! Your message has been sent successfully.
+                    ✅ Thank you! Your message has been sent successfully and TAA team has been notified.
                 </div>
 
-                <form id="contactForm" onsubmit="handleFormSubmit(event)">
+                <form id="contactForm">
                     <div class="form-group">
                         <label for="fullName">Full Name</label>
                         <input type="text" id="fullName" class="form-control" placeholder="Enter your full name" required>
@@ -185,23 +189,106 @@
                         <textarea id="message" class="form-control" placeholder="How can we help you?" required></textarea>
                     </div>
 
-                    <button type="submit" class="btn-submit">Send Message 🚀</button>
+                    <button type="submit" id="submitBtn" class="btn-submit">Send Message 🚀</button>
                 </form>
             </div>
 
         </div>
     </div>
 
-    <script src="navbar.js"></script>
-    <script>
-        function handleFormSubmit(event) {
+    <script type="module">
+        import { collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Load Dynamic Contact Info from Institution Manager
+        window.onload = async () => {
+            try {
+                if (window.db) {
+                    const docRef = doc(window.db, "site_settings", "institution");
+                    const docSnap = await getDoc(docRef);
+
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        
+                        if (data.contact_address && data.contact_address.trim() !== "") {
+                            document.getElementById('dynamicAddress').innerHTML = data.contact_address.replace(/\n/g, '<br>');
+                        }
+                        if (data.contact_phone && data.contact_phone.trim() !== "") {
+                            document.getElementById('dynamicPhone').innerHTML = data.contact_phone.replace(/\n/g, '<br>');
+                        }
+                        if (data.contact_email && data.contact_email.trim() !== "") {
+                            document.getElementById('dynamicEmail').innerText = data.contact_email;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn("Cloud connection issue. Using static fallback data.");
+            }
+        };
+
+        // Form Submission Logic
+        document.getElementById('contactForm').addEventListener('submit', async function(event) {
             event.preventDefault();
-            document.getElementById('contactForm').reset();
-            const successBox = document.getElementById('successMessage');
-            successBox.style.display = 'block';
-            successBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setTimeout(() => { successBox.style.display = 'none'; }, 5000);
-        }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const fullName = document.getElementById('fullName').value;
+            const email = document.getElementById('emailAddress').value;
+            const phone = document.getElementById('phoneNumber').value;
+            const subject = document.getElementById('subject').value;
+            const message = document.getElementById('message').value;
+
+            submitBtn.innerText = "Processing...";
+            submitBtn.disabled = true;
+
+            const inquiryData = {
+                fullName,
+                email,
+                phone,
+                subject,
+                message,
+                status: "Unread",
+                timestamp: new Date().toLocaleString()
+            };
+
+            try {
+                // 1. Store in Cloud Database
+                if (window.db) {
+                    await addDoc(collection(window.db, "contact_queries"), inquiryData);
+                }
+
+                // 2. Send Instant Email Alert via EmailJS
+                if (window.emailjs) {
+                    await window.emailjs.send(
+                        window.EMAIL_SERVICE_ID, 
+                        window.EMAIL_TEMPLATE_ID, 
+                        {
+                            subject: `Web Query: ${subject}`,
+                            name: "TAA Administrator",
+                            message: `A new inquiry has been received from the TAA Portal Contact Form.\n\n` +
+                                     `Sender: ${fullName}\n` +
+                                     `Email: ${email}\n` +
+                                     `Phone: ${phone}\n` +
+                                     `Subject: ${subject}\n\n` +
+                                     `Message:\n${message}`
+                        }
+                    );
+                }
+
+                // Success UI
+                document.getElementById('contactForm').reset();
+                const successBox = document.getElementById('successMessage');
+                successBox.style.display = 'block';
+                successBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                setTimeout(() => { successBox.style.display = 'none'; }, 6000);
+
+            } catch (error) {
+                console.error("Submission Error:", error);
+                alert("Failed to send message. Please try again or email us directly at telanganaathletics@gmail.com");
+            } finally {
+                submitBtn.innerText = "Send Message 🚀";
+                submitBtn.disabled = false;
+            }
+        });
     </script>
 
     <div id="footer-container"></div>

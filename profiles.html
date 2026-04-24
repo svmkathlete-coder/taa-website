@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Athlete Directory - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script type="module" src="firebase-init.js"></script>
+
     <style>
         :root {
             --primary: #0056b3;
@@ -55,6 +58,8 @@
         .profile-card h3 { font-family: 'Montserrat'; font-size: 1em; text-transform: uppercase; color: var(--primary); margin-bottom: 5px; }
         .profile-card p { font-size: 0.8em; color: #64748b; font-weight: 700; text-transform: uppercase; }
         .uid-tag { color: var(--accent); font-size: 0.7em; font-weight: 800; display: block; margin-top: 12px; }
+        
+        .loading-state { text-align: center; padding: 40px; color: #64748b; font-weight: 600; grid-column: 1 / -1; }
     </style>
 </head>
 <body>
@@ -63,69 +68,149 @@
     <script src="navbar.js"></script>
 
     <div class="sub-header">
-        <button class="role-btn active" onclick="setRole('Athlete', this)">Athletes</button>
-        <button class="role-btn" onclick="setRole('Coach', this)">Coaches</button>
-        <button class="role-btn" onclick="setRole('Official', this)">Officials</button>
+        <button class="role-btn active" onclick="window.setRole('Athlete', this)">Athletes</button>
+        <button class="role-btn" onclick="window.setRole('Coach', this)">Coaches</button>
+        <button class="role-btn" onclick="window.setRole('Official', this)">Officials</button>
     </div>
 
     <div class="container">
         <div class="search-row">
-            <input type="text" id="searchInput" placeholder="Search by name..." onkeyup="loadProfiles()">
-            <select id="distFilter" onchange="loadProfiles()">
+            <input type="text" id="searchInput" placeholder="Search by name..." onkeyup="window.loadProfiles()">
+            <select id="distFilter" onchange="window.loadProfiles()">
                 <option value="">All Districts</option>
+                <option value="Adilabad">Adilabad</option>
+                <option value="Bhadradri Kothagudem">Bhadradri Kothagudem</option>
+                <option value="Hanumakonda">Hanumakonda</option>
                 <option value="Hyderabad">Hyderabad</option>
+                <option value="Jagtial">Jagtial</option>
+                <option value="Jangaon">Jangaon</option>
+                <option value="Jayashankar Bhupalpally">Jayashankar Bhupalpally</option>
+                <option value="Jogulamba Gadwal">Jogulamba Gadwal</option>
+                <option value="Kamareddy">Kamareddy</option>
+                <option value="Karimnagar">Karimnagar</option>
+                <option value="Khammam">Khammam</option>
+                <option value="Kumuram Bheem Asifabad">Kumuram Bheem Asifabad</option>
+                <option value="Mahabubabad">Mahabubabad</option>
+                <option value="Mahabubnagar">Mahabubnagar</option>
+                <option value="Mancherial">Mancherial</option>
+                <option value="Medak">Medak</option>
+                <option value="Medchal-Malkajgiri">Medchal-Malkajgiri</option>
+                <option value="Mulugu">Mulugu</option>
+                <option value="Nagarkurnool">Nagarkurnool</option>
+                <option value="Nalgonda">Nalgonda</option>
+                <option value="Narayanpet">Narayanpet</option>
+                <option value="Nirmal">Nirmal</option>
+                <option value="Nizamabad">Nizamabad</option>
+                <option value="Peddapalli">Peddapalli</option>
+                <option value="Rajanna Sircilla">Rajanna Sircilla</option>
+                <option value="Rangareddy">Rangareddy</option>
+                <option value="Sangareddy">Sangareddy</option>
+                <option value="Siddipet">Siddipet</option>
+                <option value="Suryapet">Suryapet</option>
+                <option value="Vikarabad">Vikarabad</option>
+                <option value="Wanaparthy">Wanaparthy</option>
                 <option value="Warangal">Warangal</option>
+                <option value="Yadadri Bhuvanagiri">Yadadri Bhuvanagiri</option>
             </select>
-            <button class="search-btn" onclick="loadProfiles()">SEARCH</button>
+            <button class="search-btn" onclick="window.loadProfiles()">SEARCH</button>
         </div>
-        <div class="profile-grid" id="profileGrid"></div>
+        <div class="profile-grid" id="profileGrid">
+            <div class="loading-state">Fetching verified profiles from TAA Cloud...</div>
+        </div>
     </div>
 
-    <script>
-        let currentRole = 'Athlete';
+    <script type="module">
+        import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        function setRole(role, btn) {
+        // Global State Variables
+        window.currentRole = 'Athlete';
+        window.allProfiles = []; // Will hold the cloud data
+
+        // --- 1. FALLBACK SAMPLE DATA ---
+        const sampleFallback = [
+            { uid: "AFI20261001", name: "Rahul Kumar", dist: "Hyderabad", role: "Athlete" },
+            { uid: "AFI20262002", name: "Ananya Rao", dist: "Warangal", role: "Athlete" },
+            { uid: "AFI2026C001", name: "Vikram Reddy", dist: "Hyderabad", role: "Coach" },
+            { uid: "AFI2026O001", name: "Suresh Naidu", dist: "Warangal", role: "Official" }
+        ];
+
+        // --- 2. FETCH CLOUD DATA ---
+        async function fetchProfilesFromCloud() {
+            try {
+                if (window.db) {
+                    const snap = await getDocs(collection(window.db, "users"));
+                    const fetched = [];
+                    
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        fetched.push({
+                            uid: d.afi_uid || "PENDING",
+                            name: `${d.first_name || ''} ${d.last_name || ''}`.trim() || "Unknown",
+                            dist: d.district || "Unassigned",
+                            role: d.regType || d.role || "Athlete"
+                        });
+                    });
+
+                    if (fetched.length > 0) {
+                        window.allProfiles = fetched;
+                    } else {
+                        window.allProfiles = sampleFallback; // Use sample if DB is empty
+                    }
+                } else {
+                    window.allProfiles = sampleFallback; // Use sample if offline
+                }
+            } catch (error) {
+                console.warn("Cloud connection failed, loading local samples.");
+                window.allProfiles = sampleFallback;
+            }
+
+            window.loadProfiles();
+        }
+
+        // --- 3. UI CONTROLS ---
+        window.setRole = function(role, btn) {
             document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            currentRole = role;
-            loadProfiles();
+            window.currentRole = role;
+            window.loadProfiles();
         }
 
-        function maskUID(uid) {
-            return uid ? uid.substring(0, 7) + "******" : "";
+        window.maskUID = function(uid) {
+            if (!uid || uid === "PENDING") return "UID PENDING";
+            return uid.length > 7 ? uid.substring(0, 7) + "******" : uid;
         }
 
-        function loadProfiles() {
+        // --- 4. RENDER & FILTER LOGIC ---
+        window.loadProfiles = function() {
             const container = document.getElementById('profileGrid');
             const search = document.getElementById('searchInput').value.toLowerCase();
             const dist = document.getElementById('distFilter').value;
             
-            // Sample Data to prevent "Not Found" error
-            if(!localStorage.getItem('taa_profiles_db')) {
-                const sample = [
-                    { uid: "AFI20261001", name: "Rahul Kumar", dist: "Hyderabad", role: "Athlete" },
-                    { uid: "AFI20262002", name: "Ananya Rao", dist: "Warangal", role: "Athlete" }
-                ];
-                localStorage.setItem('taa_profiles_db', JSON.stringify(sample));
-            }
-
-            const db = JSON.parse(localStorage.getItem('taa_profiles_db'));
-            const filtered = db.filter(u => 
-                u.role === currentRole && 
+            const filtered = window.allProfiles.filter(u => 
+                u.role === window.currentRole && 
                 u.name.toLowerCase().includes(search) &&
                 (dist === "" || u.dist === dist)
             );
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="loading-state">No ${window.currentRole.toLowerCase()}s found matching your criteria.</div>`;
+                return;
+            }
 
             container.innerHTML = filtered.map(u => `
                 <a href="profile-view.html?uid=${u.uid}" class="profile-card">
                     <div class="avatar">${u.name.charAt(0)}</div>
                     <h3>${u.name}</h3>
                     <p>${u.dist}</p>
-                    <span class="uid-tag">${maskUID(u.uid)}</span>
+                    <span class="uid-tag">${window.maskUID(u.uid)}</span>
                 </a>
             `).join('');
         }
-        window.onload = loadProfiles;
+
+        // Initialize on page load
+        window.onload = () => {
+            fetchProfilesFromCloud();
+        };
     </script>
 
     <div id="footer-container"></div>
