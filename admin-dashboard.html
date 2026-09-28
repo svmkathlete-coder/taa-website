@@ -26,6 +26,9 @@
         .btn-view { background: #35CAFE; color: white; padding: 5px 10px; font-size: 0.7em; }
         .btn-upload { background: #0056b3; color: white; }
 
+        /* Input fields for new export panel */
+        .export-input { padding: 10px; margin-right: 10px; border-radius: 4px; border: 1px solid #ccc; font-family: 'Open Sans'; }
+
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { background: #0056b3; color: white; padding: 15px; text-align: left; font-size: 0.8em; text-transform: uppercase; }
         td { padding: 15px; border-bottom: 1px solid #eee; font-size: 0.9em; vertical-align: top; }
@@ -63,6 +66,18 @@
         </div>
     </div>
 
+    <div class="automation-panel">
+        <div>
+            <p>EXPORT MEET ENTRIES</p>
+            <small>Enter the <b>Meet ID</b> and a <b>Meet Name</b> to download a formatted CSV of all district entries for a specific competition.</small>
+        </div>
+        <div>
+            <input type="text" id="exportMeetId" class="export-input" placeholder="Meet ID (e.g., meet_123)">
+            <input type="text" id="exportMeetName" class="export-input" placeholder="Meet Name (e.g., State Champs)">
+            <button class="btn btn-excel" onclick="triggerMeetExport()">Download Entries CSV</button>
+        </div>
+    </div>
+
     <table id="masterTable">
         <thead>
             <tr>
@@ -79,7 +94,8 @@
 </div>
 
 <script type="module">
-    import { collection, getDocs, writeBatch, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    // UPDATED: Added query and where to the imports
+    import { collection, getDocs, writeBatch, doc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     // Attach functions to global window object so HTML inline onclick handlers still work
     window.loadData = loadData;
@@ -87,6 +103,7 @@
     window.toggleDetails = toggleDetails;
     window.exportFullExcel = exportFullExcel;
     window.clearAll = clearAll;
+    window.triggerMeetExport = triggerMeetExport; // NEW EXPORT WRAPPER
 
     async function loadData() {
         let combined = [];
@@ -228,6 +245,85 @@
                 alert("Failed to wipe database.");
             }
             loadData();
+        }
+    }
+
+    // NEW: UI Wrapper to grab inputs and trigger the CSV generation
+    async function triggerMeetExport() {
+        const meetId = document.getElementById('exportMeetId').value.trim();
+        const meetName = document.getElementById('exportMeetName').value.trim();
+        
+        if (!meetId || !meetName) {
+            alert("Please enter both a Meet ID and a Meet Name.");
+            return;
+        }
+        
+        await downloadMeetEntriesCSV(meetId, meetName);
+    }
+
+    // NEW: The core function we discussed to pull meet_entries and format the CSV
+    async function downloadMeetEntriesCSV(meetId, meetName) {
+        try {
+            if (!window.db) {
+                alert("Database not initialized.");
+                return;
+            }
+
+            const entriesRef = collection(window.db, "meet_entries");
+            const q = query(entriesRef, where("meetId", "==", meetId));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                alert("No entries found for this Meet ID.");
+                return;
+            }
+
+            const headers = [
+                "ID", "District", "First Name", "Last Name", "Father Name", 
+                "Date of Birth", "Gender (M/F)", "Event 1", "Event 2", 
+                "Event 3", "Relay 1", "Relay 2", "Seed Mark"
+            ];
+
+            let csvContent = headers.join(",") + "\n";
+
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                
+                // Using fallbacks just in case data was saved differently (e.g. firstName vs first_name)
+                const row = [
+                    data.athleteId || data.afi_id || data.uid || "N/A",
+                    data.district || "",
+                    data.firstName || data.first_name || "",
+                    data.lastName || data.last_name || "",
+                    data.fatherName || data.father_name || "",
+                    data.dob || "",
+                    data.gender || "",
+                    data.event1 || "",
+                    data.event2 || "",
+                    data.event3 || "",
+                    data.relay1 || "",
+                    data.relay2 || "",
+                    data.seedMark || ""
+                ];
+
+                const formattedRow = row.map(item => `"${item}"`).join(",");
+                csvContent += formattedRow + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", `${meetName.replace(/\s+/g, '_')}_Entries.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+        } catch (error) {
+            console.error("Error generating CSV: ", error);
+            alert("Failed to generate CSV. Check the browser console.");
         }
     }
 

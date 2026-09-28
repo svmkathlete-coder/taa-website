@@ -1,0 +1,105 @@
+rules_version = '2';
+
+// ==========================================================================
+// TAA Portal — Firestore Security Rules (v2)
+// Paste into: Firebase Console → Firestore Database → Rules tab → Publish.
+//
+// Data model:
+//   users/{uid}            — PRIVATE. Full profile (DOB, Aadhaar, phone,
+//                             address, role, status). uid = Firebase Auth
+//                             UID. Only the owner or an Admin can read it.
+//   public_profiles/{uid}  — PUBLIC. Safe subset only (name, role, sport,
+//                             district, photo). This is what public pages
+//                             (directories, rankings, "your coach's name")
+//                             read from — never `users`.
+//   afi_uid_index/{afiUid} — write-once claim record, stops two people
+//                             registering the same AFI UID. No sensitive data.
+//   aadhaar_index/{hash}   — write-once claim record keyed by a SHA-256 hash
+//                             of the Aadhaar number, stops duplicate Aadhaar
+//                             registration without ever storing/reading the
+//                             raw number from this collection.
+// ==========================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function callerRole() {
+      return isSignedIn()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : null;
+    }
+
+    function isAdmin() {
+      return callerRole() == "Admin";
+    }
+
+    function isOfficialOrAdmin() {
+      return callerRole() == "Official" || callerRole() == "Admin" || callerRole() == "Technical Chairman";
+    }
+
+    // ---- users: private profile + role -------------------------------
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId)
+                    && request.resource.data.role in ["Athlete", "Coach", "Official", "District"]
+                    && !("password" in request.resource.data);
+      allow update: if isAdmin()
+                    || (isOwner(userId)
+                        && request.resource.data.role == resource.data.role
+                        && !("password" in request.resource.data));
+      allow delete: if isAdmin();
+    }
+
+    // ---- public_profiles: safe-to-show subset, world readable ---------
+    match /public_profiles/{userId} {
+      allow read: if true;
+      allow create, update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ---- registration claim indexes (no reads needed; create-once) ----
+    match /afi_uid_index/{afiUid} {
+      allow create: if !exists(/databases/$(database)/documents/afi_uid_index/$(afiUid));
+      allow read, update, delete: if isAdmin();
+    }
+    match /aadhaar_index/{hash} {
+      allow create: if !exists(/databases/$(database)/documents/aadhaar_index/$(hash));
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ---- officials: supplementary official/coach credential data ------
+    match /officials/{docId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    // ---- public site content: anyone can read, only staff can write ---
+    match /competitions/{docId}    { allow read: if true; allow write: if isOfficialOrAdmin(); }
+    match /results/{docId}         { allow read: if true; allow write: if isOfficialOrAdmin(); }
+    match /districts/{docId}       { allow read: if true; allow write: if isAdmin(); }
+    match /gallery/{docId}         { allow read: if true; allow write: if isAdmin(); }
+    match /media/{docId}           { allow read: if true; allow write: if isAdmin(); }
+    match /press_articles/{docId}  { allow read: if true; allow write: if isAdmin(); }
+    match /press_releases/{docId}  { allow read: if true; allow write: if isAdmin(); }
+    match /circulars/{docId}       { allow read: if true; allow write: if isAdmin(); }
+
+    // ---- contact form: anyone can submit, only Admin can read ---------
+    match /contact_queries/{docId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

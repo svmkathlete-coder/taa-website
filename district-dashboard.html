@@ -70,7 +70,19 @@
 
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
         .bearer-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
-        .bearer-avatar { width: 70px; height: 70px; background: #e2e8f0; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 2em; font-family: 'Montserrat'; font-weight: 800; color: var(--primary-light); }
+        .bearer-avatar { width: 70px; height: 70px; background: #e2e8f0; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 2em; font-family: 'Montserrat'; font-weight: 800; color: var(--primary-light); overflow: hidden; }
+        .bearer-avatar img { width: 100%; height: 100%; object-fit: cover; } /* Added for photo rendering */
+
+        /* NEW ADDITIONS FOR OFFICE BEARER FORM */
+        .form-section { background: #f8fafc; border: 1px solid var(--border); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .form-section h4 { font-family: 'Montserrat'; font-size: 1em; color: var(--primary); margin-bottom: 15px; text-transform: uppercase; border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 5px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; align-items: end; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-size: 0.8em; font-weight: 700; color: #64748b; text-transform: uppercase; }
+        .form-control { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: 'Open Sans'; font-size: 0.9em; outline: none; }
+        .dynamic-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 15px; align-items: end; margin-bottom: 15px; }
+        .btn-add { background: var(--accent); color: white; padding: 10px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-remove { background: #ef4444; color: white; padding: 10px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -170,14 +182,58 @@
             </div>
 
             <div id="tab-bearers" class="tab-content">
-                <div class="grid-4" id="bearersGrid"></div>
+                
+                <div class="card" id="bearerFormCard">
+                    <h3>Update District Office Bearers</h3>
+                    <p style="font-size: 0.85em; color: #64748b; margin-bottom: 20px;">This information will be displayed publicly on the Member Associations page.</p>
+                    
+                    <div class="form-section">
+                        <h4>Top Executive Committee (Photos Required)</h4>
+                        
+                        <div class="form-row">
+                            <div class="form-group"><label>President Name</label><input type="text" id="ob_pres_name" class="form-control"></div>
+                            <div class="form-group"><label>Phone Number</label><input type="text" id="ob_pres_phone" class="form-control"></div>
+                            <div class="form-group"><label>Email Address</label><input type="email" id="ob_pres_email" class="form-control"></div>
+                            <div class="form-group"><label>Upload Photo</label><input type="file" id="ob_pres_photo" class="form-control" accept="image/*"></div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group"><label>Secretary Name</label><input type="text" id="ob_sec_name" class="form-control"></div>
+                            <div class="form-group"><label>Phone Number</label><input type="text" id="ob_sec_phone" class="form-control"></div>
+                            <div class="form-group"><label>Email Address</label><input type="email" id="ob_sec_email" class="form-control"></div>
+                            <div class="form-group"><label>Upload Photo</label><input type="file" id="ob_sec_photo" class="form-control" accept="image/*"></div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group"><label>Treasurer Name</label><input type="text" id="ob_treas_name" class="form-control"></div>
+                            <div class="form-group"><label>Phone Number</label><input type="text" id="ob_treas_phone" class="form-control"></div>
+                            <div class="form-group"><label>Email Address</label><input type="email" id="ob_treas_email" class="form-control"></div>
+                            <div class="form-group"><label>Upload Photo</label><input type="file" id="ob_treas_photo" class="form-control" accept="image/*"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="margin: 0;">Other Members (No Photo Required)</h4>
+                            <button class="btn-add" onclick="window.addOtherMemberRow()">+ Add Member</button>
+                        </div>
+                        <div id="otherMembersContainer">
+                            </div>
+                    </div>
+
+                    <button class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.1em;" onclick="window.saveOfficeBearers()" id="btnSaveBearers">🚀 Save & Publish Office Bearers</button>
+                </div>
+
+                <div class="grid-4" id="bearersGrid" style="margin-top: 30px;"></div>
             </div>
 
         </div>
     </main>
 
     <script type="module">
-        import { collection, query, where, getDocs, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { collection, query, where, getDocs, doc, updateDoc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        // IMPORT STORAGE FUNCTIONS
+        import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
         let currentDistrict = "";
         let districtAthletes = [];
@@ -195,6 +251,9 @@
             startLiveRoster();
             loadCompetitions();
             loadOfficeBearers();
+            
+            // Add initial empty row for "Other Members"
+            window.addOtherMemberRow();
         };
 
         // --- 1. LIVE FIREBASE ROSTER ---
@@ -305,19 +364,170 @@
 
         window.secureLogout = () => { localStorage.removeItem('taa_current_district'); window.location.href = "login.html"; };
 
-        function loadOfficeBearers() {
-            const roles = [
-                { role: "President", name: "Executive President" },
-                { role: "Secretary", name: "District Secretary" },
-                { role: "Treasurer", name: "Treasurer" }
-            ];
-            document.getElementById('bearersGrid').innerHTML = roles.map(b => `
+        // --- OFFICE BEARERS LOGIC ---
+        
+        async function loadOfficeBearers() {
+            try {
+                if(!window.db) return;
+                const docRef = doc(window.db, "districts", currentDistrict);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists() && docSnap.data().office_bearers) {
+                    const bearers = docSnap.data().office_bearers;
+                    
+                    // Pre-fill form if data exists
+                    if(bearers.president) {
+                        document.getElementById('ob_pres_name').value = bearers.president.name || "";
+                        document.getElementById('ob_pres_phone').value = bearers.president.phone || "";
+                        document.getElementById('ob_pres_email').value = bearers.president.email || "";
+                    }
+                    if(bearers.secretary) {
+                        document.getElementById('ob_sec_name').value = bearers.secretary.name || "";
+                        document.getElementById('ob_sec_phone').value = bearers.secretary.phone || "";
+                        document.getElementById('ob_sec_email').value = bearers.secretary.email || "";
+                    }
+                    if(bearers.treasurer) {
+                        document.getElementById('ob_treas_name').value = bearers.treasurer.name || "";
+                        document.getElementById('ob_treas_phone').value = bearers.treasurer.phone || "";
+                        document.getElementById('ob_treas_email').value = bearers.treasurer.email || "";
+                    }
+
+                    // Render the Grid Display below the form
+                    const gridHtml = [];
+                    if(bearers.president?.name) gridHtml.push(createBearerCard(bearers.president, "President"));
+                    if(bearers.secretary?.name) gridHtml.push(createBearerCard(bearers.secretary, "Secretary"));
+                    if(bearers.treasurer?.name) gridHtml.push(createBearerCard(bearers.treasurer, "Treasurer"));
+                    
+                    document.getElementById('bearersGrid').innerHTML = gridHtml.join('');
+                } else {
+                    // Fallback visual display if empty
+                    document.getElementById('bearersGrid').innerHTML = "<p style='grid-column: 1/-1; text-align:center;'>No Office Bearers saved yet.</p>";
+                }
+            } catch (error) {
+                console.error("Error loading bearers:", error);
+            }
+        }
+
+        function createBearerCard(data, title) {
+            let avatarHtml = `<div class="bearer-avatar">${title.charAt(0)}</div>`;
+            if (data.photoUrl) {
+                avatarHtml = `<div class="bearer-avatar"><img src="${data.photoUrl}" alt="${data.name}"></div>`;
+            }
+            return `
                 <div class="bearer-card">
-                    <div class="bearer-avatar">${b.role.charAt(0)}</div>
-                    <h4>${b.name}</h4>
-                    <p style="color:var(--accent); font-weight:700;">${b.role}</p>
+                    ${avatarHtml}
+                    <h4>${data.name}</h4>
+                    <p style="color:var(--accent); font-weight:700;">${title}</p>
+                    <small>${data.phone}<br>${data.email}</small>
                 </div>
-            `).join('');
+            `;
+        }
+
+        let otherMemberCount = 0;
+        window.addOtherMemberRow = function() {
+            otherMemberCount++;
+            const container = document.getElementById('otherMembersContainer');
+            const row = document.createElement('div');
+            row.className = 'dynamic-row';
+            row.id = `otherMemberRow_${otherMemberCount}`;
+            row.innerHTML = `
+                <div class="form-group"><label>Name</label><input type="text" class="form-control ob_other_name" placeholder="Name"></div>
+                <div class="form-group"><label>Designation</label><input type="text" class="form-control ob_other_desig" placeholder="e.g. Joint Secretary"></div>
+                <div class="form-group"><label>Phone Number</label><input type="text" class="form-control ob_other_phone" placeholder="Phone"></div>
+                <div class="form-group"><label>Email Address</label><input type="email" class="form-control ob_other_email" placeholder="Email"></div>
+                <button class="btn-remove" onclick="this.parentElement.remove()">X</button>
+            `;
+            container.appendChild(row);
+        }
+
+        window.saveOfficeBearers = async function() {
+            if(!window.db || !window.storage) {
+                alert("Database or Storage not initialized.");
+                return;
+            }
+
+            const btn = document.getElementById('btnSaveBearers');
+            btn.innerText = "⏳ Uploading Photos & Saving...";
+            btn.disabled = true;
+
+            try {
+                // Helper to upload image and get URL
+                async function uploadAndGetUrl(fileInputId, title) {
+                    const fileInput = document.getElementById(fileInputId);
+                    if (fileInput.files.length > 0) {
+                        const file = fileInput.files[0];
+                        const cleanDistName = currentDistrict.replace(/\s+/g, '_');
+                        const storageRef = ref(window.storage, `districts/${cleanDistName}/bearers/${title}_${Date.now()}`);
+                        await uploadBytes(storageRef, file);
+                        return await getDownloadURL(storageRef);
+                    }
+                    return null; // Return null if no new file selected
+                }
+
+                // 1. Process Photos (This might take a few seconds)
+                const presUrl = await uploadAndGetUrl('ob_pres_photo', 'president');
+                const secUrl = await uploadAndGetUrl('ob_sec_photo', 'secretary');
+                const treasUrl = await uploadAndGetUrl('ob_treas_photo', 'treasurer');
+
+                // 2. Fetch existing data so we don't overwrite old photoURLs if they didn't upload a new one
+                const docRef = doc(window.db, "districts", currentDistrict);
+                const docSnap = await getDoc(docRef);
+                const existingData = docSnap.exists() ? docSnap.data().office_bearers || {} : {};
+
+                // 3. Build the Payload
+                const payload = {
+                    office_bearers: {
+                        president: {
+                            name: document.getElementById('ob_pres_name').value,
+                            designation: "President",
+                            phone: document.getElementById('ob_pres_phone').value,
+                            email: document.getElementById('ob_pres_email').value,
+                            photoUrl: presUrl || existingData.president?.photoUrl || "" 
+                        },
+                        secretary: {
+                            name: document.getElementById('ob_sec_name').value,
+                            designation: "Secretary",
+                            phone: document.getElementById('ob_sec_phone').value,
+                            email: document.getElementById('ob_sec_email').value,
+                            photoUrl: secUrl || existingData.secretary?.photoUrl || ""
+                        },
+                        treasurer: {
+                            name: document.getElementById('ob_treas_name').value,
+                            designation: "Treasurer",
+                            phone: document.getElementById('ob_treas_phone').value,
+                            email: document.getElementById('ob_treas_email').value,
+                            photoUrl: treasUrl || existingData.treasurer?.photoUrl || ""
+                        },
+                        others: []
+                    }
+                };
+
+                // Extract Dynamic "Other Members"
+                const otherRows = document.querySelectorAll('.dynamic-row');
+                otherRows.forEach(row => {
+                    const name = row.querySelector('.ob_other_name').value;
+                    const desig = row.querySelector('.ob_other_desig').value;
+                    const phone = row.querySelector('.ob_other_phone').value;
+                    const email = row.querySelector('.ob_other_email').value;
+                    
+                    if(name || desig) { // Only add if they at least typed a name/designation
+                        payload.office_bearers.others.push({ name, designation: desig, phone, email });
+                    }
+                });
+
+                // 4. Save to Firestore
+                await setDoc(docRef, payload, { merge: true });
+                
+                alert("Success! Office Bearers have been updated and are now live on the public site.");
+                loadOfficeBearers(); // Refresh display
+
+            } catch (error) {
+                console.error("Error saving bearers:", error);
+                alert("An error occurred while saving. Please try again.");
+            } finally {
+                btn.innerText = "🚀 Save & Publish Office Bearers";
+                btn.disabled = false;
+            }
         }
     </script>
 </body>
