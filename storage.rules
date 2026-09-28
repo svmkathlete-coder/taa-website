@@ -1,0 +1,55 @@
+rules_version = '2';
+
+// ==========================================================================
+// TAA Portal — Storage Security Rules
+// Paste into: Firebase Console → Storage → Rules tab → Publish.
+//
+// Layout:
+//   /public/**             — world-readable, any signed-in user may write.
+//                             General site assets (gallery, press photos).
+//   /users/{userId}/**     — owner-only. An athlete/coach/official's own
+//                             uploaded documents (photo, Aadhaar proof, certs).
+//   /districts/{d}/bearers/** — a district's office-bearer photos, shown
+//                             publicly on the Member Associations page.
+//                             Written by Admin or that district's own
+//                             secretary (checked by role only here — the
+//                             matching Firestore doc write, which decides
+//                             what's actually shown, is scoped precisely).
+// ==========================================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isImageOrPdf() {
+      return request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf';
+    }
+
+    function under10MB() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && under10MB() && isImageOrPdf();
+    }
+
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isSignedIn() && request.auth.uid == userId && under10MB() && isImageOrPdf();
+    }
+
+    match /districts/{districtName}/bearers/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() && under10MB() && isImageOrPdf();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

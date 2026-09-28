@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Official Registration - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-    
+
     <script type="module" src="firebase-init.js"></script>
 
     <style>
@@ -20,7 +20,7 @@
         /* TAA Gold Standard Styling */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Open Sans', sans-serif; background: #f4f7f6 url('https://www.transparenttextures.com/patterns/cubes.png'); color: #333; line-height: 1.6; }
-        
+
         /* --- Standard TAA Navigation Styles for navbar.js --- */
         .navbar { background: var(--white); box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 9999; padding: 5px 0; }
         .nav-container { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
@@ -30,7 +30,7 @@
         .main-title { color: var(--primary); font-weight: 800; font-size: 1.1em; line-height: 1; font-family: 'Montserrat'; }
         .sub-title { color: #64748b; font-weight: 600; font-size: 0.75em; letter-spacing: 1px; }
         .nav-menu { display: flex; list-style: none; gap: 15px; align-items: center; margin: 0; padding: 0; }
-        .nav-menu li { position: relative; } 
+        .nav-menu li { position: relative; }
         .nav-menu a { text-decoration: none; color: #1a1a1a; font-weight: 700; font-size: 0.82em; transition: 0.3s; padding: 15px 5px; font-family: 'Montserrat'; text-transform: uppercase; display: block; }
         .nav-menu a:hover { color: var(--accent); }
         .dropdown-content { display: none; position: absolute; background-color: var(--white); min-width: 220px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); z-index: 1; top: 100%; left: 0; border-top: 3px solid var(--accent); }
@@ -47,19 +47,19 @@
         .hero-text h1 { font-family: 'Montserrat', sans-serif; font-size: 2.2em; text-transform: uppercase; margin: 0; letter-spacing: 1px; }
 
         .reg-container { max-width: 1000px; margin: 30px auto 60px; background: white; padding: 45px; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border-top: 8px solid #FF8C00; }
-        
+
         h3 { font-family: 'Montserrat', sans-serif; color: #0056b3; margin: 35px 0 20px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; font-size: 1.3em; text-transform: uppercase; }
         h3:first-of-type { margin-top: 0; }
 
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
-        
+
         label { display: block; font-weight: 700; font-size: 0.85em; margin-bottom: 8px; color: #444; text-transform: uppercase; }
-        
+
         /* Fixed Input Interaction */
         input, select, textarea { width: 100%; padding: 12px 15px; border: 2px solid #e1e8ed; border-radius: 8px; outline: none; transition: all 0.3s ease; font-size: 0.95em; color: #333; }
-        input:focus, input:active, select:focus, textarea:focus { 
-            border-color: #35CAFE; 
-            box-shadow: 0 0 10px rgba(53, 202, 254, 0.3); 
+        input:focus, input:active, select:focus, textarea:focus {
+            border-color: #35CAFE;
+            box-shadow: 0 0 10px rgba(53, 202, 254, 0.3);
         }
 
         .disclaimer-box { background: #fffdf2; padding: 25px; border-radius: 10px; border-left: 5px solid #f1c40f; margin-top: 40px; }
@@ -69,6 +69,7 @@
         .submit-row { text-align: center; margin-top: 50px; }
         .btn-submit { background: #0056b3; color: white; padding: 18px 80px; border: none; border-radius: 10px; font-family: 'Montserrat', sans-serif; font-weight: 700; cursor: pointer; font-size: 1.15em; transition: 0.4s; text-transform: uppercase; letter-spacing: 1px; }
         .btn-submit:hover { background: #FF8C00; transform: translateY(-3px); box-shadow: 0 8px 20px rgba(255, 140, 0, 0.3); }
+        .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
 
         @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } .reg-container { padding: 25px; } }
     </style>
@@ -90,7 +91,7 @@
 
     <div class="reg-container">
         <form id="officialForm">
-            
+
             <h3>1. Personal & Contact Details</h3>
             <div class="grid">
                 <div class="input-group"><label>First Name*</label><input type="text" name="first_name" placeholder="As per Aadhaar" required></div>
@@ -196,11 +197,11 @@
             <div class="grid">
                 <div class="input-group">
                     <label>Create Password*</label>
-                    <input type="password" id="reg_pwd" name="password" placeholder="Minimum 6 characters" required minlength="6">
+                    <input type="password" id="reg_pwd" name="password" placeholder="Minimum 8 characters" required minlength="8">
                 </div>
                 <div class="input-group">
                     <label>Confirm Password*</label>
-                    <input type="password" id="reg_pwd_confirm" placeholder="Re-enter password" required minlength="6">
+                    <input type="password" id="reg_pwd_confirm" placeholder="Re-enter password" required minlength="8">
                 </div>
             </div>
 
@@ -210,6 +211,7 @@
                 <div class="input-group"><label>Certificate*</label><input type="file" name="cert" accept="image/*" required></div>
                 <div class="input-group"><label>ID Proof*</label><input type="file" name="id_file" accept="image/*" required></div>
             </div>
+            <p style="font-size:0.8em; color:#888; margin-top:-10px;">Note: document upload to secure storage is being finalized — for now the filename is recorded; you may be asked to email these separately.</p>
 
             <div class="disclaimer-box">
                 <div class="disclaimer-item">
@@ -222,6 +224,8 @@
                 </div>
             </div>
 
+            <div id="regError" style="display:none; color:#ef4444; font-weight:700; background:#fee2e2; padding:12px; border-radius:8px; margin-top:15px;"></div>
+
             <div class="submit-row">
                 <button type="submit" class="btn-submit" id="submitBtn">Register</button>
             </div>
@@ -233,21 +237,26 @@
             <div style="width: 70px; height: 70px; background: #dcfce7; color: #28a745; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2em; margin: 0 auto 20px;">✓</div>
             <h2 style="color:#28a745; font-family:'Montserrat', sans-serif; margin-bottom:15px; font-size:1.8em;">Registration Successful!</h2>
             <p style="margin-bottom:20px; font-weight:600; color:#333;">Welcome to the Telangana Athletics Association.</p>
-            
+
             <div style="background:#f4f7f6; padding:20px; border-radius:10px; margin-bottom:25px; border: 1px solid #e2e8f0;">
                 <span style="display:block; font-size:0.85em; color:#64748b; text-transform:uppercase; font-weight:800; margin-bottom: 5px;">Your AFI Official ID / Username:</span>
                 <strong id="popupUID" style="font-size:1.8em; color:#0056b3; font-family:'Montserrat', sans-serif; letter-spacing: 1px;"></strong>
             </div>
-            
-            <p style="font-size:0.9em; color:#555; margin-bottom:25px; line-height: 1.5;">Please save this <b>ID</b> and the <b>Password</b> you just created. You will need them to log into the Official Portal.</p>
-            
+
+            <p style="font-size:0.9em; color:#555; margin-bottom:25px; line-height: 1.5;">Your registration is pending TAA admin approval. Log in any time with your <b>email</b> and the <b>password</b> you just created to check your status.</p>
+
             <button onclick="window.location.href='login.html'" class="btn-submit" style="width:100%; padding: 15px; font-size: 1.1em;">Go to Secure Login ➞</button>
         </div>
     </div>
 
 <script type="module">
     import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-    import { doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    async function sha256Hex(text) {
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+    }
 
     // Dynamic Dropdown Logic
     const levelsMap = {
@@ -275,11 +284,14 @@
     document.getElementById('officialForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        // Password Validation check
+        const errorBox = document.getElementById('regError');
+        errorBox.style.display = 'none';
+
         const pwd = document.getElementById('reg_pwd').value;
         const pwdConfirm = document.getElementById('reg_pwd_confirm').value;
         if (pwd !== pwdConfirm) {
-            alert("Error: Passwords do not match. Please try again.");
+            errorBox.innerText = "Passwords do not match. Please try again.";
+            errorBox.style.display = 'block';
             document.getElementById('reg_pwd').style.borderColor = 'red';
             document.getElementById('reg_pwd_confirm').style.borderColor = 'red';
             return;
@@ -287,7 +299,7 @@
 
         const submitBtn = document.getElementById('submitBtn');
         const originalBtnText = submitBtn.innerText;
-        submitBtn.innerText = "Checking Database...";
+        submitBtn.innerText = "Checking Availability...";
         submitBtn.disabled = true;
 
         const formData = new FormData(this);
@@ -295,70 +307,73 @@
         formData.forEach((value, key) => {
             data[key] = (value instanceof File) ? value.name : value;
         });
-        
-        const enteredUID = document.getElementById('reg_afi_uid').value.toUpperCase();
-        const aadhaarVal = data.aadhaar;
+
+        const enteredUID = document.getElementById('reg_afi_uid').value.trim().toUpperCase();
+        const aadhaarVal = (data.aadhaar || "").trim();
+        const email = data.email;
+        const password = data.password;
+        const firstName = data.first_name;
+
+        if (!window.db || !window.auth) {
+            errorBox.innerText = "Cannot reach TAA secure servers right now. Please check your connection and try again.";
+            errorBox.style.display = 'block';
+            submitBtn.innerText = originalBtnText;
+            submitBtn.disabled = false;
+            return;
+        }
+
+        let claimedUidIndex = false;
+        let claimedAadhaarIndex = false;
+        let aadhaarHash = null;
 
         try {
-            // --- BULLETPROOF CROSS-COLLECTION DUPLICATE CHECK ---
-            if (window.db) {
-                // Scans BOTH the 'users' and 'officials' collections to ensure total security
-                const qUIDUsers = query(collection(window.db, "users"), where("afi_uid", "==", enteredUID));
-                const qAadhaarUsers = query(collection(window.db, "users"), where("aadhaar", "==", aadhaarVal));
-                const qUIDOff = query(collection(window.db, "officials"), where("afi_uid", "==", enteredUID));
-                const qAadhaarOff = query(collection(window.db, "officials"), where("aadhaar", "==", aadhaarVal));
-                
-                const [snapUID1, snapAadhaar1, snapUID2, snapAadhaar2] = await Promise.all([
-                    getDocs(qUIDUsers), getDocs(qAadhaarUsers), getDocs(qUIDOff), getDocs(qAadhaarOff)
-                ]);
-
-                if (!snapUID1.empty || !snapUID2.empty) {
-                    alert("Registration Error: This AFI Official ID is already registered in our system. Please proceed to the Login page.");
-                    submitBtn.innerText = originalBtnText; 
-                    submitBtn.disabled = false;
-                    return;
-                }
-                if (!snapAadhaar1.empty || !snapAadhaar2.empty) {
-                    alert("Registration Error: This Aadhaar Number is already linked to an existing account. Please proceed to the Login page.");
-                    submitBtn.innerText = originalBtnText; 
-                    submitBtn.disabled = false;
-                    return;
-                }
+            // --- Claim uniqueness on AFI ID and Aadhaar (atomic write-once docs) ---
+            try {
+                await setDoc(doc(window.db, "afi_uid_index", enteredUID), { claimedAt: new Date().toISOString() });
+                claimedUidIndex = true;
+            } catch (e) {
+                throw new Error("This AFI Official ID is already registered. Please choose a different one, or log in if it's yours.");
             }
-            // ---------------------------------------------------
+
+            aadhaarHash = await sha256Hex(aadhaarVal);
+            try {
+                await setDoc(doc(window.db, "aadhaar_index", aadhaarHash), { claimedAt: new Date().toISOString() });
+                claimedAadhaarIndex = true;
+            } catch (e) {
+                throw new Error("This Aadhaar number is already linked to an existing account. Please log in or contact the TAA office.");
+            }
 
             submitBtn.innerText = "Creating Account...";
 
             data.afi_uid = enteredUID;
             data.regType = "Official";
             data.role = "Official";
-            data.status = "Pending"; 
+            data.status = "Pending";
             data.timestamp = new Date().toISOString();
-            
-            const email = data.email;
-            const password = data.password;
-            const firstName = data.first_name;
-            
-            // SECURITY: Delete password from data object
-            delete data.password;
+            delete data.password; // never stored in Firestore — Firebase Auth handles this securely
 
-            if (window.auth && window.db) {
-                // 1. Create secure account in Firebase Auth
-                const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
-                const authId = userCredential.user.uid;
+            // 1. Create the secure account (Firebase Auth hashes and stores the password)
+            const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
+            const authId = userCredential.user.uid;
 
-                // 2. Save profile data to Firestore ('officials' Collection to match CMS architecture)
-                // We use enteredUID as the document ID for consistency across collections
-                await setDoc(doc(window.db, "officials", enteredUID), data);
-            } else {
-                // Fallback to local storage if offline
-                let localDb = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-                data.password = password; // Add password back just for local storage fallback testing
-                localDb.push(data);
-                localStorage.setItem('taa_portal_data', JSON.stringify(localDb));
-            }
+            // 2. Save the private profile, keyed by the real account ID (not the AFI ID).
+            //    Officials live in the same `users` collection as every other role —
+            //    that's what lets the Firestore rules recognise them as an Official
+            //    (via callerRole()) so they can enter results/manage competitions.
+            await setDoc(doc(window.db, "users", authId), data);
 
-            // 3. Send Automated Welcome Email via EmailJS
+            // 3. Save the public-safe subset for directories/lookups
+            await setDoc(doc(window.db, "public_profiles", authId), {
+                full_name: `${data.first_name} ${data.last_name || ''}`.trim(),
+                role: "Official",
+                afi_uid: enteredUID,
+                official_type: data.official_type || "",
+                level: data.level || "",
+                specialty: data.specialty || "",
+                district: data.district || ""
+            });
+
+            // 4. Welcome email (best-effort, never blocks registration)
             if (window.emailjs) {
                 try {
                     await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
@@ -366,24 +381,30 @@
                         name: firstName,
                         message: `Your Technical Official Registration has been received and is pending verification. \n\nYour official AFI ID is: ${enteredUID}\n\nPlease keep your credentials safe and use this ID to log into the Official portal.`
                     });
-                } catch(emailErr) {
+                } catch (emailErr) {
                     console.warn("Email failed to send, but registration was successful.");
                 }
             }
 
-            // Show Success Popup
             document.getElementById('popupUID').innerText = enteredUID;
             document.getElementById('successModal').style.display = 'flex';
 
         } catch (error) {
             console.error("Registration Error:", error);
-            
-            if(error.code === 'auth/email-already-in-use') {
-                alert("Registration Error: This Email Address is already registered. Please log in.");
+
+            // Roll back whichever index claims succeeded, so a genuine retry isn't blocked
+            if (claimedUidIndex) { try { await deleteDoc(doc(window.db, "afi_uid_index", enteredUID)); } catch (_) {} }
+            if (claimedAadhaarIndex && aadhaarHash) { try { await deleteDoc(doc(window.db, "aadhaar_index", aadhaarHash)); } catch (_) {} }
+
+            if (error.code === 'auth/email-already-in-use') {
+                errorBox.innerText = "This email address is already registered. Please log in or use Account Recovery.";
+            } else if (error.code === 'auth/weak-password') {
+                errorBox.innerText = "Password is too weak. Please use at least 8 characters.";
             } else {
-                alert("Registration failed: " + error.message);
+                errorBox.innerText = error.message || "Registration failed. Please try again.";
             }
-            
+            errorBox.style.display = 'block';
+
             submitBtn.innerText = originalBtnText;
             submitBtn.disabled = false;
         }

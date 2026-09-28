@@ -8,6 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     
     <script type="module" src="firebase-init.js"></script>
+    <script type="module" src="auth.js"></script>
 
     <style>
         :root { --primary: #001a35; --primary-light: #0056b3; --accent: #FF8C00; --bg: #f1f5f9; --text: #334155; --white: #ffffff; --sidebar-w: 280px; --border: #e2e8f0; }
@@ -233,7 +234,7 @@
                             </div>
                         </div>
                     </div>
-                    <button class="btn btn-primary" style="margin-top: 20px;" onclick="window.createOfficialAccount()">Create & Email Credentials</button>
+                    <button class="btn btn-primary" style="margin-top: 20px;" onclick="window.createOfficialAccount(this)">Create & Email Credentials</button>
                 </div>
 
                 <div class="card">
@@ -456,13 +457,12 @@
                             <h4 style="font-family:'Montserrat'; color:var(--primary); margin: 0;">Master Admin Recovery Settings</h4>
                             <span class="badge bg-red">System Critical</span>
                         </div>
-                        <p style="font-size:0.85em; color:#64748b;">Update the secure contact details used for recovering the Master Admin account. Keep these current if the administrative team changes.</p>
+                        <p style="font-size:0.85em; color:#64748b;">Update the contact details on your own Admin account. To change your password, use "Forgot Password" on the login page — passwords are handled by Firebase Auth and are never stored here.</p>
                         <div class="form-grid" style="align-items: end;">
-                            <div class="form-group"><label>Admin Recovery Email</label><input type="email" id="adminRecEmail" class="form-control" placeholder="svmk.athlete@gmail.com"></div>
+                            <div class="form-group"><label>Admin Recovery Email</label><input type="email" id="adminRecEmail" class="form-control" placeholder="you@example.com" disabled title="Email is tied to your Firebase Auth sign-in and can't be changed here."></div>
                             <div class="form-group"><label>Admin Recovery Mobile</label><input type="text" id="adminRecMobile" class="form-control" placeholder="+91 7093882050"></div>
-                            <div class="form-group"><label>Change Password (Optional)</label><input type="text" id="adminRecPass" class="form-control" placeholder="Leave blank to keep current"></div>
                         </div>
-                        <button class="btn btn-primary" style="margin-top:15px;" onclick="window.updateMasterAdminCredentials()">Secure Admin Credentials</button>
+                        <button class="btn btn-primary" style="margin-top:15px;" onclick="window.updateMasterAdminCredentials()">Save Contact Details</button>
                     </div>
                 </div>
             </div>
@@ -637,6 +637,8 @@
     <script type="module">
         // NEW ADDITION: Added `query` and `where` to the imports
         import { collection, getDocs, getDoc, doc, setDoc, updateDoc, addDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth as getSecondaryAuth, createUserWithEmailAndPassword, signOut as secondarySignOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
         // --- CENTRAL MASTER DATA (Restored All 17 Calendar Events) ---
         const fullCalendarData = [
@@ -659,33 +661,18 @@
             { categoryYear: "2026", title: "17. State Sub Juniors and Juniors Athletics", venue: "Karimnagar", date: "FEB 2027", isLive: false }
         ];
 
-        // --- AUTO INITIALIZE MASTER ADMIN ---
-        const initMasterAdmin = async () => {
-            try {
-                if(window.db) {
-                    const adminRef = doc(window.db, "users", "TAA-MAS-0001");
-                    const adminSnap = await getDoc(adminRef);
-                    if(!adminSnap.exists()) {
-                        await setDoc(adminRef, {
-                            afi_uid: "TAA-MAS-0001", regType: "Master_Admin", first_name: "Master", last_name: "Admin",
-                            email: "svmk.athlete@gmail.com", mobile: "+91 7093882050", password: "AdminLogin2026!",
-                            status: "Verified", timestamp: new Date().toISOString()
-                        });
-                    } else {
-                        const data = adminSnap.data();
-                        document.getElementById('adminRecEmail').value = data.email || "svmk.athlete@gmail.com";
-                        document.getElementById('adminRecMobile').value = data.mobile || "+91 7093882050";
-                    }
-                }
-            } catch(e) {}
-        };
+        // Real Firebase Auth session check — not a URL parameter or a
+        // hardcoded doc. A signed-in Admin's own `users` doc (role: "Admin")
+        // is what grants isAdmin() in the Firestore rules.
+        window.TAA_AUTH.guard(["Admin"], async (profile) => {
+            window.currentUser = profile;
+            window.currentDocId = profile.uid;
 
-        window.onload = async () => {
             document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            
+
             // --- SMART MERGE LOGIC ---
             let localDb = JSON.parse(localStorage.getItem('taa_master_db')) || [];
-            
+
             fullCalendarData.forEach(fc => {
                 let idx = localDb.findIndex(lc => lc.title === fc.title);
                 if (idx === -1) localDb.push(fc);
@@ -702,26 +689,28 @@
                     });
                 }
             } catch(e) { console.warn("Cloud sync pending."); }
-            
+
             localStorage.setItem('taa_master_db', JSON.stringify(localDb));
 
-            await initMasterAdmin(); 
+            document.getElementById('adminRecEmail').value = profile.email || "";
+            document.getElementById('adminRecMobile').value = profile.mobile || "";
+
             window.populateAdminYears();
             await window.renderAdminUsers();
-            
+
             window.loadRegistrationControl();
             window.loadLiveMeetDropdown();
             window.loadArchives();
-            
-            window.addNewDay(); 
-            window.loadCMSValues(); 
+
+            window.addNewDay();
+            window.loadCMSValues();
             window.loadExecutiveBody();
             window.loadDistrictDetails();
-        };
+        });
 
         // --- CORE UI GLOBALS ---
         window.toggleSidebar = function() { document.getElementById('adminSidebar').classList.toggle('collapsed'); }
-        window.secureLogout = function() { localStorage.removeItem('taa_logged_user'); window.location.href = "login.html"; }
+        window.secureLogout = function() { window.TAA_AUTH.logout(); }
 
         window.switchTab = function(tabId, btn) {
             document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -744,36 +733,78 @@
             document.getElementById('createPass').value = pass;
         }
 
-        window.createOfficialAccount = async function() {
-            const role = document.getElementById('createRole').value;
-            const district = role === 'District_Admin' ? document.getElementById('createDistrict').value : "Headquarters";
+        // Maps the form's role values to the exact role strings the rest of
+        // the portal (Firestore rules, auth.js's DASHBOARD_BY_ROLE) expects.
+        const ROLE_LABELS = {
+            "District_Admin": "District",
+            "Technical_Chairman": "Technical Chairman",
+            "Master_Admin": "Admin"
+        };
+
+        window.createOfficialAccount = async function(btnEl) {
+            const formRole = document.getElementById('createRole').value;
+            const role = ROLE_LABELS[formRole] || formRole;
+            const district = role === 'District' ? document.getElementById('createDistrict').value : "Headquarters";
             const name = document.getElementById('createName').value.trim();
             const email = document.getElementById('createEmail').value.trim();
             const password = document.getElementById('createPass').value;
 
             if(!name || !email || !password) return alert("Please fill all fields and generate a password.");
+            if(password.length < 8) return alert("Password must be at least 8 characters — use Generate.");
+            if(!window.db || !window.firebaseConfig) return alert("Not connected to TAA secure servers. Please refresh and try again.");
 
-            const uid = `TAA-${role.substring(0,3).toUpperCase()}-${Math.floor(Math.random() * 9000) + 1000}`;
+            const btn = btnEl;
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "Creating Account...";
 
-            const newUser = {
-                afi_uid: uid, regType: role, first_name: name, email: email, district: district,
-                password: password, status: "Verified", timestamp: new Date().toISOString()
-            };
+            // Create the real Firebase Auth account on a throwaway SECOND app
+            // instance, so this doesn't sign the admin themselves out — the
+            // Firebase client SDK signs in as whoever createUserWithEmailAndPassword
+            // just created, on whichever app instance you call it on.
+            const secondaryApp = initializeApp(window.firebaseConfig, `admin-create-${Date.now()}`);
+            const secondaryAuth = getSecondaryAuth(secondaryApp);
 
             try {
-                if(window.db) await setDoc(doc(window.db, "users", uid), newUser);
-                
+                const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+                const newUid = cred.user.uid;
+                await secondarySignOut(secondaryAuth);
+
+                const uid = `TAA-${formRole.substring(0,3).toUpperCase()}-${Math.floor(Math.random() * 9000) + 1000}`;
+                const newUser = {
+                    afi_uid: uid, regType: role, role: role, first_name: name, email: email, district: district,
+                    status: "Verified", timestamp: new Date().toISOString()
+                    // No password field — Firebase Auth already holds it, hashed.
+                };
+
+                await setDoc(doc(window.db, "users", newUid), newUser);
+                await setDoc(doc(window.db, "public_profiles", newUid), {
+                    full_name: name, role: role, afi_uid: uid, district: district
+                });
+
                 if(window.emailjs) {
                     await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
-                        subject: `Your TAA Portal Credentials (${role.replace('_', ' ')})`,
+                        subject: `Your TAA Portal Credentials (${role})`,
                         name: name,
-                        message: `An official account has been created for you on the TAA Portal.\n\nRole: ${role.replace('_', ' ')}\nDistrict: ${district}\nUID/Login ID: ${uid}\nPassword: ${password}\n\nPlease log in and change your password immediately.`
+                        message: `An official account has been created for you on the TAA Portal.\n\nRole: ${role}\nDistrict: ${district}\nLogin Email: ${email}\nPassword: ${password}\n\nPlease log in at the TAA website and change your password immediately (Forgot Password on the login page).`
                     });
                 }
-                alert(`Account created successfully! UID: ${uid}. Credentials have been emailed to ${email}.`);
+                alert(`Account created successfully! Credentials have been emailed to ${email}.`);
                 document.getElementById('createName').value = ''; document.getElementById('createEmail').value = ''; document.getElementById('createPass').value = '';
                 window.renderAdminUsers();
-            } catch (error) { alert("Error creating account. Check connection."); }
+            } catch (error) {
+                console.error("Account creation error:", error);
+                if (error.code === 'auth/email-already-in-use') {
+                    alert("This email is already registered to an account.");
+                } else {
+                    alert("Error creating account: " + (error.message || "Check connection."));
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
+                // Clean up the throwaway app instance either way.
+                try { await deleteApp(secondaryApp); } catch(_) {}
+            }
         }
 
         // --- INSTITUTION MANAGER ---
@@ -866,19 +897,18 @@
         }
 
         window.updateMasterAdminCredentials = async function() {
-            const email = document.getElementById('adminRecEmail').value;
             const mobile = document.getElementById('adminRecMobile').value;
-            const pass = document.getElementById('adminRecPass').value;
-            
+
+            if (!window.currentDocId || !window.db) {
+                alert("Not connected to TAA secure servers. Please refresh and try again.");
+                return;
+            }
+
             try {
-                if(window.db) {
-                    const payload = { email: email, mobile: mobile };
-                    if(pass.trim() !== "") payload.password = pass.trim();
-                    
-                    await updateDoc(doc(window.db, "users", "TAA-MAS-0001"), payload);
-                    alert("Master Admin recovery details updated successfully!");
-                    document.getElementById('adminRecPass').value = ''; 
-                }
+                // Only the signed-in admin's own doc, and only the mobile number —
+                // email and password are Firebase Auth's job, never a Firestore field.
+                await updateDoc(doc(window.db, "users", window.currentDocId), { mobile: mobile });
+                alert("Contact details updated successfully!");
             } catch(e) { alert("Failed to update cloud. Check connection."); }
         }
 

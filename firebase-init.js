@@ -37,6 +37,11 @@ window.auth = auth;
 window.storage = storage;
 window.emailjs = emailjs;
 
+// Exposed so Admin pages can spin up a *second*, throwaway Firebase App
+// instance when they need to create another person's Auth account without
+// hijacking the admin's own signed-in session (see taa-admin.html).
+window.firebaseConfig = firebaseConfig;
+
 // Restored your specific EmailJS Keys
 window.EMAIL_SERVICE_ID = "service_ah6bf6m";
 window.EMAIL_TEMPLATE_ID = "template_j1rld3s";

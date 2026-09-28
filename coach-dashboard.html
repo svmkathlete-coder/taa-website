@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coach Dashboard - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-    
+
     <script type="module" src="firebase-init.js"></script>
+    <script type="module" src="auth.js"></script>
 
     <style>
         :root { --primary: #001a35; --primary-light: #0056b3; --accent: #FF8C00; --bg: #f1f5f9; --text: #334155; --white: #ffffff; --sidebar-w: 260px; --border: #e2e8f0; --success: #10b981; }
@@ -16,7 +17,7 @@
         /* --- COLLAPSIBLE SIDEBAR --- */
         .sidebar { width: var(--sidebar-w); background: var(--primary); color: white; display: flex; flex-direction: column; box-shadow: 4px 0 15px rgba(0,0,0,0.1); z-index: 100; transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .sidebar.collapsed { margin-left: calc(-1 * var(--sidebar-w)); }
-        
+
         .brand { padding: 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .brand-avatar { width: 45px; height: 45px; background: #6b21a8; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Montserrat'; font-weight: 800; font-size: 1.2em; color: white; }
         .brand-text h2 { font-family: 'Montserrat'; font-size: 1em; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
@@ -50,7 +51,7 @@
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; border: 1px solid var(--border); }
         .card-header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .card-header h3 { font-family: 'Montserrat'; font-size: 1.1em; color: var(--primary); margin: 0; text-transform: uppercase; border-left: 4px solid var(--accent); padding-left: 10px; }
-        
+
         .stat-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid #6b21a8; display: flex; flex-direction: column; }
         .stat-title { font-size: 0.8em; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
         .stat-value { font-family: 'Montserrat'; font-size: 1.8em; font-weight: 800; color: #0f172a; line-height: 1.2; }
@@ -66,7 +67,7 @@
         th { text-align: left; padding: 15px; background: #f8fafc; color: #64748b; font-size: 0.75em; text-transform: uppercase; border-bottom: 2px solid var(--border); }
         td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 0.9em; vertical-align: middle; }
         tr:hover td { background: #f8fafc; }
-        
+
         .badge { padding: 4px 10px; border-radius: 50px; font-size: 0.75em; font-weight: 800; text-transform: uppercase; }
         .bg-purple { background: #f3e8ff; color: #6b21a8; }
         .bg-blue { background: #e0f2fe; color: #075985; }
@@ -77,9 +78,13 @@
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 700; font-family: 'Montserrat'; cursor: pointer; transition: 0.2s; font-size: 0.85em; text-transform: uppercase; }
         .btn-primary { background: var(--primary-light); color: white; }
         .btn-primary:hover { background: var(--primary); }
+
+        .loading-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: 'Montserrat'; font-weight: 700; color: var(--primary-light); }
     </style>
 </head>
 <body>
+
+    <div class="loading-screen" id="loadingScreen">Verifying your session…</div>
 
     <aside class="sidebar" id="coachSidebar">
         <div class="brand">
@@ -111,27 +116,30 @@
         </header>
 
         <div class="content-area">
-            
+
             <div id="tab-home" class="tab-content active">
                 <div class="grid-3">
                     <div class="stat-card" style="border-left-color: var(--accent);">
-                        <span class="stat-title">State Rank (Overall)</span>
-                        <span class="stat-value" id="coachRankDisplay">#--</span>
-                        <span style="font-size:0.75em; color:#64748b; margin-top:5px; font-weight:600;">Based on Athlete Points</span>
+                        <span class="stat-title">Registration Status</span>
+                        <span class="stat-value" id="statusDisplay">Pending</span>
                     </div>
                     <div class="stat-card" style="border-left-color: var(--success);">
-                        <span class="stat-title">Registration Status</span>
-                        <span class="stat-value" style="color:var(--success);" id="statusDisplay">Verified</span>
-                    </div>
-                    <div class="stat-card">
                         <span class="stat-title">Linked Athletes</span>
                         <span class="stat-value" id="athleteCountDisplay">0</span>
                     </div>
+                    <div class="stat-card">
+                        <span class="stat-title">Coaching Level</span>
+                        <span class="stat-value" id="levelDisplay" style="font-size:1.1em;">-</span>
+                    </div>
+                </div>
+
+                <div class="card" id="pendingNotice" style="display:none; border-left: 5px solid #f59e0b; background:#fffbeb;">
+                    <p style="color:#92400e; font-weight:600;">Your registration is awaiting TAA admin verification. Some features unlock once you're approved — this usually doesn't take long.</p>
                 </div>
 
                 <div class="card">
                     <div class="card-header"><h3>Welcome to your Portal</h3></div>
-                    <p style="color: #64748b; line-height: 1.6;">Your TAA Coach Dashboard allows you to manage your linked athletes, track your coaching certifications, and update your communication preferences. Ensure your athletes map your AFI UID to their profiles so they appear in your roster and contribute to your Coach Ranking points.</p>
+                    <p style="color: #64748b; line-height: 1.6;">Your TAA Coach Dashboard allows you to see your linked athletes, track your coaching certifications, and update your communication preferences. Athletes appear here once they link your AFI UID from their own dashboard.</p>
                 </div>
             </div>
 
@@ -143,7 +151,7 @@
                     </div>
                     <div class="table-responsive">
                         <table>
-                            <thead><tr><th>Athlete Name</th><th>AFI UID</th><th>Event / Category</th><th>Contact</th><th>Status</th></tr></thead>
+                            <thead><tr><th>Athlete Name</th><th>AFI UID</th><th>Event(s)</th><th>District</th><th>Status</th></tr></thead>
                             <tbody id="athletesBody">
                                 </tbody>
                         </table>
@@ -208,13 +216,12 @@
     <script type="module">
         import { collection, query, where, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // Global State Variables
+        // Global State
         window.currentUser = null;
-        window.currentDocId = null;
+        window.currentDocId = null; // Firebase Auth UID — the real, unspoofable identity
 
-        // UI toggles exposed to window
         window.toggleSidebar = function() { document.getElementById('coachSidebar').classList.toggle('collapsed'); };
-        window.secureLogout = function() { window.location.href = "login.html"; };
+        window.secureLogout = function() { window.TAA_AUTH.logout(); };
 
         window.switchTab = function(tabId, element) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -224,155 +231,91 @@
             document.getElementById('topbarTitle').innerText = element.innerText.substring(2).trim();
         };
 
-        // --- 1. INITIALIZATION & CLOUD SECURITY ---
-        window.onload = async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const uidParam = urlParams.get('uid');
-
-            if (!uidParam) {
-                alert("Unauthorized Access. Please login.");
-                window.location.href = "login.html";
-                return;
-            }
-
-            // Cloud Fetch
-            try {
-                if (window.db) {
-                    const q = query(collection(window.db, "users"), where("afi_uid", "==", uidParam));
-                    const snap = await getDocs(q);
-                    
-                    if (!snap.empty) {
-                        const docData = snap.docs[0].data();
-                        if (docData.regType === "Coach" || docData.role === "Coach") {
-                            window.currentUser = docData;
-                            window.currentDocId = snap.docs[0].id;
-                        }
-                    }
-                }
-            } catch (error) {
-                console.warn("Firebase fetch error. Using local fallback.");
-            }
-
-            // Local Fallback
-            if (!window.currentUser) {
-                let localDb = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-                let localUser = localDb.find(u => u.afi_uid === uidParam && (u.regType === "Coach" || u.role === "Coach"));
-                if(localUser) {
-                    window.currentUser = localUser;
-                } else {
-                    alert("Coach profile not found. Please contact administration.");
-                    window.location.href = "login.html";
-                    return;
-                }
-            }
+        // --- 1. AUTHENTICATION GUARD ---
+        // Real Firebase Auth session check — not a URL parameter.
+        window.TAA_AUTH.guard(["Coach"], async (profile) => {
+            window.currentUser = profile;
+            window.currentDocId = profile.uid;
+            document.getElementById('loadingScreen').style.display = 'none';
 
             window.populateDashboard();
             await window.loadAthletes();
-            window.calculateMockRank();
-        };
+        });
 
         // --- 2. POPULATE DASHBOARD UI ---
         window.populateDashboard = function() {
             const fullName = `${window.currentUser.first_name} ${window.currentUser.last_name || ''}`.trim();
-            
-            // Topbar & Sidebar
+
             document.getElementById('sidebarName').innerText = fullName;
             document.getElementById('sidebarAvatar').innerText = window.currentUser.first_name.charAt(0).toUpperCase();
             document.getElementById('uidBadge').innerText = `UID: ${window.currentUser.afi_uid}`;
-            
-            // Home Tab Stats
-            document.getElementById('statusDisplay').innerText = window.currentUser.status || "Verified";
-            
-            // Certifications
-            document.getElementById('certLevel').innerText = window.currentUser.cert_level || window.currentUser.level || "Not Specified";
+
+            document.getElementById('statusDisplay').innerText = window.currentUser.status || "Pending";
+            document.getElementById('pendingNotice').style.display = (window.currentUser.status === "Pending") ? 'block' : 'none';
+            document.getElementById('levelDisplay').innerText = window.currentUser.level || "Not Specified";
+
+            document.getElementById('certLevel').innerText = window.currentUser.level || "Not Specified";
             document.getElementById('certSpecialty').innerText = window.currentUser.specialty || "General Athletics";
             document.getElementById('certExp').innerText = window.currentUser.experience ? `${window.currentUser.experience} Years` : "Not Specified";
 
-            // Identity Vault
             document.getElementById('viewName').innerText = fullName;
             document.getElementById('viewDob').innerText = window.currentUser.dob || "N/A";
-            document.getElementById('viewAcademy').innerText = window.currentUser.academy || window.currentUser.coaching_place || "N/A";
-            document.getElementById('viewDistrict').innerText = window.currentUser.dist || window.currentUser.district || "N/A";
+            document.getElementById('viewAcademy').innerText = window.currentUser.coaching_place || "N/A";
+            document.getElementById('viewDistrict').innerText = window.currentUser.district || "N/A";
             document.getElementById('viewBlood').innerText = window.currentUser.blood_group || "N/A";
-            
+
             document.getElementById('editMobile').value = window.currentUser.mobile || "";
             document.getElementById('editEmail').value = window.currentUser.email || "";
         };
 
-        // --- 3. FETCH LINKED ATHLETES FROM CLOUD ---
+        // --- 3. FETCH LINKED ATHLETES (from the public directory — `users` is locked per-owner) ---
         window.loadAthletes = async function() {
             const tbody = document.getElementById('athletesBody');
             let myAthletes = [];
 
             try {
                 if (window.db) {
-                    // Find all users where their 'current_coach_id' matches this coach's UID
-                    const q = query(collection(window.db, "users"), where("current_coach_id", "==", window.currentUser.afi_uid));
+                    const q = query(
+                        collection(window.db, "public_profiles"),
+                        where("role", "==", "Athlete"),
+                        where("current_coach_id", "==", window.currentUser.afi_uid)
+                    );
                     const snap = await getDocs(q);
-                    snap.forEach(doc => {
-                        const data = doc.data();
-                        if (data.regType === "Athlete" || data.role === "Athlete") {
-                            myAthletes.push(data);
-                        }
-                    });
+                    snap.forEach(d => myAthletes.push(d.data()));
                 }
             } catch (error) {
-                console.warn("Failed to fetch linked athletes from cloud. Checking local.");
-                let localDb = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-                myAthletes = localDb.filter(u => (u.regType === "Athlete" || u.role === "Athlete") && u.current_coach_id === window.currentUser.afi_uid);
+                console.warn("Failed to fetch linked athletes.", error);
             }
-            
+
             document.getElementById('athleteCountDisplay').innerText = myAthletes.length;
-            
+
             if (myAthletes.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No athletes are currently linked to your profile. Instruct your athletes to add your UID in their dashboard.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No athletes are currently linked to your profile. Instruct your athletes to add your AFI UID in their dashboard's Coaching Timeline tab.</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = myAthletes.map(a => `
                 <tr>
-                    <td style="font-weight:700; color:var(--primary-light);">${a.first_name} ${a.last_name || ''}</td>
-                    <td style="font-family:monospace;">${a.afi_uid}</td>
-                    <td>${a.event || 'TBD'}</td>
-                    <td>${a.mobile || 'N/A'}</td>
+                    <td style="font-weight:700; color:var(--primary-light);">${a.full_name || ''}</td>
+                    <td style="font-family:monospace;">${a.afi_uid || ''}</td>
+                    <td>${(a.events && a.events.join(', ')) || a.event || 'TBD'}</td>
+                    <td>${a.district || 'N/A'}</td>
                     <td><span class="badge bg-green">Active</span></td>
                 </tr>
             `).join('');
-        };
-
-        // --- MOCK RANK CALCULATION ---
-        window.calculateMockRank = function() {
-            const athleteCount = parseInt(document.getElementById('athleteCountDisplay').innerText) || 0;
-            const rankDisplay = document.getElementById('coachRankDisplay');
-            if (athleteCount > 0) {
-                // Temporary logic: the more athletes linked, the better the fake rank
-                const pseudoRank = Math.max(1, 15 - athleteCount);
-                rankDisplay.innerText = `#${pseudoRank}`; 
-            } else {
-                rankDisplay.innerText = "N/A";
-            }
         };
 
         // --- 4. VAULT SAVE LOGIC (CLOUD) ---
         window.updateContactInfo = async function() {
             window.currentUser.mobile = document.getElementById('editMobile').value;
             window.currentUser.email = document.getElementById('editEmail').value;
-            
-            if (!window.currentDocId) {
-                // Update Local Storage Fallback
-                let localDb = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-                let idx = localDb.findIndex(u => u.afi_uid === window.currentUser.afi_uid);
-                if(idx > -1) {
-                    localDb[idx].mobile = window.currentUser.mobile;
-                    localDb[idx].email = window.currentUser.email;
-                    localStorage.setItem('taa_portal_data', JSON.stringify(localDb));
-                    alert("Preferences updated locally.");
-                }
+
+            if (!window.currentDocId || !window.db) {
+                alert("Not connected to TAA secure servers. Please refresh and try again.");
                 return;
             }
 
             try {
-                // Update Cloud Storage
                 const docRef = doc(window.db, "users", window.currentDocId);
                 await updateDoc(docRef, {
                     mobile: window.currentUser.mobile,

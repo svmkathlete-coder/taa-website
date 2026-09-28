@@ -438,6 +438,14 @@
                     coaching_start_date: window.currentUser.coaching_start_date || null,
                     coaching_history: window.currentUser.coaching_history || []
                 });
+
+                // Mirror the coach link into the public directory too — a coach's
+                // roster query reads public_profiles (users is locked per-owner),
+                // so this is what makes an athlete show up on their coach's dashboard.
+                const publicRef = doc(window.db, "public_profiles", window.currentDocId);
+                await updateDoc(publicRef, {
+                    current_coach_id: window.currentUser.current_coach_id || null
+                });
             } catch (e) {
                 console.error("Failed to save changes:", e);
                 alert("Error saving data to the cloud.");

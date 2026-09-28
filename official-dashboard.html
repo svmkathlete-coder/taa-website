@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Official Dashboard - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-    
+
     <script type="module" src="firebase-init.js"></script>
+    <script type="module" src="auth.js"></script>
 
     <style>
         :root { --primary: #001a35; --primary-light: #0056b3; --accent: #FF8C00; --bg: #f1f5f9; --text: #334155; --white: #ffffff; --sidebar-w: 260px; --border: #e2e8f0; --success: #10b981; }
@@ -16,7 +17,7 @@
         /* --- COLLAPSIBLE SIDEBAR --- */
         .sidebar { width: var(--sidebar-w); background: var(--primary); color: white; display: flex; flex-direction: column; box-shadow: 4px 0 15px rgba(0,0,0,0.1); z-index: 100; transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .sidebar.collapsed { margin-left: calc(-1 * var(--sidebar-w)); }
-        
+
         .brand { padding: 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .brand-avatar { width: 45px; height: 45px; background: #059669; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Montserrat'; font-weight: 800; font-size: 1.2em; color: white; }
         .brand-text h2 { font-family: 'Montserrat'; font-size: 1em; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
@@ -50,7 +51,7 @@
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; border: 1px solid var(--border); }
         .card-header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .card-header h3 { font-family: 'Montserrat'; font-size: 1.1em; color: var(--primary); margin: 0; text-transform: uppercase; border-left: 4px solid var(--accent); padding-left: 10px; }
-        
+
         .stat-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid #059669; display: flex; flex-direction: column; }
         .stat-title { font-size: 0.8em; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
         .stat-value { font-family: 'Montserrat'; font-size: 1.8em; font-weight: 800; color: #0f172a; line-height: 1.2; }
@@ -66,7 +67,7 @@
         th { text-align: left; padding: 15px; background: #f8fafc; color: #64748b; font-size: 0.75em; text-transform: uppercase; border-bottom: 2px solid var(--border); }
         td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 0.9em; vertical-align: middle; }
         tr:hover td { background: #f8fafc; }
-        
+
         .badge { padding: 4px 10px; border-radius: 50px; font-size: 0.75em; font-weight: 800; text-transform: uppercase; }
         .bg-green { background: #dcfce7; color: #166534; }
         .bg-blue { background: #e0f2fe; color: #075985; }
@@ -78,9 +79,13 @@
         .btn-primary { background: var(--primary-light); color: white; }
         .btn-primary:hover { background: var(--primary); }
         .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        .loading-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: 'Montserrat'; font-weight: 700; color: var(--primary-light); }
     </style>
 </head>
 <body>
+
+    <div class="loading-screen" id="loadingScreen">Verifying your session…</div>
 
     <aside class="sidebar" id="officialSidebar">
         <div class="brand">
@@ -91,33 +96,33 @@
             </div>
         </div>
         <div class="nav-links">
-            <div class="nav-item active" onclick="switchTab('tab-home', this)"><span class="nav-icon">🏠</span> Dashboard Home</div>
-            <div class="nav-item" onclick="switchTab('tab-duties', this)"><span class="nav-icon">📋</span> Duty Assignments</div>
-            <div class="nav-item" onclick="switchTab('tab-certifications', this)"><span class="nav-icon">📜</span> Certifications</div>
-            <div class="nav-item" onclick="switchTab('tab-vault', this)"><span class="nav-icon">🔐</span> Identity Vault</div>
+            <div class="nav-item active" onclick="window.switchTab('tab-home', this)"><span class="nav-icon">🏠</span> Dashboard Home</div>
+            <div class="nav-item" onclick="window.switchTab('tab-duties', this)"><span class="nav-icon">📋</span> Duty Assignments</div>
+            <div class="nav-item" onclick="window.switchTab('tab-certifications', this)"><span class="nav-icon">📜</span> Certifications</div>
+            <div class="nav-item" onclick="window.switchTab('tab-vault', this)"><span class="nav-icon">🔐</span> Identity Vault</div>
             <a href="index.html" class="nav-item" style="text-decoration:none; color:inherit;"><span class="nav-icon">🌍</span> Public Website</a>
         </div>
         <div class="user-profile">
-            <button class="logout-btn" onclick="secureLogout()">Logout</button>
+            <button class="logout-btn" onclick="window.secureLogout()">Logout</button>
         </div>
     </aside>
 
     <main class="main-content">
         <header class="topbar">
             <div class="topbar-left">
-                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Toggle Sidebar">☰</button>
+                <button class="toggle-sidebar-btn" onclick="window.toggleSidebar()" title="Toggle Sidebar">☰</button>
                 <h1 id="topbarTitle">Dashboard Home</h1>
             </div>
             <div style="font-weight: 700; color: #059669; background: #d1fae5; padding: 5px 15px; border-radius: 20px; font-size: 0.9em;" id="uidBadge">UID: Loading...</div>
         </header>
 
         <div class="content-area">
-            
+
             <div id="tab-home" class="tab-content active">
                 <div class="grid-3">
                     <div class="stat-card" style="border-left-color: var(--success);">
                         <span class="stat-title">Portal Status</span>
-                        <span class="stat-value" style="color:var(--success);" id="statusDisplay">Verified</span>
+                        <span class="stat-value" id="statusDisplay">Pending</span>
                     </div>
                     <div class="stat-card" style="border-left-color: var(--accent);">
                         <span class="stat-title">Official Level</span>
@@ -127,6 +132,10 @@
                         <span class="stat-title">Upcoming Duties</span>
                         <span class="stat-value" id="dutyCountDisplay">0</span>
                     </div>
+                </div>
+
+                <div class="card" id="pendingNotice" style="display:none; border-left: 5px solid #f59e0b; background:#fffbeb;">
+                    <p style="color:#92400e; font-weight:600;">Your registration is awaiting TAA admin verification. You'll be able to enter results and manage competitions once you're approved.</p>
                 </div>
 
                 <div class="card">
@@ -200,7 +209,7 @@
                             <input type="email" id="editEmail" class="form-control">
                         </div>
                     </div>
-                    <button class="btn btn-primary" id="saveContactBtn" style="margin-top:20px;" onclick="updateContactInfo()">💾 Save Preferences</button>
+                    <button class="btn btn-primary" id="saveContactBtn" style="margin-top:20px;" onclick="window.updateContactInfo()">💾 Save Preferences</button>
                 </div>
             </div>
 
@@ -210,60 +219,13 @@
     <script type="module">
         import { collection, query, where, getDocs, doc, updateDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        let currentUser = null;
-        let userDocId = null;
+        window.currentUser = null;
+        window.currentDocId = null;
 
-        // --- 1. INITIALIZATION & SECURITY ---
-        window.onload = async () => {
-            // Check Session Data (created during login)
-            const sessionStr = sessionStorage.getItem('taa_logged_user');
-            const urlParams = new URLSearchParams(window.location.search);
-            const uidParam = urlParams.get('uid');
+        window.toggleSidebar = function() { document.getElementById('officialSidebar').classList.toggle('collapsed'); };
+        window.secureLogout = function() { window.TAA_AUTH.logout(); };
 
-            if (!sessionStr || !uidParam) {
-                alert("Unauthorized Access. Please login.");
-                window.location.href = "login.html";
-                return;
-            }
-
-            const sessionUser = JSON.parse(sessionStr);
-            if(sessionUser.afi_uid !== uidParam) {
-                alert("UID mismatch. Redirecting to login.");
-                window.location.href = "login.html";
-                return;
-            }
-
-            // Fetch live user from Firestore to ensure we have the absolute latest status
-            try {
-                const q = query(collection(window.db, "users"), where("afi_uid", "==", uidParam));
-                const snap = await getDocs(q);
-                snap.forEach(d => {
-                    userDocId = d.id;
-                    currentUser = d.data();
-                });
-
-                if(!currentUser || (currentUser.regType !== "Official" && currentUser.role !== "Official")) {
-                    throw new Error("Invalid official profile.");
-                }
-
-                populateDashboard();
-                loadDuties();
-
-            } catch (err) {
-                alert("Error loading profile. Please contact admin.");
-                window.location.href = "login.html";
-            }
-        };
-
-        // --- GLOBAL UI HELPERS ---
-        window.toggleSidebar = () => document.getElementById('officialSidebar').classList.toggle('collapsed');
-        
-        window.secureLogout = () => { 
-            sessionStorage.removeItem('taa_logged_user'); 
-            window.location.href = "login.html"; 
-        };
-
-        window.switchTab = (tabId, element) => {
+        window.switchTab = function(tabId, element) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             element.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -271,44 +233,49 @@
             document.getElementById('topbarTitle').innerText = element.innerText.substring(2).trim();
         };
 
+        // --- 1. AUTHENTICATION GUARD ---
+        window.TAA_AUTH.guard(["Official"], async (profile) => {
+            window.currentUser = profile;
+            window.currentDocId = profile.uid;
+            document.getElementById('loadingScreen').style.display = 'none';
+
+            window.populateDashboard();
+            await window.loadDuties();
+        });
+
         // --- 2. POPULATE DASHBOARD UI ---
-        function populateDashboard() {
-            const fullName = `${currentUser.first_name} ${currentUser.last_name || ''}`.trim();
-            
-            // Topbar & Sidebar
+        window.populateDashboard = function() {
+            const fullName = `${window.currentUser.first_name} ${window.currentUser.last_name || ''}`.trim();
+
             document.getElementById('sidebarName').innerText = fullName;
-            document.getElementById('sidebarAvatar').innerText = currentUser.first_name.charAt(0).toUpperCase();
-            document.getElementById('uidBadge').innerText = `UID: ${currentUser.afi_uid}`;
-            
-            // Home Tab Stats
-            document.getElementById('statusDisplay').innerText = currentUser.status || "Verified";
-            document.getElementById('levelDisplay').innerText = currentUser.level || "State Tech Official";
-            
-            // Certifications
-            document.getElementById('certLevel').innerText = currentUser.level || "State Tech Official";
-            document.getElementById('certSpecialty').innerText = currentUser.specialty || "General Duty";
-            document.getElementById('certDistrict').innerText = currentUser.district || "N/A";
+            document.getElementById('sidebarAvatar').innerText = window.currentUser.first_name.charAt(0).toUpperCase();
+            document.getElementById('uidBadge').innerText = `UID: ${window.currentUser.afi_uid}`;
 
-            // Identity Vault
+            document.getElementById('statusDisplay').innerText = window.currentUser.status || "Pending";
+            document.getElementById('pendingNotice').style.display = (window.currentUser.status === "Pending") ? 'block' : 'none';
+            document.getElementById('levelDisplay').innerText = window.currentUser.level || "State Tech Official";
+
+            document.getElementById('certLevel').innerText = window.currentUser.level || "State Tech Official";
+            document.getElementById('certSpecialty').innerText = window.currentUser.specialty || "General Duty";
+            document.getElementById('certDistrict').innerText = window.currentUser.district || "N/A";
+
             document.getElementById('viewName').innerText = fullName;
-            document.getElementById('viewDob').innerText = currentUser.dob || "N/A";
-            document.getElementById('viewBlood').innerText = currentUser.blood_group || "N/A";
-            
-            // Editable Inputs
-            document.getElementById('editMobile').value = currentUser.mobile || "";
-            document.getElementById('editEmail').value = currentUser.email || "";
-        }
+            document.getElementById('viewDob').innerText = window.currentUser.dob || "N/A";
+            document.getElementById('viewBlood').innerText = window.currentUser.blood_group || "N/A";
 
-        // --- 3. FETCH LIVE DUTY ASSIGNMENTS (FROM FIREBASE) ---
-        async function loadDuties() {
+            document.getElementById('editMobile').value = window.currentUser.mobile || "";
+            document.getElementById('editEmail').value = window.currentUser.email || "";
+        };
+
+        // --- 3. FETCH LIVE DUTY ASSIGNMENTS (competitions is world-readable) ---
+        window.loadDuties = async function() {
             const tbody = document.getElementById('dutiesBody');
-            
+
             try {
-                // Fetch upcoming meets from competitions collection
                 const q = query(collection(window.db, "competitions"), orderBy("startDate", "asc"), limit(2));
                 const snap = await getDocs(q);
                 let meets = [];
-                snap.forEach(doc => meets.push(doc.data()));
+                snap.forEach(d => meets.push(d.data()));
 
                 document.getElementById('dutyCountDisplay').innerText = meets.length;
 
@@ -322,49 +289,46 @@
                         <td style="font-weight:600; color:#64748b;">${meet.date || meet.startDate}</td>
                         <td style="font-weight:700; color:var(--primary-light);">${meet.title}</td>
                         <td>${meet.venue || 'TBA'}</td>
-                        <td><span class="badge bg-blue">${currentUser.specialty || 'General Duty'}</span></td>
+                        <td><span class="badge bg-blue">${window.currentUser.specialty || 'General Duty'}</span></td>
                         <td><span class="badge bg-orange">Assigned</span></td>
                     </tr>
                 `).join('');
 
-            } catch(e) {
-                console.warn("Could not load cloud duties.");
+            } catch (e) {
+                console.warn("Could not load cloud duties.", e);
                 tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Cloud connection pending...</td></tr>`;
             }
-        }
+        };
 
-        // --- 4. VAULT SAVE LOGIC (CLOUD UPDATE + EMAILJS) ---
+        // --- 4. VAULT SAVE LOGIC ---
         window.updateContactInfo = async function() {
             const newMobile = document.getElementById('editMobile').value.trim();
             const newEmail = document.getElementById('editEmail').value.trim();
             const btn = document.getElementById('saveContactBtn');
 
-            if(!newMobile || !newEmail) { alert("Please fill both fields."); return; }
+            if (!newMobile || !newEmail) { alert("Please fill both fields."); return; }
+            if (!window.currentDocId || !window.db) {
+                alert("Not connected to TAA secure servers. Please refresh and try again.");
+                return;
+            }
 
             btn.disabled = true;
             btn.innerText = "Saving...";
 
             try {
-                // 1. Update Firestore
-                const userRef = doc(window.db, "users", userDocId);
-                await updateDoc(userRef, { 
-                    mobile: newMobile, 
-                    email: newEmail 
-                });
+                const userRef = doc(window.db, "users", window.currentDocId);
+                await updateDoc(userRef, { mobile: newMobile, email: newEmail });
 
-                // 2. Send Email Notification
-                if(window.emailjs && window.EMAIL_SERVICE_ID) {
+                if (window.emailjs && window.EMAIL_SERVICE_ID) {
                     await window.emailjs.send(window.EMAIL_SERVICE_ID, window.EMAIL_TEMPLATE_ID, {
                         subject: "Profile Updated - TAA Portal",
-                        name: currentUser.first_name,
+                        name: window.currentUser.first_name,
                         message: `Your communication preferences have been successfully updated in the TAA Cloud Database. \nNew Email: ${newEmail} \nNew Mobile: ${newMobile}`
                     });
                 }
 
-                // 3. Update local session state
-                currentUser.mobile = newMobile;
-                currentUser.email = newEmail;
-                sessionStorage.setItem('taa_logged_user', JSON.stringify(currentUser));
+                window.currentUser.mobile = newMobile;
+                window.currentUser.email = newEmail;
 
                 alert("Preferences saved and notification sent!");
             } catch (err) {

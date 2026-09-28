@@ -45,16 +45,34 @@ service cloud.firestore {
       return callerRole() == "Official" || callerRole() == "Admin" || callerRole() == "Technical Chairman";
     }
 
+    // A District role's own `users` doc carries which district they run —
+    // read once per rule check, so a secretary is scoped to their own
+    // district only. Hybrid model: self-service within your district,
+    // central Admin keeps final say (Admin bypasses every check below).
+    function isDistrictSecretaryFor(districtName) {
+      return isSignedIn()
+        && callerRole() == "District"
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.district == districtName;
+    }
+
     // ---- users: private profile + role -------------------------------
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId)
-                    && request.resource.data.role in ["Athlete", "Coach", "Official", "District"]
-                    && !("password" in request.resource.data);
+      allow read: if isOwner(userId) || isAdmin() || isDistrictSecretaryFor(resource.data.district);
+      allow create: if (isOwner(userId)
+                        && request.resource.data.role in ["Athlete", "Coach", "Official", "District"]
+                        && !("password" in request.resource.data))
+                    // Admin provisions institutional accounts (District secretaries,
+                    // Technical Chairman, other Admins) that don't self-register —
+                    // still never allowed to carry a plaintext password field.
+                    || (isAdmin() && !("password" in request.resource.data));
       allow update: if isAdmin()
                     || (isOwner(userId)
                         && request.resource.data.role == resource.data.role
-                        && !("password" in request.resource.data));
+                        && !("password" in request.resource.data))
+                    // District secretaries may only flip status (approve/reject) for
+                    // members of their own district — nothing else, no other district.
+                    || (isDistrictSecretaryFor(resource.data.district)
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"]));
       allow delete: if isAdmin();
     }
 
@@ -85,7 +103,7 @@ service cloud.firestore {
     // ---- public site content: anyone can read, only staff can write ---
     match /competitions/{docId}    { allow read: if true; allow write: if isOfficialOrAdmin(); }
     match /results/{docId}         { allow read: if true; allow write: if isOfficialOrAdmin(); }
-    match /districts/{docId}       { allow read: if true; allow write: if isAdmin(); }
+    match /districts/{docId}       { allow read: if true; allow write: if isAdmin() || isDistrictSecretaryFor(docId); }
     match /gallery/{docId}         { allow read: if true; allow write: if isAdmin(); }
     match /media/{docId}           { allow read: if true; allow write: if isAdmin(); }
     match /press_articles/{docId}  { allow read: if true; allow write: if isAdmin(); }
@@ -96,6 +114,19 @@ service cloud.firestore {
     match /contact_queries/{docId} {
       allow create: if true;
       allow read, update, delete: if isAdmin();
+    }
+
+    // ---- site-wide CMS content (About text, executive body, etc.) -----
+    match /site_settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---- meet entry data imported from external entry-collection tools
+    //      (e.g. the district/state meet Google-Sheet entry systems) ----
+    match /meet_entries/{docId} {
+      allow read: if isAdmin();
+      allow write: if isOfficialOrAdmin();
     }
 
     match /{document=**} {

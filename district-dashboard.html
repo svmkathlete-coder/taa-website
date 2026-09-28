@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
     <script type="module" src="firebase-init.js"></script>
+    <script type="module" src="auth.js"></script>
 
     <style>
         :root { --primary: #001a35; --primary-light: #0056b3; --accent: #FF8C00; --bg: #f1f5f9; --text: #334155; --white: #ffffff; --sidebar-w: 280px; --border: #e2e8f0; }
@@ -238,23 +239,28 @@
         let currentDistrict = "";
         let districtAthletes = [];
 
-        window.onload = async () => {
-            const sessionData = localStorage.getItem('taa_current_district');
-            if (!sessionData) { window.location.href = "login.html"; return; }
+        // Real Firebase Auth session check — a District secretary's own
+        // `users` doc carries which district they run; nothing here trusts
+        // a localStorage value anyone could set from devtools.
+        window.TAA_AUTH.guard(["District"], async (profile) => {
+            currentDistrict = profile.district;
 
-            const districtInfo = JSON.parse(sessionData);
-            currentDistrict = districtInfo.name;
-            
+            if (!currentDistrict) {
+                alert("Your account isn't linked to a district yet. Please contact TAA Admin.");
+                window.TAA_AUTH.logout();
+                return;
+            }
+
             document.getElementById('sidebarDistName').innerText = currentDistrict;
             document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            
+
             startLiveRoster();
             loadCompetitions();
             loadOfficeBearers();
-            
+
             // Add initial empty row for "Other Members"
             window.addOtherMemberRow();
-        };
+        });
 
         // --- 1. LIVE FIREBASE ROSTER ---
         function startLiveRoster() {
@@ -362,7 +368,7 @@
             document.getElementById('topbarTitle').innerText = el.innerText.substring(2);
         };
 
-        window.secureLogout = () => { localStorage.removeItem('taa_current_district'); window.location.href = "login.html"; };
+        window.secureLogout = () => { window.TAA_AUTH.logout(); };
 
         // --- OFFICE BEARERS LOGIC ---
         
