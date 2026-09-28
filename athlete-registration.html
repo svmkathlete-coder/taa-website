@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 
     <script type="module" src="firebase-init.js"></script>
+    <script type="module" src="event-master.js"></script>
 
     <style>
         :root {
@@ -192,9 +193,16 @@
                         <label>AFI UID (Username)*</label>
                         <input type="text" id="reg_afi_uid" name="afi_uid" placeholder="e.g. AFI20261055" required style="text-transform: uppercase;">
                     </div>
-                    <div class="input-group"><label>Primary Event*</label><input type="text" name="event" placeholder="e.g. 100m Sprint" required></div>
                     <div class="input-group"><label>Height (cm)</label><input type="number" name="height"></div>
                     <div class="input-group"><label>Weight (kg)</label><input type="number" name="weight"></div>
+                </div>
+
+                <h3>Your Events</h3>
+                <div class="input-group">
+                    <label>Select up to 3 events*</label>
+                    <div id="eventsHint" style="font-size:0.85em; color:#888; margin-bottom:10px;">Based on the AFI rulebook for your age category and gender — complete Step 1 first.</div>
+                    <div id="eventsGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(170px,1fr)); gap:10px; max-height:240px; overflow-y:auto; padding:12px; border:2px solid #eee; border-radius:8px; background:#fafafa;"></div>
+                    <div id="eventsError" style="display:none; color:#ef4444; font-weight:700; font-size:0.85em; margin-top:8px;">Please select at least 1 event.</div>
                 </div>
 
                 <h3>Account Security</h3>
@@ -257,6 +265,56 @@
         return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
+    const MAX_EVENTS = 3;
+
+    // Flattens the age-category rulebook (event-master.js) into a single
+    // labeled list: e.g. "100m" (Track), "Long Jump" (Field), "2000m" (Cross Country).
+    function eligibleEventsFor(dob, gender) {
+        if (!window.TAA_MASTER_DATA || !dob || !gender) return [];
+        const category = window.TAA_MASTER_DATA.getAthleteCategory(dob);
+        const bucket = window.TAA_MASTER_DATA.mappings[category] && window.TAA_MASTER_DATA.mappings[category][gender];
+        if (!bucket) return [];
+        const groups = [
+            ["Track", bucket.track], ["Hurdles", bucket.hurdles], ["Field", bucket.field],
+            ["Cross Country", bucket.crossCountry], ["Combined", bucket.combined]
+        ];
+        const list = [];
+        groups.forEach(([label, events]) => (events || []).forEach(ev => list.push({ event: ev, group: label })));
+        return { category, list };
+    }
+
+    window.renderEventOptions = function() {
+        const dob = document.querySelector('[name="dob"]').value;
+        const gender = document.querySelector('[name="gender"]').value;
+        const grid = document.getElementById('eventsGrid');
+        const hint = document.getElementById('eventsHint');
+        const result = eligibleEventsFor(dob, gender);
+
+        if (!result || !result.list || result.list.length === 0) {
+            grid.innerHTML = '';
+            hint.innerText = "Could not determine your age category — please check your Date of Birth and Gender in Step 1.";
+            return;
+        }
+
+        hint.innerText = `Age category: ${result.category} — choose up to ${MAX_EVENTS} events.`;
+        grid.innerHTML = result.list.map((e, i) => `
+            <label style="display:flex; align-items:center; gap:8px; font-weight:600; font-size:0.85em; text-transform:none; cursor:pointer; background:white; padding:8px 10px; border-radius:6px; border:1px solid #eee;">
+                <input type="checkbox" class="event-cb" value="${e.event}" data-group="${e.group}" style="width:16px; height:16px; margin:0;">
+                ${e.event} <span style="color:#aaa; font-weight:400;">(${e.group})</span>
+            </label>
+        `).join('');
+
+        grid.querySelectorAll('.event-cb').forEach(cb => {
+            cb.addEventListener('change', () => {
+                const checked = grid.querySelectorAll('.event-cb:checked');
+                grid.querySelectorAll('.event-cb:not(:checked)').forEach(other => {
+                    other.disabled = checked.length >= MAX_EVENTS;
+                });
+                document.getElementById('eventsError').style.display = 'none';
+            });
+        });
+    };
+
     window.nextStep = function() {
         const step1 = document.getElementById('step1');
         const required = step1.querySelectorAll('[required]');
@@ -275,6 +333,7 @@
             document.getElementById('s1').classList.add('completed');
             document.getElementById('s2').classList.add('active');
             document.getElementById('line-fill').style.width = '100%';
+            window.renderEventOptions();
             window.scrollTo(0, 0);
         } else {
             alert("Please fill in all required fields marked with *");
@@ -295,6 +354,13 @@
 
         const errorBox = document.getElementById('regError');
         errorBox.style.display = 'none';
+
+        const selectedEvents = Array.from(document.querySelectorAll('.event-cb:checked')).map(cb => cb.value);
+        if (selectedEvents.length === 0) {
+            document.getElementById('eventsError').style.display = 'block';
+            document.getElementById('eventsGrid').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
 
         const pwd = document.getElementById('reg_pwd').value;
         const pwdConfirm = document.getElementById('reg_pwd_confirm').value;
@@ -355,6 +421,8 @@
             submitBtn.innerText = "Creating Account...";
 
             data.afi_uid = enteredUID;
+            data.events = selectedEvents;
+            data.event = selectedEvents[0]; // primary event, kept for backward compatibility
             data.regType = "Athlete";
             data.role = "Athlete";
             data.status = "Verified"; // Athletes auto-verify per current TAA policy
@@ -374,6 +442,7 @@
                 role: "Athlete",
                 afi_uid: enteredUID,
                 event: data.event || "",
+                events: data.events || [],
                 district: data.district || ""
             });
 
