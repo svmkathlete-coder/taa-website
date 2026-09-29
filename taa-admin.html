@@ -547,16 +547,41 @@
 
             <div id="tab-registrations" class="tab-content">
                 
-                <div class="automation-panel" style="margin-bottom: 20px;">
-                    <div>
-                        <p>EXPORT MEET ENTRIES</p>
-                        <small style="color: #64748b;">Enter the <b>Meet ID</b> and a <b>Meet Name</b> to download a formatted CSV of all district entries for a specific competition.</small>
+                <div class="card" id="emmCard">
+                    <div class="card-header">
+                        <div>
+                            <h3>Export Entries for Easy Meet Manager (EMM)</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">Builds the comma-delimited file EMM imports: Team Name, Team Initials, Hometown, First Name, Last Name, Age (DOB), Grade, Sex, BIB, Event Number, Seed Mark, relay names. One row per event.</p>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="text" id="exportMeetId" class="export-input" placeholder="Meet ID (e.g., meet_123)" style="background: white;">
-                        <input type="text" id="exportMeetName" class="export-input" placeholder="Meet Name (e.g., State Champs)" style="background: white;">
-                        <button class="btn btn-excel" onclick="window.triggerMeetExport()">📥 Download Entries CSV</button>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Competition</label><select id="emmMeet" class="form-control" onchange="window.onEmmMeetChange()"></select></div>
+                        <div class="form-group"><label>Date format (must match Meet Setup in EMM)</label>
+                            <select id="emmDobFormat" class="form-control"><option value="DMY">DD/MM/YYYY</option><option value="MDY">MM/DD/YYYY</option></select>
+                        </div>
+                        <div class="form-group"><label>Header row</label>
+                            <select id="emmHeader" class="form-control"><option value="no">No - use this for importing</option><option value="yes">Yes - only for checking in Excel</option></select>
+                        </div>
                     </div>
+
+                    <div class="form-grid" style="margin-top:15px;">
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Event numbers for this meet <span id="emmMapStatus" style="font-weight:400; color:#64748b;"></span></label>
+                            <textarea id="emmEventMap" class="form-control" rows="6" placeholder="One event per line:  event number, age category, event&#10;101, U18 Boys, 100m&#10;102, U18 Girls, 100m&#10;Paste straight from Excel if you like (tab separated)."></textarea>
+                            <small style="color:#64748b;">Use the same numbers as your EMM event order. Every meet has its own numbers. The age category and event name must match how the district secretaries' entries are saved.</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Team initials (whole site) <span id="emmInitStatus" style="font-weight:400; color:#64748b;"></span></label>
+                            <textarea id="emmInitials" class="form-control" rows="6" placeholder="Adilabad=ADB&#10;Hyderabad=HYD&#10;Ranga Reddy=RR"></textarea>
+                            <small style="color:#64748b;">One per line: Team name=INITIALS.</small>
+                        </div>
+                    </div>
+                    <div style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+                        <button class="btn btn-clear" onclick="window.saveEmmInitials(this)">Save Team Initials</button>
+                        <button class="btn btn-clear" onclick="window.saveEmmEventMap(this)">Save Event Numbers</button>
+                        <button class="btn btn-excel" onclick="window.downloadEmmCsv(this)">📥 Download EMM CSV</button>
+                    </div>
+                    <div id="emmReport" style="margin-top:15px; font-size:0.9em;"></div>
                 </div>
 
                 <div class="card">
@@ -877,6 +902,7 @@
             if (tabId === 'tab-circulars') window.loadPublishedCirculars();
             if (tabId === 'tab-media') window.loadPublishedMedia();
             if (tabId === 'tab-calendar') window.loadCalendarList();
+            if (tabId === 'tab-registrations') window.loadEmmSettings();
         }
 
         // --- CREATE OFFICIAL ACCOUNTS ---
@@ -1950,82 +1976,188 @@
             });
         }
 
-        // NEW ADDITION: Master Functions for Exporting Meet Entries CSV
-        window.triggerMeetExport = async function() {
-            const meetId = document.getElementById('exportMeetId').value.trim();
-            const meetName = document.getElementById('exportMeetName').value.trim();
-            
-            if (!meetId || !meetName) {
-                alert("Please enter both a Meet ID and a Meet Name.");
-                return;
-            }
-            
-            await window.downloadMeetEntriesCSV(meetId, meetName);
-        }
+        // --- EMM ENTRY EXPORT ---
+        // Layout follows EMM's own import reminder: TEAM NAME, TEAM INITIALS, HOMETOWN, FIRST, LAST, AGE (birth date),
+        // GRADE, SEX (M/F), BIB, EVENT NUMBER, SEED MARK, then (from column L) up to 4 relay athletes as FIRST,LAST.
+        // Entries live in Firestore `meet_entries` (one doc per athlete per meet; relay teams have type "relay"):
+        //   athlete: { meetId, afi_uid, district, homeDistrict, surname, full_name, father_name, gender, dob "YYYY-MM-DD",
+        //              ageCategory "U18 Boys", bib, events: [{ event: "100m", category?: "U18 Boys", mark: "1150" }] }
+        //   relay:   { meetId, type: "relay", district, homeDistrict, ageCategory, event, teamLetter: "A", athletes: [{first, last}], mark }
+        const EMM_DEFAULT_INITIALS = { "adilabad": "ADB", "hyderabad": "HYD", "ranga reddy": "RR" };
+        window.emmInitials = {};
+        const emmNorm = (v) => String(v ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+        // EMM cannot import commas or quotes; names are kept upper case like the entry sheets.
+        window.emmClean = (v) => String(v ?? '').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[",\r\n\t]+/g, ' ').replace(/^[=+\-@\s]+/, '').replace(/\s+/g, ' ').trim().toUpperCase();
+        window.emmDob = (iso, fmt) => {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '').trim());
+            if (!m) return '';
+            return fmt === 'MDY' ? `${m[2]}/${m[3]}/${m[1]}` : `${m[3]}/${m[2]}/${m[1]}`;
+        };
+        window.emmSex = (g) => { const t = String(g || '').trim().toLowerCase(); if (/^(f|girl|wom)/.test(t)) return 'F'; if (/^(m|boy|men)/.test(t)) return 'M'; return ''; };
+        // Marks are digits only (last two digits are hundredths); NT / NM pass through.
+        window.emmMark = (m) => { const t = String(m ?? '').trim().toUpperCase(); if (t === 'NT' || t === 'NM') return t; return t.replace(/\D/g, ''); };
+        const emmGuessInitials = (team) => { const w = String(team).trim().split(/\s+/).filter(Boolean); return (w.length > 1 ? w.map(x => x[0]).join('').slice(0, 3) : String(team).slice(0, 3)).toUpperCase(); };
 
-        window.downloadMeetEntriesCSV = async function(meetId, meetName) {
-            try {
-                if (!window.db) {
-                    alert("Database not initialized.");
+        window.parseEmmEventMap = function(text) {
+            const rows = [], problems = [], seen = new Set();
+            String(text || '').split(/\r?\n/).forEach((line, i) => {
+                if (!line.trim()) return;
+                const parts = (line.includes('\t') ? line.split('\t') : line.split(',')).map(p => p.trim());
+                const no = parts[0];
+                if (!/^\d+$/.test(no)) { if (i > 0) problems.push(`Line ${i + 1}: "${no}" is not an event number.`); return; } // a header line is skipped
+                const category = parts[1] || '', event = parts.slice(2).join(' ').trim();
+                if (!category || !event) { problems.push(`Line ${i + 1}: needs an event number, an age category and an event.`); return; }
+                const key = emmNorm(category) + '|' + emmNorm(event);
+                if (seen.has(key)) { problems.push(`Line ${i + 1}: ${category} ${event} is listed twice.`); return; }
+                seen.add(key);
+                rows.push({ no, category, event });
+            });
+            return { rows, problems };
+        };
+
+        window.buildEmmRows = function(entries, eventMap, initialsMap, dobFormat) {
+            const lookup = new Map(eventMap.map(e => [emmNorm(e.category) + '|' + emmNorm(e.event), e.no]));
+            const rows = [], report = { athletes: 0, individualRows: 0, relayRows: 0, unmapped: [], guessedInitials: new Set(), noCategory: [] };
+            const initialsFor = (team) => {
+                const k = emmNorm(team);
+                if (initialsMap[k]) return initialsMap[k];
+                report.guessedInitials.add(team);
+                return emmGuessInitials(team);
+            };
+            entries.forEach(d => {
+                const team = d.homeDistrict || d.district || '';
+                if (d.type === 'relay') {
+                    const no = lookup.get(emmNorm(d.ageCategory) + '|' + emmNorm(d.event));
+                    if (!no) { report.unmapped.push(`${team}: ${d.ageCategory || '?'} ${d.event || '?'} relay`); return; }
+                    const r = new Array(22).fill('');
+                    r[0] = window.emmClean(team); r[1] = window.emmClean(initialsFor(team));
+                    r[3] = window.emmClean(d.teamLetter || 'A'); r[4] = r[0]; // relay: FIRST = A/B/C, LAST = team name
+                    r[9] = no; r[10] = window.emmMark(d.mark);
+                    (d.athletes || []).slice(0, 4).forEach((a, i) => { r[11 + i * 2] = window.emmClean(a.first); r[12 + i * 2] = window.emmClean(a.last); });
+                    rows.push(r); report.relayRows++;
                     return;
                 }
-
-                const entriesRef = collection(window.db, "meet_entries");
-                const q = query(entriesRef, where("meetId", "==", meetId));
-                const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    alert("No entries found for this Meet ID.");
-                    return;
-                }
-
-                const headers = [
-                    "ID", "District", "First Name", "Last Name", "Father Name", 
-                    "Date of Birth", "Gender (M/F)", "Event 1", "Event 2", 
-                    "Event 3", "Relay 1", "Relay 2", "Seed Mark"
-                ];
-
-                let csvContent = headers.join(",") + "\n";
-
-                querySnapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    
-                    const row = [
-                        data.athleteId || data.afi_id || data.uid || "N/A",
-                        data.district || "",
-                        data.firstName || data.first_name || "",
-                        data.lastName || data.last_name || "",
-                        data.fatherName || data.father_name || "",
-                        data.dob || "",
-                        data.gender || "",
-                        data.event1 || "",
-                        data.event2 || "",
-                        data.event3 || "",
-                        data.relay1 || "",
-                        data.relay2 || "",
-                        data.seedMark || ""
-                    ];
-
-                    const formattedRow = row.map(item => `"${item}"`).join(",");
-                    csvContent += formattedRow + "\n";
+                report.athletes++;
+                const legacy = [1, 2, 3].map(n => d['event' + n] ? { event: d['event' + n], mark: d['mark' + n] || (n === 1 ? d.seedMark : '') } : null).filter(Boolean);
+                const events = Array.isArray(d.events) ? d.events : legacy;
+                const first = d.full_name || d.firstName || d.first_name || '';
+                const last = d.surname || d.lastName || d.last_name || '';
+                const who = `${first} ${last}`.trim() || d.afi_uid || '?';
+                events.forEach(ev => {
+                    const cat = ev.category || d.ageCategory;
+                    if (!cat) { report.noCategory.push(who); return; }
+                    const no = lookup.get(emmNorm(cat) + '|' + emmNorm(ev.event));
+                    if (!no) { report.unmapped.push(`${who} (${team}): ${cat} ${ev.event}`); return; }
+                    const r = new Array(22).fill('');
+                    r[0] = window.emmClean(team); r[1] = window.emmClean(initialsFor(team));
+                    r[2] = window.emmClean(d.father_name || d.fatherName);
+                    r[3] = window.emmClean(first); r[4] = window.emmClean(last);
+                    r[5] = window.emmDob(d.dob, dobFormat); r[7] = window.emmSex(d.gender);
+                    r[8] = String(d.bib ?? '').replace(/\D/g, ''); r[9] = no; r[10] = window.emmMark(ev.mark);
+                    rows.push(r); report.individualRows++;
                 });
+            });
+            rows.sort((a, b) => a[0].localeCompare(b[0]) || a[4].localeCompare(b[4]) || a[3].localeCompare(b[3]) || Number(a[9]) - Number(b[9]));
+            report.guessedInitials = [...report.guessedInitials];
+            return { rows, report };
+        };
 
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                
-                link.setAttribute("href", url);
-                link.setAttribute("download", `${meetName.replace(/\s+/g, '_')}_Entries.csv`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-            } catch (error) {
-                console.error("Error generating CSV: ", error);
-                alert("Failed to generate CSV. Check the browser console.");
+        window.buildEmmCsv = function(rows, withHeader) {
+            // Excel-style: every line is as wide as the widest row (at least through SEED MARK).
+            let width = 11;
+            rows.forEach(r => { for (let i = r.length - 1; i >= width; i--) if (r[i] !== '') { width = i + 1; break; } });
+            const lines = rows.map(r => r.slice(0, width).join(','));
+            if (withHeader) {
+                const head = ['TEAM NAME', 'TEAM INITIALS', 'HOMETOWN', 'FIRST NAME', 'LAST NAME', 'AGE', 'GRADE', 'SEX', 'BIB', 'EVENT NUMBER', 'SEED MARK', 'RELAY 1 FIRST', 'RELAY 1 LAST', 'RELAY 2 FIRST', 'RELAY 2 LAST', 'RELAY 3 FIRST', 'RELAY 3 LAST', 'RELAY 4 FIRST', 'RELAY 4 LAST'];
+                lines.unshift(Array.from({ length: width }, (_, i) => head[i] || '').join(','));
             }
+            return lines.join('\r\n') + '\r\n'; // no BOM: EMM is an older program
+        };
+
+        function emmFillMeets() {
+            const sel = document.getElementById('emmMeet');
+            const keep = sel.value;
+            sel.innerHTML = '<option value="">Select competition...</option>' + window.meetsCache.map(m => `<option value="${esc(m._id)}">${esc(m.title)} (${esc(m.categoryYear)})</option>`).join('');
+            if (keep) sel.value = keep;
         }
+        window.loadEmmSettings = async function() {
+            emmFillMeets();
+            try {
+                const snap = await getDoc(doc(window.db, "site_settings", "emm"));
+                const saved = snap.exists() ? (snap.data().team_initials || {}) : {};
+                window.emmInitials = { ...EMM_DEFAULT_INITIALS, ...Object.fromEntries(Object.entries(saved).map(([k, v]) => [emmNorm(k), v])) };
+                const names = { ...Object.fromEntries(Object.entries(EMM_DEFAULT_INITIALS).map(([k, v]) => [k, v])), ...saved };
+                document.getElementById('emmInitials').value = Object.entries(saved).length ? Object.entries(saved).map(([k, v]) => `${k}=${v}`).join('\n') : Object.entries(EMM_DEFAULT_INITIALS).map(([k, v]) => `${k.replace(/\b\w/g, c => c.toUpperCase())}=${v}`).join('\n');
+                document.getElementById('emmInitStatus').innerText = Object.keys(saved).length ? `(${Object.keys(saved).length} saved)` : '(not saved yet)';
+                window.emmInitialsLoaded = true;
+            } catch(e) { console.error(e); window.emmInitialsLoaded = false; document.getElementById('emmInitStatus').innerText = '(could not load - saving is off until it loads)'; }
+        };
+        window.saveEmmInitials = async function(btn) {
+            if (!window.emmInitialsLoaded) return alert("The saved team initials have not loaded, so saving is blocked. Please refresh the page.");
+            const map = {}; const bad = [];
+            document.getElementById('emmInitials').value.split(/\r?\n/).forEach((line, i) => {
+                if (!line.trim()) return;
+                const [name, ...rest] = line.split('='); const ini = rest.join('=').trim().toUpperCase();
+                if (!name.trim() || !/^[A-Z0-9]{1,6}$/.test(ini)) { bad.push(i + 1); return; }
+                map[name.trim()] = ini;
+            });
+            if (bad.length) return alert(`Fix line${bad.length > 1 ? 's' : ''} ${bad.join(', ')}: use the form Team name=INITIALS (letters or numbers, up to 6).`);
+            try {
+                await setDoc(doc(window.db, "site_settings", "emm"), { team_initials: map, updatedAt: serverTimestamp() }, { merge: true });
+            } catch(e) { console.error(e); return alert("Could not save to the cloud. Nothing was changed."); }
+            await window.loadEmmSettings();
+            alert("Team initials saved.");
+        };
+        window.onEmmMeetChange = function() {
+            const m = window.meetsCache.find(x => x._id === document.getElementById('emmMeet').value);
+            const map = (m && m.emm_event_map) || [];
+            document.getElementById('emmEventMap').value = map.map(e => `${e.no}, ${e.category}, ${e.event}`).join('\n');
+            document.getElementById('emmMapStatus').innerText = m ? (map.length ? `(${map.length} saved)` : '(none saved yet)') : '';
+            document.getElementById('emmReport').innerHTML = '';
+        };
+        window.saveEmmEventMap = async function(btn) {
+            const m = window.meetsCache.find(x => x._id === document.getElementById('emmMeet').value);
+            if (!m) return alert("Select a competition first.");
+            const { rows, problems } = window.parseEmmEventMap(document.getElementById('emmEventMap').value);
+            if (problems.length) return alert("Nothing was saved. Please fix:\n\n" + problems.slice(0, 8).join('\n') + (problems.length > 8 ? `\n...and ${problems.length - 8} more` : ''));
+            if (rows.length === 0 && !confirm("This will remove the saved event numbers for this competition. Continue?")) return;
+            try {
+                await saveMeetFields(m, { emm_event_map: rows });
+            } catch(e) { console.error(e); return alert("Could not save to the cloud. Nothing was changed."); }
+            window.onEmmMeetChange();
+            alert(`${rows.length} event numbers saved for ${m.title}.`);
+        };
+
+        window.downloadEmmCsv = async function(btn) {
+            const m = window.meetsCache.find(x => x._id === document.getElementById('emmMeet').value);
+            const box = document.getElementById('emmReport');
+            if (!m) return alert("Select a competition first.");
+            const map = m.emm_event_map || [];
+            if (map.length === 0) return alert("Save the event numbers for this competition first. EMM needs an event number on every row.");
+            if (!window.emmInitialsLoaded) return alert("The team initials have not loaded. Please refresh the page and try again.");
+            let entries = [];
+            try {
+                const snap = await getDocs(query(collection(window.db, "meet_entries"), where("meetId", "==", m._id)));
+                snap.forEach(d => entries.push({ id: d.id, ...d.data() }));
+            } catch(e) { console.error(e); return alert("Could not load the entries from the cloud. Nothing was exported."); }
+            if (entries.length === 0) return alert("No entries have been submitted for this competition yet.");
+
+            const { rows, report } = window.buildEmmRows(entries, map, window.emmInitials, document.getElementById('emmDobFormat').value);
+            const notes = [];
+            if (report.unmapped.length) notes.push(`<b style="color:#b91c1c;">${report.unmapped.length} entr${report.unmapped.length > 1 ? 'ies have' : 'y has'} no event number and ${report.unmapped.length > 1 ? 'were' : 'was'} left out:</b><br>${report.unmapped.slice(0, 15).map(esc).join('<br>')}${report.unmapped.length > 15 ? `<br>...and ${report.unmapped.length - 15} more` : ''}`);
+            if (report.noCategory.length) notes.push(`<b style="color:#b91c1c;">No age category saved for:</b> ${[...new Set(report.noCategory)].slice(0, 15).map(esc).join(', ')}`);
+            if (report.guessedInitials.length) notes.push(`<b style="color:#b45309;">Team initials guessed for:</b> ${report.guessedInitials.map(esc).join(', ')}. Add them under Team Initials and download again.`);
+            box.innerHTML = `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;"><b>${report.athletes}</b> athletes &middot; <b>${report.individualRows}</b> individual rows &middot; <b>${report.relayRows}</b> relay rows${notes.length ? '<br><br>' + notes.join('<br><br>') : ''}</div>`;
+            if (rows.length === 0) return alert("None of the entries could be matched to an event number, so nothing was exported.");
+            if ((report.unmapped.length || report.noCategory.length) && !confirm(`Some entries cannot be exported (listed below the buttons). Download the ${rows.length} rows that are ready anyway?`)) return;
+
+            const blob = new Blob([window.buildEmmCsv(rows, document.getElementById('emmHeader').value === 'yes')], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `${slugify(m.title)}-emm-entries.csv`;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
     </script>
 </body>
 </html>
