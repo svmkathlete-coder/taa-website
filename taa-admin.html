@@ -184,6 +184,7 @@
                             <select id="createRole" class="form-control" onchange="window.toggleDistrictField()">
                                 <option value="District_Admin">District Secretary / Admin</option>
                                 <option value="Technical_Chairman">Technical Chairman</option>
+                                <option value="Academy">Academy</option>
                                 <option value="Master_Admin">Master Admin</option>
                             </select>
                         </div>
@@ -225,6 +226,10 @@
                                 <option value="Yadadri Bhuvanagiri">Yadadri Bhuvanagiri</option>
                             </select>
                         </div>
+                        <div class="form-group" id="createAcademyGroup" style="display:none;">
+                            <label>Academy</label>
+                            <select id="createAcademy" class="form-control"></select>
+                        </div>
                         <div class="form-group"><label>Full Name</label><input type="text" id="createName" class="form-control" placeholder="e.g. K. Sarangapani"></div>
                         <div class="form-group"><label>Official Email</label><input type="email" id="createEmail" class="form-control" placeholder="Email to receive credentials"></div>
                         <div class="form-group">
@@ -236,6 +241,17 @@
                         </div>
                     </div>
                     <button class="btn btn-primary" style="margin-top: 20px;" onclick="window.createOfficialAccount(this)">Create & Email Credentials</button>
+                </div>
+
+                <div class="card" id="academiesCard">
+                    <div class="card-header">
+                        <div>
+                            <h3>Academies <span id="academiesStatus" style="font-weight:400; font-size:0.7em; color:#64748b;"></span></h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">One academy per line. Athletes pick from this list when they register, and you pick from it when creating an Academy account. Rename with care: athletes and accounts keep the name they were saved with.</p>
+                        </div>
+                    </div>
+                    <textarea id="academiesText" class="form-control" rows="5"></textarea>
+                    <div style="margin-top:12px; text-align:right;"><button class="btn btn-primary" onclick="window.saveAcademies(this)">Save Academies</button></div>
                 </div>
 
                 <div class="card">
@@ -257,6 +273,7 @@
                             <option value="Coach">Coaches</option>
                             <option value="Official">Officials</option>
                             <option value="District_Admin">District Admins</option>
+                            <option value="Academy">Academies</option>
                         </select>
                         <button class="btn btn-primary" onclick="window.renderAdminUsers()">Search Database</button>
                     </div>
@@ -577,6 +594,19 @@
                             <small style="color:#64748b;">One per line: Team name=INITIALS.</small>
                         </div>
                     </div>
+                    <div class="form-grid" style="margin-top:15px;">
+                        <div class="form-group"><label>Bib numbers start at</label><input type="number" id="bibStart" class="form-control" value="1" min="1"></div>
+                        <div class="form-group"><label>Different athletes with the same name in one team</label>
+                            <select id="emmClash" class="form-control"><option value="suffix">Keep them apart - add (2), (3) to the last name</option><option value="keep">Leave the names as they are</option></select>
+                        </div>
+                        <div class="form-group" style="justify-content:flex-end;">
+                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                <button class="btn btn-clear" onclick="window.assignBibsForMeet(this, false)">Give bibs to athletes without one</button>
+                                <button class="btn btn-clear" onclick="window.assignBibsForMeet(this, true)">Renumber all bibs</button>
+                            </div>
+                        </div>
+                    </div>
+                    <small style="color:#64748b;">Every athlete gets their own bib, matched by AFI ID and never by name, so two athletes with the same name can never share one. Order: academies first, then districts; girls before boys; younger age groups first; then by surname.</small>
                     <div style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
                         <button class="btn btn-clear" onclick="window.saveEmmInitials(this)">Save Team Initials</button>
                         <button class="btn btn-clear" onclick="window.saveEmmEventMap(this)">Save Event Numbers</button>
@@ -808,7 +838,7 @@
     </main>
 
     <script type="module">
-        import { collection, getDocs, getDoc, doc, setDoc, updateDoc, addDoc, deleteDoc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { collection, getDocs, getDoc, doc, setDoc, updateDoc, addDoc, deleteDoc, serverTimestamp, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         import { ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
         import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth as getSecondaryAuth, createUserWithEmailAndPassword, signOut as secondarySignOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -896,6 +926,7 @@
 
             // Competitions now come from Firestore (baseline calendar + everything added here).
             await window.loadMeets();
+            await window.loadAcademies();
             window.onMediaTypeChange();
 
             document.getElementById('adminRecEmail').value = profile.email || "";
@@ -935,6 +966,7 @@
         window.toggleDistrictField = function() {
             const role = document.getElementById('createRole').value;
             document.getElementById('createDistrictGroup').style.display = (role === 'District_Admin') ? 'flex' : 'none';
+            document.getElementById('createAcademyGroup').style.display = (role === 'Academy') ? 'flex' : 'none';
         }
 
         window.generatePassword = function() {
@@ -949,7 +981,8 @@
         const ROLE_LABELS = {
             "District_Admin": "District",
             "Technical_Chairman": "Technical Chairman",
-            "Master_Admin": "Admin"
+            "Master_Admin": "Admin",
+            "Academy": "Academy"
         };
 
         window.createOfficialAccount = async function(btnEl) {
@@ -959,6 +992,8 @@
             const name = document.getElementById('createName').value.trim();
             const email = document.getElementById('createEmail').value.trim();
             const password = document.getElementById('createPass').value;
+            const academy = role === 'Academy' ? document.getElementById('createAcademy').value : '';
+            if (role === 'Academy' && !academy) return alert("Choose the academy this account is for. Add it to the Academies list first if it is not there.");
 
             if(!name || !email || !password) return alert("Please fill all fields and generate a password.");
             if(password.length < 8) return alert("Password must be at least 8 characters — use Generate.");
@@ -984,13 +1019,15 @@
                 const uid = `TAA-${formRole.substring(0,3).toUpperCase()}-${Math.floor(Math.random() * 9000) + 1000}`;
                 const newUser = {
                     afi_uid: uid, regType: role, role: role, first_name: name, email: email, district: district,
+                    ...(academy ? { academy } : {}),
                     status: "Verified", timestamp: new Date().toISOString()
                     // No password field — Firebase Auth already holds it, hashed.
                 };
 
                 await setDoc(doc(window.db, "users", newUid), newUser);
                 await setDoc(doc(window.db, "public_profiles", newUid), {
-                    full_name: name, role: role, afi_uid: uid, district: district
+                    full_name: name, role: role, afi_uid: uid, district: district,
+                    ...(academy ? { academy } : {})
                 });
 
                 if(window.emailjs) {
@@ -1286,6 +1323,8 @@
                         <div class="detail-item"><b>Mobile</b><input type="text" class="form-control" id="mob-${key}" value="${esc(item.mobile || '')}"></div>
                         <div class="detail-item"><b>Email</b><input type="email" class="form-control" id="em-${key}" value="${esc(item.email || '')}"></div>
                         <div class="detail-item"><b>District</b><input type="text" class="form-control" id="dist-${key}" value="${esc(item.district || '')}"></div>
+                        <div class="detail-item"><b>Father's Name</b><input type="text" class="form-control" id="fa-${key}" value="${esc(item.father_name || '')}"></div>
+                        <div class="detail-item"><b>Academy</b><select class="form-control" id="ac-${key}"><option value="">None</option>${[...new Set([...(window.academiesList || []), ...(item.academy ? [item.academy] : [])])].map(a => `<option value="${esc(a)}" ${item.academy === a ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select></div>
                         <div class="detail-item"><b>Event/Specs</b><input type="text" class="form-control" id="ev-${key}" value="${esc(item.event || item.specialty || '')}"></div>
                         <div class="detail-item"><b>Status</b><select class="form-control" id="stat-${key}"><option ${item.status==='Approved'?'selected':''}>Approved</option><option ${item.status==='Verified'?'selected':''}>Verified</option><option ${item.status==='Pending'?'selected':''}>Pending</option><option ${item.status==='Rejected'?'selected':''}>Rejected</option></select></div>
                         <div class="detail-item" style="justify-content:flex-end;"><button class="btn-save-inline" onclick="window.saveUserEdit('${key}', '${esc(item.id || '')}')">💾 Save to Cloud</button></div>
@@ -1301,6 +1340,7 @@
                 last_name: document.getElementById(`ln-${uid}`).value, gender: document.getElementById(`gen-${uid}`).value,
                 dob: document.getElementById(`dob-${uid}`).value, mobile: document.getElementById(`mob-${uid}`).value,
                 email: document.getElementById(`em-${uid}`).value, district: document.getElementById(`dist-${uid}`).value,
+                father_name: document.getElementById(`fa-${uid}`).value.trim(), academy: document.getElementById(`ac-${uid}`).value,
                 event: document.getElementById(`ev-${uid}`).value, status: document.getElementById(`stat-${uid}`).value
             };
             try {
@@ -2011,6 +2051,39 @@
             });
         }
 
+        // --- ACADEMIES (site_settings/academies: { names: [...] }, world readable so registration can list them) ---
+        const DEFAULT_ACADEMIES = ["BSC (ARTL) HYD", "RSH WARANGAL", "RSS ADILABAD", "RSS KARIMNAGAR", "SAI STC GACHIBOWLI", "SATS KHAMMAM", "TSS HAKIMPET"];
+        window.academiesList = [];
+        window.academiesLoaded = false;
+        window.loadAcademies = async function() {
+            try {
+                const snap = await getDoc(doc(window.db, "site_settings", "academies"));
+                const saved = snap.exists() && Array.isArray(snap.data().names) ? snap.data().names : null;
+                window.academiesList = saved || [];
+                window.academiesLoaded = true;
+                document.getElementById('academiesText').value = (saved || DEFAULT_ACADEMIES).join('\n');
+                document.getElementById('academiesStatus').innerText = saved ? `(${saved.length} saved)` : '(suggested list, not saved yet)';
+            } catch(e) {
+                console.error(e);
+                window.academiesLoaded = false;
+                document.getElementById('academiesStatus').innerText = '(could not load - saving is off until it loads)';
+            }
+            const sel = document.getElementById('createAcademy');
+            if (sel) sel.innerHTML = '<option value="">Select academy...</option>' + window.academiesList.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
+        };
+        window.saveAcademies = async function(btn) {
+            if (!window.academiesLoaded) return alert("The saved academy list has not loaded, so saving is blocked. Please refresh the page.");
+            const names = [...new Set(document.getElementById('academiesText').value.split(/\r?\n/).map(n => n.replace(/\s+/g, ' ').trim()).filter(Boolean))];
+            if (names.some(n => n.length > 60)) return alert("Academy names must be 60 characters or fewer.");
+            btn.disabled = true;
+            try {
+                await setDoc(doc(window.db, "site_settings", "academies"), { names, updatedAt: serverTimestamp() }, { merge: true });
+            } catch(e) { console.error(e); btn.disabled = false; return alert("Could not save to the cloud. Nothing was changed."); }
+            btn.disabled = false;
+            await window.loadAcademies();
+            alert(`${names.length} academies saved.`);
+        };
+
         // --- ENTRY RULES & AGE CUT-OFF (competitions/{id}.age_rule, .entry_rules; read by the district entry form) ---
         window.loadEntryRules = function() {
             const sel = document.getElementById('ruleMeet');
@@ -2106,9 +2179,73 @@
             return { rows, problems };
         };
 
-        window.buildEmmRows = function(entries, eventMap, initialsMap, dobFormat) {
+        // ---- Athletes are identified by their account (athleteUid / AFI ID), never by name.
+        const emmIdOf = (d) => String(d.athleteUid || d.afi_uid || d.id || '').trim();
+        const emmTeamOf = (d) => d.homeDistrict || d.district || '';
+        const emmBibOf = (d) => { const n = parseInt(String(d.bib ?? '').replace(/\D/g, ''), 10); return n > 0 ? n : 0; };
+        const ageGroupNo = (d) => { const m = /(\d+)/.exec(String(d.ageGroup || d.ageCategory || '')); return m ? Number(m[1]) : 99; };
+        const individuals = (entries) => entries.filter(d => d.type !== 'relay');
+
+        // Bib order: academies first, then districts; girls first; younger age groups first; then surname.
+        window.bibOrder = function(entries) {
+            return individuals(entries).slice().sort((a, b) =>
+                (a.entityType === 'Academy' ? 0 : 1) - (b.entityType === 'Academy' ? 0 : 1)
+                || (window.emmSex(a.gender) === 'F' ? 0 : 1) - (window.emmSex(b.gender) === 'F' ? 0 : 1)
+                || ageGroupNo(a) - ageGroupNo(b)
+                || window.emmClean(a.surname).localeCompare(window.emmClean(b.surname))
+                || window.emmClean(a.full_name).localeCompare(window.emmClean(b.full_name))
+                || emmIdOf(a).localeCompare(emmIdOf(b)));
+        };
+        // Works out which entries need a new bib. renumberAll = start again from `start`; otherwise athletes keep a
+        // bib that is theirs alone and only those with none (or a bib another athlete already holds) get the next free number.
+        window.planBibs = function(entries, start, renumberAll) {
+            const order = window.bibOrder(entries), taken = new Set(), updates = [];
+            const keep = new Set();
+            if (!renumberAll) order.forEach(d => { const b = emmBibOf(d); if (b && !taken.has(b)) { taken.add(b); keep.add(d); } });
+            let next = Math.max(1, parseInt(start, 10) || 1);
+            order.forEach(d => {
+                if (!renumberAll && keep.has(d)) return;
+                while (taken.has(next)) next++;
+                taken.add(next);
+                updates.push({ id: d.id, bib: next });
+                next++;
+            });
+            return updates;
+        };
+        window.bibProblems = function(entries) {
+            const byBib = new Map(), missing = [];
+            individuals(entries).forEach(d => {
+                const b = emmBibOf(d), who = `${d.full_name || ''} ${d.surname || ''}`.trim() || emmIdOf(d);
+                if (!b) return missing.push(who);
+                if (!byBib.has(b)) byBib.set(b, []);
+                byBib.get(b).push({ id: emmIdOf(d), who });
+            });
+            const shared = [...byBib.entries()].filter(([, l]) => new Set(l.map(x => x.id)).size > 1).map(([b, l]) => `Bib ${b}: ${l.map(x => x.who).join(' and ')}`);
+            return { missing, shared };
+        };
+        // Different athletes whose cleaned name and team are identical (EMM would treat them as one person).
+        window.nameClashes = function(entries) {
+            const groups = new Map();
+            individuals(entries).forEach(d => {
+                const key = [emmNorm(emmTeamOf(d)), window.emmClean(d.full_name || d.first_name), window.emmClean(d.surname || d.last_name)].join('|');
+                if (!groups.has(key)) groups.set(key, new Map());
+                groups.get(key).set(emmIdOf(d), d);
+            });
+            const clashes = [];
+            groups.forEach(m => { if (m.size > 1) clashes.push([...m.values()].sort((a, b) => (emmBibOf(a) || 1e9) - (emmBibOf(b) || 1e9) || emmIdOf(a).localeCompare(emmIdOf(b)))); });
+            return clashes;
+        };
+
+        window.buildEmmRows = function(entries, eventMap, initialsMap, dobFormat, opts) {
+            opts = opts || {};
+            const suffixFor = new Map(); // athlete id -> " (2)"
+            const clashes = window.nameClashes(entries), clashText = [];
+            clashes.forEach(list => {
+                clashText.push(`${window.emmClean(list[0].full_name || list[0].first_name)} ${window.emmClean(list[0].surname || list[0].last_name)} (${emmTeamOf(list[0])}): ${list.map(d => emmIdOf(d)).join(', ')}`);
+                if (opts.suffixClashes) list.forEach((d, i) => { if (i > 0) suffixFor.set(emmIdOf(d), ` (${i + 1})`); });
+            });
             const lookup = new Map(eventMap.map(e => [emmNorm(e.category) + '|' + emmNorm(e.event), e.no]));
-            const rows = [], report = { athletes: 0, individualRows: 0, relayRows: 0, unmapped: [], guessedInitials: new Set(), noCategory: [] };
+            const rows = [], report = { athletes: 0, individualRows: 0, relayRows: 0, unmapped: [], guessedInitials: new Set(), noCategory: [], clashes: clashText, suffixed: suffixFor.size, bibs: window.bibProblems(entries) };
             const initialsFor = (team) => {
                 const k = emmNorm(team);
                 if (initialsMap[k]) return initialsMap[k];
@@ -2142,13 +2279,13 @@
                     const r = new Array(22).fill('');
                     r[0] = window.emmClean(team); r[1] = window.emmClean(initialsFor(team));
                     r[2] = window.emmClean(d.father_name || d.fatherName);
-                    r[3] = window.emmClean(first); r[4] = window.emmClean(last);
+                    r[3] = window.emmClean(first); r[4] = window.emmClean(last) + (suffixFor.get(emmIdOf(d)) || '');
                     r[5] = window.emmDob(d.dob, dobFormat); r[7] = window.emmSex(d.gender);
-                    r[8] = String(d.bib ?? '').replace(/\D/g, ''); r[9] = no; r[10] = window.emmMark(ev.mark);
+                    r[8] = emmBibOf(d) ? String(emmBibOf(d)) : ''; r[9] = no; r[10] = window.emmMark(ev.mark);
                     rows.push(r); report.individualRows++;
                 });
             });
-            rows.sort((a, b) => a[0].localeCompare(b[0]) || a[4].localeCompare(b[4]) || a[3].localeCompare(b[3]) || Number(a[9]) - Number(b[9]));
+            rows.sort((a, b) => a[0].localeCompare(b[0]) || a[4].localeCompare(b[4]) || a[3].localeCompare(b[3]) || Number(a[8] || 0) - Number(b[8] || 0) || Number(a[9]) - Number(b[9]));
             report.guessedInitials = [...report.guessedInitials];
             return { rows, report };
         };
@@ -2219,6 +2356,38 @@
             alert(`${rows.length} event numbers saved for ${m.title}.`);
         };
 
+        async function loadMeetEntries(m) {
+            const out = [];
+            const snap = await getDocs(query(collection(window.db, "meet_entries"), where("meetId", "==", m._id)));
+            snap.forEach(d => out.push({ id: d.id, ...d.data() }));
+            return out;
+        }
+        window.assignBibsForMeet = async function(btn, renumberAll) {
+            const m = window.meetsCache.find(x => x._id === document.getElementById('emmMeet').value);
+            if (!m) return alert("Select a competition first.");
+            let entries;
+            try { entries = await loadMeetEntries(m); } catch(e) { console.error(e); return alert("Could not load the entries from the cloud. No bibs were changed."); }
+            if (individuals(entries).length === 0) return alert("No athlete entries have been submitted for this competition yet.");
+            const start = parseInt(document.getElementById('bibStart').value, 10);
+            if (!(start >= 1)) return alert("Enter the first bib number (1 or more).");
+            const updates = window.planBibs(entries, start, !!renumberAll);
+            if (updates.length === 0) return alert("Every athlete already has a bib of their own. Nothing to change.");
+            const had = individuals(entries).filter(d => emmBibOf(d)).length;
+            if (renumberAll && had && !confirm(`This replaces the bibs of all ${individuals(entries).length} athletes, starting at ${start}. If bibs were already printed or shared, they will no longer match. Continue?`)) return;
+            if (!renumberAll && !confirm(`Give a bib to ${updates.length} athlete${updates.length > 1 ? 's' : ''}? Bibs that are already unique are left alone.`)) return;
+            if (btn) btn.disabled = true;
+            try {
+                for (let i = 0; i < updates.length; i += 400) {
+                    const batch = writeBatch(window.db);
+                    updates.slice(i, i + 400).forEach(u => batch.update(doc(window.db, "meet_entries", u.id), { bib: u.bib, updatedAt: serverTimestamp() }));
+                    await batch.commit();
+                }
+            } catch(e) { console.error(e); if (btn) btn.disabled = false; return alert("Could not save every bib. Some may have changed - run it again to finish."); }
+            if (btn) btn.disabled = false;
+            alert(`${updates.length} bib${updates.length > 1 ? 's' : ''} saved.`);
+            document.getElementById('emmReport').innerHTML = '';
+        };
+
         window.downloadEmmCsv = async function(btn) {
             const m = window.meetsCache.find(x => x._id === document.getElementById('emmMeet').value);
             const box = document.getElementById('emmReport');
@@ -2227,19 +2396,20 @@
             if (map.length === 0) return alert("Save the event numbers for this competition first. EMM needs an event number on every row.");
             if (!window.emmInitialsLoaded) return alert("The team initials have not loaded. Please refresh the page and try again.");
             let entries = [];
-            try {
-                const snap = await getDocs(query(collection(window.db, "meet_entries"), where("meetId", "==", m._id)));
-                snap.forEach(d => entries.push({ id: d.id, ...d.data() }));
-            } catch(e) { console.error(e); return alert("Could not load the entries from the cloud. Nothing was exported."); }
+            try { entries = await loadMeetEntries(m); } catch(e) { console.error(e); return alert("Could not load the entries from the cloud. Nothing was exported."); }
             if (entries.length === 0) return alert("No entries have been submitted for this competition yet.");
 
-            const { rows, report } = window.buildEmmRows(entries, map, window.emmInitials, document.getElementById('emmDobFormat').value);
+            const { rows, report } = window.buildEmmRows(entries, map, window.emmInitials, document.getElementById('emmDobFormat').value, { suffixClashes: document.getElementById('emmClash').value === 'suffix' });
             const notes = [];
+            if (report.clashes.length) notes.push(`<b style="color:#b45309;">${report.clashes.length} name${report.clashes.length > 1 ? 's are' : ' is'} shared by different athletes in the same team</b> (EMM would merge them into one person)${report.suffixed ? `; <b>${report.suffixed}</b> given (2), (3) after the last name to keep them apart` : ' - names left as they are'}:<br>${report.clashes.slice(0, 10).map(esc).join('<br>')}`);
+            if (report.bibs.shared.length) notes.push(`<b style="color:#b91c1c;">Two athletes share a bib:</b><br>${report.bibs.shared.slice(0, 10).map(esc).join('<br>')}<br>Use Renumber all bibs, then download again.`);
+            if (report.bibs.missing.length) notes.push(`<b style="color:#b45309;">${report.bibs.missing.length} athlete${report.bibs.missing.length > 1 ? 's have' : ' has'} no bib yet</b> - use Give bibs to athletes without one, then download again.`);
             if (report.unmapped.length) notes.push(`<b style="color:#b91c1c;">${report.unmapped.length} entr${report.unmapped.length > 1 ? 'ies have' : 'y has'} no event number and ${report.unmapped.length > 1 ? 'were' : 'was'} left out:</b><br>${report.unmapped.slice(0, 15).map(esc).join('<br>')}${report.unmapped.length > 15 ? `<br>...and ${report.unmapped.length - 15} more` : ''}`);
             if (report.noCategory.length) notes.push(`<b style="color:#b91c1c;">No age category saved for:</b> ${[...new Set(report.noCategory)].slice(0, 15).map(esc).join(', ')}`);
             if (report.guessedInitials.length) notes.push(`<b style="color:#b45309;">Team initials guessed for:</b> ${report.guessedInitials.map(esc).join(', ')}. Add them under Team Initials and download again.`);
             box.innerHTML = `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;"><b>${report.athletes}</b> athletes &middot; <b>${report.individualRows}</b> individual rows &middot; <b>${report.relayRows}</b> relay rows${notes.length ? '<br><br>' + notes.join('<br><br>') : ''}</div>`;
             if (rows.length === 0) return alert("None of the entries could be matched to an event number, so nothing was exported.");
+            if (report.bibs.shared.length && !confirm("Two athletes share a bib number, which will cause the same problem in EMM. Download anyway?")) return;
             if ((report.unmapped.length || report.noCategory.length) && !confirm(`Some entries cannot be exported (listed below the buttons). Download the ${rows.length} rows that are ready anyway?`)) return;
 
             const blob = new Blob([window.buildEmmCsv(rows, document.getElementById('emmHeader').value === 'yes')], { type: 'text/csv;charset=utf-8' });

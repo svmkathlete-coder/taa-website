@@ -21,6 +21,7 @@ const DASHBOARD_BY_ROLE = {
     "Admin": "taa-admin.html",
     "Technical Chairman": "technical-chairman.html",
     "District": "district-dashboard.html",
+    "Academy": "district-dashboard.html",
     "Coach": "coach-dashboard.html",
     "Official": "official-dashboard.html",
     "Athlete": "athlete-dashboard.html"

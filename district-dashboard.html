@@ -100,18 +100,18 @@
             <img src="LOGO.jfif" alt="TAA">
             <div class="brand-text">
                 <h2 id="sidebarDistName">District</h2>
-                <p>Command Center</p>
+                <p id="sidebarKind">Command Center</p>
             </div>
         </div>
         <div class="nav-links">
             <div class="nav-item active" onclick="switchTab('tab-home', this)"><span class="nav-icon">🏠</span> Dashboard Home</div>
-            <div class="nav-item" onclick="switchTab('tab-approvals', this)"><span class="nav-icon">✅</span> Approvals <span class="badge" id="pendingBadge">0</span></div>
+            <div class="nav-item" id="nav-approvals" onclick="switchTab('tab-approvals', this)"><span class="nav-icon">✅</span> Approvals <span class="badge" id="pendingBadge">0</span></div>
             <div class="nav-item" onclick="switchTab('tab-athletes', this)"><span class="nav-icon">🏃</span> Athlete Roster</div>
-            <div class="nav-item" onclick="switchTab('tab-coaches', this)"><span class="nav-icon">📋</span> Coach Roster</div>
-            <div class="nav-item" onclick="switchTab('tab-officials', this)"><span class="nav-icon">⏱️</span> Official Roster</div>
+            <div class="nav-item" id="nav-coaches" onclick="switchTab('tab-coaches', this)"><span class="nav-icon">📋</span> Coach Roster</div>
+            <div class="nav-item" id="nav-officials" onclick="switchTab('tab-officials', this)"><span class="nav-icon">⏱️</span> Official Roster</div>
             <div class="nav-item" onclick="switchTab('tab-calendar', this)"><span class="nav-icon">📅</span> Event Entries</div>
-            <div class="nav-item" onclick="switchTab('tab-results', this)"><span class="nav-icon">📊</span> District Results</div>
-            <div class="nav-item" onclick="switchTab('tab-bearers', this)"><span class="nav-icon">👔</span> Office Bearers</div>
+            <div class="nav-item" id="nav-results" onclick="switchTab('tab-results', this)"><span class="nav-icon">📊</span> District Results</div>
+            <div class="nav-item" id="nav-bearers" onclick="switchTab('tab-bearers', this)"><span class="nav-icon">👔</span> Office Bearers</div>
         </div>
         <div class="user-profile">
             <button class="logout-btn" onclick="secureLogout()">Logout</button>
@@ -153,7 +153,7 @@
                 <div class="table-wrapper">
                     <div class="table-header"><h2>Approved Athletes</h2></div>
                     <table>
-                        <thead><tr><th>AFI UID</th><th>Name</th><th>Event</th><th>Contact</th></tr></thead>
+                        <thead><tr><th>AFI UID</th><th>Name</th><th>Event</th><th id="athleteExtraHead">Academy</th><th>Contact</th></tr></thead>
                         <tbody id="athletesBody"></tbody>
                     </table>
                 </div>
@@ -291,7 +291,9 @@
         // IMPORT STORAGE FUNCTIONS
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
+        // `currentDistrict` is the name of the entity this secretary runs: a district, or (Academy accounts) an academy.
         let currentDistrict = "";
+        let entityType = "District";
         let districtUsers = [];
         const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         window.TAA_CURRENT_UID = null;
@@ -299,31 +301,40 @@
         // Real Firebase Auth session check — a District secretary's own
         // `users` doc carries which district they run; nothing here trusts
         // a localStorage value anyone could set from devtools.
-        window.TAA_AUTH.guard(["District"], async (profile) => {
-            currentDistrict = profile.district;
+        window.TAA_AUTH.guard(["District", "Academy"], async (profile) => {
+            entityType = profile.role === 'Academy' ? 'Academy' : 'District';
+            currentDistrict = entityType === 'Academy' ? profile.academy : profile.district;
             window.TAA_CURRENT_UID = profile.uid;
 
             if (!currentDistrict) {
-                alert("Your account isn't linked to a district yet. Please contact TAA Admin.");
+                alert(`Your account isn't linked to ${entityType === 'Academy' ? 'an academy' : 'a district'} yet. Please contact TAA Admin.`);
                 window.TAA_AUTH.logout();
                 return;
             }
 
             document.getElementById('sidebarDistName').innerText = currentDistrict;
+            if (entityType === 'Academy') {
+                document.getElementById('sidebarKind').innerText = 'Academy Center';
+                document.getElementById('athleteExtraHead').innerText = 'Home district';
+                ['nav-approvals', 'nav-coaches', 'nav-officials', 'nav-results', 'nav-bearers'].forEach(id => { document.getElementById(id).style.display = 'none'; });
+            }
             document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
             startLiveRoster();
             loadCompetitions();
-            loadOfficeBearers();
+            if (entityType === 'District') {
+                loadOfficeBearers();
 
-            // Add initial empty row for "Other Members"
-            window.addOtherMemberRow();
+                // Add initial empty row for "Other Members"
+                window.addOtherMemberRow();
+            }
         });
 
         // --- 1. LIVE FIREBASE ROSTER ---
         function startLiveRoster() {
-            // Listen to all users belonging to this district
-            const q = query(collection(window.db, "users"), where("district", "==", currentDistrict));
+            // A district sees everyone registered under it (including athletes who train at an academy);
+            // an academy sees the athletes who registered under that academy.
+            const q = query(collection(window.db, "users"), where(entityType === 'Academy' ? "academy" : "district", "==", currentDistrict));
             
             onSnapshot(q, (snapshot) => {
                 const users = [];
@@ -335,7 +346,8 @@
 
         function updateDashboard(users) {
             const pending = users.filter(u => u.status === "Pending");
-            const approved = users.filter(u => u.status === "Approved");
+            // Athletes are verified automatically at registration; coaches and officials wait for approval.
+            const approved = users.filter(u => u.status === "Approved" || u.status === "Verified");
             
             // Update Stats
             document.getElementById('statAthletes').innerText = approved.filter(u => u.regType === "Athlete").length;
@@ -361,7 +373,7 @@
 
             // Render Rosters
             document.getElementById('athletesBody').innerHTML = approved.filter(u => u.regType === "Athlete").map(u => `
-                <tr><td>${esc(u.afi_uid || 'PENDING')}</td><td>${esc(u.first_name)} ${esc(u.last_name || '')}</td><td>${esc(u.event || 'TBD')}</td><td>${esc(u.mobile)}</td></tr>
+                <tr><td>${esc(u.afi_uid || 'PENDING')}</td><td>${esc(u.first_name)} ${esc(u.last_name || '')}</td><td>${esc(u.event || 'TBD')}</td><td>${entityType === 'Academy' ? esc(u.district || '') : (u.academy ? `<span class="status-badge bg-pending">At ${esc(u.academy)}</span>` : '')}</td><td>${esc(u.mobile)}</td></tr>
             `).join('');
             
             document.getElementById('coachesBody').innerHTML = approved.filter(u => u.regType === "Coach").map(u => `
@@ -435,7 +447,9 @@
         const MASTER = () => window.TAA_MASTER_DATA;
         const dmy = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso)); return m ? `${m[3]}.${m[2]}.${m[1]}` : String(iso); };
         const todayIST = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-        let entryMeet = null, entryRules = null, myEntries = [], entryAthlete = null;
+        // myEntries = entries made by this district/academy (editable). otherEntries = entries an academy made for this
+        // district's athletes (read only) - an athlete can be entered by one entity per meet, not both.
+        let entryMeet = null, entryRules = null, myEntries = [], otherEntries = [], entryAthlete = null;
 
         // EMM takes marks as digits only (last two digits = hundredths), NT / NM for none.
         function cleanMark(m) { const t = String(m ?? '').trim().toUpperCase(); if (t === 'NT' || t === 'NM') return t; return t.replace(/\D/g, ''); }
@@ -475,9 +489,12 @@
         async function loadMyEntries() {
             const body = document.getElementById('entriesBody');
             try {
-                const snap = await getDocs(query(collection(window.db, "meet_entries"), where("meetId", "==", entryMeet.id), where("district", "==", currentDistrict)));
-                myEntries = [];
-                snap.forEach(d => myEntries.push({ id: d.id, ...d.data() }));
+                const snap = await getDocs(query(collection(window.db, "meet_entries"), where("meetId", "==", entryMeet.id), ...(entityType === 'Academy' ? [where("district", "==", currentDistrict), where("entityType", "==", "Academy")] : [where("homeDistrict", "==", currentDistrict)])));
+                myEntries = []; otherEntries = [];
+                snap.forEach(d => {
+                    const e = { id: d.id, ...d.data() };
+                    (e.district === currentDistrict && (e.entityType || 'District') === entityType ? myEntries : otherEntries).push(e);
+                });
             } catch (e) {
                 console.error(e);
                 body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#b91c1c;">Could not load your entries. Please refresh.</td></tr>';
@@ -487,13 +504,16 @@
             const total = myEntries.reduce((n, e) => n + (e.events || []).length, 0);
             document.getElementById('entryCount').innerText = `(${myEntries.length} athletes, ${total} entries)`;
             const blocked = !!entryBlockReason();
-            body.innerHTML = myEntries.length ? myEntries.map(e => `
+            const row = (e, own) => `
                 <tr>
-                    <td><strong>${esc(e.full_name)} ${esc(e.surname || '')}</strong><br><small>${esc(e.afi_uid)}</small></td>
+                    <td><strong>${esc(e.full_name)} ${esc(e.surname || '')}</strong><br><small>${esc(e.afi_uid)}${own ? '' : ` &middot; entered by ${esc(e.entityType === 'Academy' ? 'academy ' : '')}${esc(e.district)}`}</small></td>
                     <td>${esc(e.ageCategory)}</td>
                     <td>${(e.events || []).map(x => `${esc(x.event)}${x.mark ? ` <small>(${esc(x.mark)})</small>` : ''}`).join('<br>')}</td>
-                    <td>${blocked ? '' : `<button class="btn btn-primary" data-uid="${esc(e.athleteUid)}" onclick="editEntry(this.dataset.uid)">Edit</button> <button class="btn btn-reject" data-uid="${esc(e.athleteUid)}" onclick="removeEntry(this.dataset.uid)">Remove</button>`}</td>
-                </tr>`).join('') : '<tr><td colspan="4" style="text-align:center; padding:20px; color:#64748b;">No entries yet for this meet.</td></tr>';
+                    <td>${own && !blocked ? `<button class="btn btn-primary" data-uid="${esc(e.athleteUid)}" onclick="editEntry(this.dataset.uid)">Edit</button> <button class="btn btn-reject" data-uid="${esc(e.athleteUid)}" onclick="removeEntry(this.dataset.uid)">Remove</button>` : (own ? '' : '<small>Read only</small>')}</td>
+                </tr>`;
+            body.innerHTML = (myEntries.length || otherEntries.length)
+                ? myEntries.map(e => row(e, true)).join('') + otherEntries.map(e => row(e, false)).join('')
+                : '<tr><td colspan="4" style="text-align:center; padding:20px; color:#64748b;">No entries yet for this meet.</td></tr>';
         }
 
         window.clearEntryForm = function() {
@@ -512,8 +532,11 @@
             if (reason) return findMsg(reason, false);
             const id = document.getElementById('entryUid').value.trim().toUpperCase();
             if (!id) return findMsg('Type the athlete\'s AFI ID.', false);
-            const u = districtUsers.find(x => x.regType === 'Athlete' && x.district === currentDistrict && String(x.afi_uid || '').toUpperCase() === id);
-            if (!u) return findMsg(`No registered athlete with ID ${id} in ${currentDistrict}. Check the ID, or ask the athlete to register under this district.`, false);
+            const inEntity = (x) => entityType === 'Academy' ? x.academy === currentDistrict : x.district === currentDistrict;
+            const u = districtUsers.find(x => x.regType === 'Athlete' && inEntity(x) && String(x.afi_uid || '').toUpperCase() === id);
+            if (!u) return findMsg(`No registered athlete with ID ${id} in ${currentDistrict}. Check the ID, or ask the athlete to register under ${entityType === 'Academy' ? 'this academy' : 'this district'}.`, false);
+            const elsewhere = otherEntries.find(e => e.athleteUid === u.id);
+            if (elsewhere) return findMsg(`${u.first_name} ${u.last_name || ''} is already entered for this meet by ${elsewhere.entityType === 'Academy' ? 'academy ' : ''}${elsewhere.district}. An athlete can be entered by one entity only. Ask them to remove the entry first if it should come from you.`, false);
             if (!['Approved', 'Verified'].includes(u.status)) return findMsg(`${u.first_name} ${u.last_name || ''} is not approved yet (status: ${u.status || 'Pending'}). Approve the registration first.`, false);
             if (!MASTER().isIsoDate(u.dob) || !['Male', 'Female'].includes(u.gender)) return findMsg('This athlete\'s date of birth or gender is missing from the profile, so the age group cannot be worked out. Please contact TAA.', false);
             const age = MASTER().ageOn(u.dob, entryRules.cutoff);
@@ -584,7 +607,7 @@
             const payload = {
                 meetId: entryMeet.id, meetTitle: entryMeet.title || '',
                 athleteUid: u.id, afi_uid: u.afi_uid,
-                district: currentDistrict, homeDistrict: currentDistrict,
+                district: currentDistrict, entityType, homeDistrict: u.district,
                 surname: u.last_name || '', full_name: u.first_name || '',
                 father_name: document.getElementById('entryFather').value.trim().replace(/\s+/g, ' ').slice(0, 80),
                 gender: u.gender, dob: u.dob,
@@ -599,7 +622,7 @@
             } catch (e) {
                 console.error(e);
                 btn.disabled = false;
-                return fail(e && e.code === 'permission-denied' ? 'Could not save. Entries may have just closed for this meet, or this athlete is not registered under your district.' : 'Could not save this entry. Please try again.');
+                return fail(e && e.code === 'permission-denied' ? `Could not save. Entries may have just closed for this meet, this athlete may not be registered under your ${entityType === 'Academy' ? 'academy' : 'district'}, or another entity may already have entered them.` : 'Could not save this entry. Please try again.');
             }
             btn.disabled = false;
             await loadMyEntries();

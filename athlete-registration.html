@@ -113,6 +113,7 @@
                 <div class="grid">
                     <div class="input-group"><label>First Name*</label><input type="text" name="first_name" required></div>
                     <div class="input-group"><label>Last Name*</label><input type="text" name="last_name" required></div>
+                    <div class="input-group"><label>Father's Name*</label><input type="text" name="father_name" maxlength="80" required></div>
                     <div class="input-group"><label>Date of Birth*</label><input type="date" name="dob" required></div>
                     <div class="input-group">
                         <label>Gender*</label>
@@ -176,6 +177,13 @@
                             <option value="Warangal">Warangal</option>
                             <option value="Yadadri Bhuvanagiri">Yadadri Bhuvanagiri</option>
                         </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Academy (only if you train at one)</label>
+                        <select name="academy" id="reg_academy" style="width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 8px; outline: none; font-size: 0.95em;">
+                            <option value="">I do not train at an academy</option>
+                        </select>
+                        <small style="display:block; margin-top:4px; color:#888; font-weight:600;">Your home district stays the one selected here. In a competition you can be entered by your academy or by your district, not both.</small>
                     </div>
                     <div class="input-group"><label>Pincode*</label><input type="text" name="pincode" maxlength="6" required></div>
                 </div>
@@ -258,7 +266,7 @@
 
 <script type="module">
     import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-    import { doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { doc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
     // Uploads a registration document to this user's own private Storage
@@ -278,6 +286,20 @@
     }
 
     const MAX_EVENTS = 3;
+
+    // Academies are listed by TAA Admin in site_settings/academies. If the list cannot be loaded the
+    // field simply stays on "I do not train at an academy".
+    async function loadAcademies() {
+        for (let i = 0; i < 60 && !window.db; i++) await new Promise(r => setTimeout(r, 50));
+        if (!window.db) return;
+        try {
+            const snap = await getDoc(doc(window.db, "site_settings", "academies"));
+            const names = snap.exists() && Array.isArray(snap.data().names) ? snap.data().names : [];
+            const sel = document.getElementById('reg_academy');
+            names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
+        } catch (e) { console.warn("Academy list unavailable.", e); }
+    }
+    loadAcademies();
 
     // Flattens the age-category rulebook (event-master.js) into a single
     // labeled list: e.g. "100m" (Track), "Long Jump" (Field), "2000m" (Cross Country).
@@ -396,6 +418,8 @@
         formData.forEach((value, key) => {
             data[key] = (value instanceof File) ? value.name : value;
         });
+        data.father_name = String(data.father_name || '').trim().replace(/\s+/g, ' ');
+        if (!data.academy) delete data.academy;
 
         const enteredUID = document.getElementById('reg_afi_uid').value.trim().toUpperCase();
         const aadhaarVal = (data.aadhaar || "").trim();
@@ -464,7 +488,8 @@
                 afi_uid: enteredUID,
                 event: data.event || "",
                 events: data.events || [],
-                district: data.district || ""
+                district: data.district || "",
+                academy: data.academy || ""
             });
 
             // 4. Welcome email (best-effort, never blocks registration)
