@@ -9,6 +9,7 @@
     
     <script type="module" src="firebase-init.js"></script>
     <script type="module" src="auth.js"></script>
+    <script type="module" src="event-master.js"></script>
 
     <style>
         :root { --primary: #001a35; --primary-light: #0056b3; --accent: #FF8C00; --bg: #f1f5f9; --text: #334155; --white: #ffffff; --sidebar-w: 280px; --border: #e2e8f0; }
@@ -584,6 +585,31 @@
                     <div id="emmReport" style="margin-top:15px; font-size:0.9em;"></div>
                 </div>
 
+                <div class="card" id="ruleCard">
+                    <div class="card-header">
+                        <div>
+                            <h3>Entry Rules &amp; Age Cut-off</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">An athlete's age group is worked out from their date of birth on the cut-off date. District secretaries cannot enter athletes for a meet until its cut-off is saved here.</p>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Competition</label><select id="ruleMeet" class="form-control" onchange="window.onRuleMeetChange()"></select></div>
+                        <div class="form-group"><label>Age cut-off</label>
+                            <select id="ruleMode" class="form-control" onchange="window.previewRuleCutoff()">
+                                <option value="year_end">31 December of the year the meet is held (World Athletics rule)</option>
+                                <option value="meet_end">Last day of this meet (national meets with no international pathway; state meet fallback)</option>
+                                <option value="fixed">A specific date (e.g. the national cut-off in the circular)</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Specific date</label><input type="date" id="ruleFixedDate" class="form-control" onchange="window.previewRuleCutoff()"></div>
+                        <div class="form-group"><label>Max events per athlete</label><input type="number" id="ruleMaxEvents" class="form-control" min="1" max="10" value="2"></div>
+                        <div class="form-group"><label>Max athletes per district in one event (0 = no limit)</label><input type="number" id="ruleMaxPerDistrict" class="form-control" min="0" max="20" value="0"></div>
+                    </div>
+                    <p id="ruleResolved" style="margin-top:12px; font-weight:700;"></p>
+                    <div id="ruleRanges" class="table-responsive" style="margin-top:8px;"></div>
+                    <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="window.saveEntryRules(this)">Save Entry Rules</button></div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <div>
@@ -902,7 +928,7 @@
             if (tabId === 'tab-circulars') window.loadPublishedCirculars();
             if (tabId === 'tab-media') window.loadPublishedMedia();
             if (tabId === 'tab-calendar') window.loadCalendarList();
-            if (tabId === 'tab-registrations') window.loadEmmSettings();
+            if (tabId === 'tab-registrations') { window.loadEmmSettings(); window.loadEntryRules(); }
         }
 
         // --- CREATE OFFICIAL ACCOUNTS ---
@@ -1420,9 +1446,11 @@
                 fields.date = `${monthNames[Number(start.split('-')[1]) - 1]} ${start.split('-')[0]}`;
                 fields.fullDate = longDateRange(start, end);
                 // Built-in meets are listed by the Events page itself; a startDate would list them twice.
-                if (!baseline) { fields.startDate = start; fields.endDate = end; }
+                fields.endDate = end;
+                if (!baseline) fields.startDate = start;
             }
             const closing = (status === 'Cancelled' || status === 'Postponed') && m.status !== status;
+            if (closing) fields.isActive = false; // districts can no longer submit entries
             if (closing && !confirm(`Mark "${m.title}" as ${status}?\n\nIt will show as ${status} on the public Events page${window.activeReg && window.activeReg.isActive && window.activeReg.meet === m.title ? ' and its open entries banner will be closed' : ''}.`)) return;
 
             btn.disabled = true;
@@ -1513,6 +1541,8 @@
 
             actionBtn.style.opacity = '0.5'; actionBtn.disabled = true;
             badge.className = 'badge bg-red'; badge.innerText = 'CLOSED';
+            try { await saveMeetFields(meet, { isActive: false }); }
+            catch(e) { console.error(e); alert("Could not close entries for district secretaries. Please try again."); window.loadRegistrationControl(); return; }
             // Only take the banner down if THIS meet is the one currently live.
             if (window.activeReg && window.activeReg.isActive === true && window.activeReg.meet === meet.title) {
                 try {
@@ -1532,6 +1562,11 @@
             if(!deadline) return alert("Please select an entry deadline first!");
             try {
                 await setDoc(doc(window.db, "site_settings", "active_registration"), { meet: meet.title, deadline, isActive: true, updatedAt: serverTimestamp() });
+                // District secretaries submit entries for meets whose competition doc is open.
+                await saveMeetFields(meet, { isActive: true, deadline });
+                // The home page shows one meet at a time, so the one it replaces is closed for entries too.
+                const prev = window.activeReg && window.activeReg.isActive === true && window.activeReg.meet !== meet.title ? window.meetsCache.find(m => m.title === window.activeReg.meet) : null;
+                if (prev) await saveMeetFields(prev, { isActive: false });
             } catch(e) {
                 console.error(e);
                 return alert("Could not publish to the cloud. The home page was NOT updated.");
@@ -1975,6 +2010,62 @@
                 }
             });
         }
+
+        // --- ENTRY RULES & AGE CUT-OFF (competitions/{id}.age_rule, .entry_rules; read by the district entry form) ---
+        window.loadEntryRules = function() {
+            const sel = document.getElementById('ruleMeet');
+            const keep = sel.value;
+            sel.innerHTML = '<option value="">Select competition...</option>' + window.meetsCache.map(m => `<option value="${esc(m._id)}">${esc(m.title)} (${esc(m.categoryYear)})</option>`).join('');
+            if (keep) sel.value = keep;
+            window.onRuleMeetChange();
+        };
+        window.onRuleMeetChange = function() {
+            const m = window.meetsCache.find(x => x._id === document.getElementById('ruleMeet').value);
+            const rule = (m && m.age_rule) || {};
+            const er = (m && m.entry_rules) || {};
+            document.getElementById('ruleMode').value = rule.mode || 'year_end';
+            document.getElementById('ruleFixedDate').value = rule.date || '';
+            document.getElementById('ruleMaxEvents').value = er.maxEvents || 2;
+            document.getElementById('ruleMaxPerDistrict').value = er.maxPerDistrictPerEvent || 0;
+            window.previewRuleCutoff();
+        };
+        const isoToDmy = (iso) => { const [y, m, d] = iso.split('-'); return `${d}.${m}.${y}`; };
+        window.previewRuleCutoff = function() {
+            const m = window.meetsCache.find(x => x._id === document.getElementById('ruleMeet').value);
+            const out = document.getElementById('ruleResolved'), tbl = document.getElementById('ruleRanges');
+            if (!m) { out.innerText = ''; tbl.innerHTML = ''; return; }
+            const mode = document.getElementById('ruleMode').value;
+            const cutoff = window.TAA_MASTER_DATA.resolveCutoff({ ...m, age_rule: { mode, date: document.getElementById('ruleFixedDate').value } });
+            if (!cutoff) {
+                out.style.color = '#b91c1c';
+                out.innerText = mode === 'meet_end' ? 'This meet has no exact end date yet. Set its dates in the Competition Calendar (Edit), or choose a specific date.'
+                    : mode === 'fixed' ? 'Choose the specific date.' : 'Could not work out the year of this meet.';
+                tbl.innerHTML = ''; return;
+            }
+            out.style.color = '#166534';
+            out.innerText = `Cut-off date: ${isoToDmy(cutoff)}. Age on this date decides the age group.`;
+            const label = (c) => c === 'Seniors' ? 'Senior' : c.replace('-', '');
+            tbl.innerHTML = '<table><thead><tr><th>Age group</th><th>Born from</th><th>Born up to</th></tr></thead><tbody>' +
+                window.TAA_MASTER_DATA.dobRanges(cutoff).map(r => `<tr><td style="font-weight:700;">${esc(label(r.category))}</td><td>${r.from ? isoToDmy(r.from) : 'no limit'}</td><td>${isoToDmy(r.to)}</td></tr>`).join('') + '</tbody></table>';
+        };
+        window.saveEntryRules = async function(btn) {
+            const m = window.meetsCache.find(x => x._id === document.getElementById('ruleMeet').value);
+            if (!m) return alert("Select a competition first.");
+            const mode = document.getElementById('ruleMode').value;
+            const date = document.getElementById('ruleFixedDate').value;
+            const maxEvents = Number(document.getElementById('ruleMaxEvents').value);
+            const perDistrict = Number(document.getElementById('ruleMaxPerDistrict').value);
+            if (!window.TAA_MASTER_DATA.resolveCutoff({ ...m, age_rule: { mode, date } })) return alert("The age cut-off cannot be worked out yet. Read the note under the form and fix it first.");
+            if (!Number.isInteger(maxEvents) || maxEvents < 1 || maxEvents > 10) return alert("Max events per athlete must be a whole number from 1 to 10.");
+            if (!Number.isInteger(perDistrict) || perDistrict < 0 || perDistrict > 20) return alert("Max athletes per district in one event must be a whole number from 0 to 20.");
+            const age_rule = mode === 'fixed' ? { mode, date } : { mode };
+            btn.disabled = true;
+            try {
+                await saveMeetFields(m, { age_rule, entry_rules: { maxEvents, maxPerDistrictPerEvent: perDistrict } });
+            } catch(e) { console.error(e); btn.disabled = false; return alert("Could not save to the cloud. Nothing was changed."); }
+            btn.disabled = false;
+            alert("Entry rules saved for " + m.title + ".");
+        };
 
         // --- EMM ENTRY EXPORT ---
         // Layout follows EMM's own import reminder: TEAM NAME, TEAM INITIALS, HOMETOWN, FIRST, LAST, AGE (birth date),

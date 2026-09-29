@@ -8,6 +8,7 @@
     
     <script type="module" src="firebase-init.js"></script>
     <script type="module" src="auth.js"></script>
+    <script type="module" src="event-master.js"></script>
 
     <style>
         :root { --primary: #001a35; --primary-light: #0056b3; --accent: #FF8C00; --bg: #f1f5f9; --text: #334155; --white: #ffffff; --sidebar-w: 280px; --border: #e2e8f0; }
@@ -83,6 +84,12 @@
         .form-control { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: 'Open Sans'; font-size: 0.9em; outline: none; }
         .dynamic-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 15px; align-items: end; margin-bottom: 15px; }
         .btn-add { background: var(--accent); color: white; padding: 10px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .ev-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: white; }
+        .ev-row.off { opacity: 0.55; }
+        .ev-row label { flex: 1; font-size: 0.9em; cursor: pointer; }
+        .ev-row small { color: #64748b; }
+        .ev-row input[type=text] { width: 110px; }
+        .entry-msg { font-size: 0.9em; margin-top: 8px; }
         .btn-remove { background: #ef4444; color: white; padding: 10px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
@@ -180,6 +187,54 @@
                         <tbody id="districtEntriesBody"></tbody>
                     </table>
                 </div>
+
+                <div class="card" id="entryPanel" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:15px;">
+                        <div>
+                            <h3 id="entryMeetTitle"></h3>
+                            <p id="entryMeetInfo" style="font-size:0.85em; color:#64748b; margin-top:5px;"></p>
+                        </div>
+                        <button class="btn btn-reject" onclick="closeEntryPanel()">Close</button>
+                    </div>
+                    <div id="entryBlocked" style="display:none; margin-top:15px; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px; border-radius:8px; font-weight:600;"></div>
+
+                    <div id="entryFormWrap" style="margin-top:20px;">
+                        <div class="form-section">
+                            <h4>Add or edit an athlete</h4>
+                            <div style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
+                                <div class="form-group" style="flex:1; min-width:220px;"><label>Athlete AFI ID</label><input type="text" id="entryUid" class="form-control" placeholder="e.g. AFI20261055" style="text-transform:uppercase;" onkeydown="if(event.key==='Enter') findEntryAthlete()"></div>
+                                <button class="btn btn-primary" onclick="findEntryAthlete()">Find Athlete</button>
+                            </div>
+                            <div id="entryFindMsg" class="entry-msg"></div>
+
+                            <div id="entryAthlete" style="display:none; margin-top:20px;">
+                                <div class="form-row" style="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));">
+                                    <div class="form-group"><label>Surname</label><input type="text" id="entrySurname" class="form-control" disabled></div>
+                                    <div class="form-group"><label>Full name</label><input type="text" id="entryFullName" class="form-control" disabled></div>
+                                    <div class="form-group"><label>Father's name</label><input type="text" id="entryFather" class="form-control" placeholder="Father's name"></div>
+                                    <div class="form-group"><label>Gender</label><input type="text" id="entryGender" class="form-control" disabled></div>
+                                    <div class="form-group"><label>Date of birth</label><input type="text" id="entryDob" class="form-control" disabled></div>
+                                    <div class="form-group"><label>Age group for this meet</label><input type="text" id="entryGroup" class="form-control" disabled style="font-weight:700;"></div>
+                                </div>
+                                <h4 style="font-family:'Montserrat'; margin:15px 0 10px; color:var(--primary);">Events <span id="entryLimitNote" style="font-weight:400; font-size:0.8em; color:#64748b;"></span></h4>
+                                <div id="entryEvents"></div>
+                                <div id="entrySaveMsg" class="entry-msg"></div>
+                                <div style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end;">
+                                    <button class="btn btn-reject" onclick="clearEntryForm()">Cancel</button>
+                                    <button class="btn btn-primary" id="entrySaveBtn" onclick="saveEntry()">Save Entry</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 style="font-family:'Montserrat'; margin:10px 0; color:var(--primary);">Entries submitted for this meet <span id="entryCount" style="font-weight:400; font-size:0.8em; color:#64748b;"></span></h4>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead><tr><th>Athlete</th><th>Age group</th><th>Events</th><th>Actions</th></tr></thead>
+                            <tbody id="entriesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <div id="tab-bearers" class="tab-content">
@@ -232,18 +287,21 @@
     </main>
 
     <script type="module">
-        import { collection, query, where, getDocs, doc, updateDoc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { collection, query, where, getDocs, doc, updateDoc, setDoc, getDoc, deleteDoc, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         // IMPORT STORAGE FUNCTIONS
         import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
         let currentDistrict = "";
-        let districtAthletes = [];
+        let districtUsers = [];
+        const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        window.TAA_CURRENT_UID = null;
 
         // Real Firebase Auth session check — a District secretary's own
         // `users` doc carries which district they run; nothing here trusts
         // a localStorage value anyone could set from devtools.
         window.TAA_AUTH.guard(["District"], async (profile) => {
             currentDistrict = profile.district;
+            window.TAA_CURRENT_UID = profile.uid;
 
             if (!currentDistrict) {
                 alert("Your account isn't linked to a district yet. Please contact TAA Admin.");
@@ -270,6 +328,7 @@
             onSnapshot(q, (snapshot) => {
                 const users = [];
                 snapshot.forEach(d => users.push({ id: d.id, ...d.data() }));
+                districtUsers = users;
                 updateDashboard(users);
             });
         }
@@ -290,33 +349,35 @@
             const appBody = document.getElementById('approvalsBody');
             appBody.innerHTML = pending.length ? pending.map(u => `
                 <tr>
-                    <td><strong>${u.first_name} ${u.last_name || ''}</strong></td>
-                    <td>${u.regType}</td>
+                    <td><strong>${esc(u.first_name)} ${esc(u.last_name || '')}</strong></td>
+                    <td>${esc(u.regType)}</td>
                     <td><span class="status-badge bg-pending">Pending</span></td>
                     <td>
-                        <button class="btn btn-approve" onclick="processMember('${u.id}', '${u.email}', 'Approved')">Approve</button>
-                        <button class="btn btn-reject" onclick="processMember('${u.id}', '${u.email}', 'Rejected')">Reject</button>
+                        <button class="btn btn-approve" data-id="${esc(u.id)}" onclick="processMember(this.dataset.id, 'Approved')">Approve</button>
+                        <button class="btn btn-reject" data-id="${esc(u.id)}" onclick="processMember(this.dataset.id, 'Rejected')">Reject</button>
                     </td>
                 </tr>
             `).join('') : '<tr><td colspan="4" style="text-align:center; padding:20px;">No pending registrations.</td></tr>';
 
             // Render Rosters
             document.getElementById('athletesBody').innerHTML = approved.filter(u => u.regType === "Athlete").map(u => `
-                <tr><td>${u.afi_uid || 'PENDING'}</td><td>${u.first_name} ${u.last_name}</td><td>${u.event || 'TBD'}</td><td>${u.mobile}</td></tr>
+                <tr><td>${esc(u.afi_uid || 'PENDING')}</td><td>${esc(u.first_name)} ${esc(u.last_name || '')}</td><td>${esc(u.event || 'TBD')}</td><td>${esc(u.mobile)}</td></tr>
             `).join('');
             
             document.getElementById('coachesBody').innerHTML = approved.filter(u => u.regType === "Coach").map(u => `
-                <tr><td>${u.first_name} ${u.last_name}</td><td>${u.level || 'State'}</td><td>${u.mobile}</td></tr>
+                <tr><td>${esc(u.first_name)} ${esc(u.last_name || '')}</td><td>${esc(u.level || 'State')}</td><td>${esc(u.mobile)}</td></tr>
             `).join('');
 
             document.getElementById('officialsBody').innerHTML = approved.filter(u => u.regType === "Official").map(u => `
-                <tr><td>${u.first_name} ${u.last_name}</td><td>${u.specialty || 'Track'}</td><td>${u.mobile}</td></tr>
+                <tr><td>${esc(u.first_name)} ${esc(u.last_name || '')}</td><td>${esc(u.specialty || 'Track')}</td><td>${esc(u.mobile)}</td></tr>
             `).join('');
         }
 
         // --- 2. APPROVAL LOGIC WITH EMAILJS ---
-        window.processMember = async (docId, userEmail, status) => {
+        window.processMember = async (docId, status) => {
             if(!confirm(`Confirm ${status} for this member?`)) return;
+            const member = districtUsers.find(u => u.id === docId) || {};
+            const userEmail = member.email || '';
 
             try {
                 // 1. Update Firebase
@@ -339,25 +400,234 @@
         };
 
         // --- 3. LOAD COMPETITIONS ---
+        let openMeets = {};
         async function loadCompetitions() {
-            const q = query(collection(window.db, "competitions"), where("isActive", "==", true));
-            const snap = await getDocs(q);
             const body = document.getElementById('districtEntriesBody');
-            
+            let snap;
+            try {
+                snap = await getDocs(query(collection(window.db, "competitions"), where("isActive", "==", true)));
+            } catch (e) {
+                console.error(e);
+                body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#b91c1c;">Could not load competitions. Please refresh.</td></tr>';
+                return;
+            }
+            openMeets = {};
             let html = "";
             snap.forEach(d => {
                 const data = d.data();
+                openMeets[d.id] = { id: d.id, ...data };
                 html += `
                     <tr>
-                        <td style="font-weight:700;">${data.title}</td>
-                        <td>${data.deadline}</td>
+                        <td style="font-weight:700;">${esc(data.title)}</td>
+                        <td>${esc(data.deadline ? dmy(data.deadline) : '-')}</td>
                         <td><span class="status-badge bg-approved">OPEN</span></td>
-                        <td><button class="btn btn-primary" onclick="alert('Opening Submission Portal...')">Submit Entries</button></td>
+                        <td><button class="btn btn-primary" data-meet="${esc(d.id)}" onclick="openEntryPanel(this.dataset.meet)">Submit Entries</button></td>
                     </tr>
                 `;
             });
             body.innerHTML = html || '<tr><td colspan="4" style="text-align:center;">No active competitions.</td></tr>';
         }
+        window.reloadCompetitions = loadCompetitions;
+
+        // --- 4. MEET ENTRIES ---
+        // One document per athlete per meet: meet_entries/{meetId}__{athleteUid}. Age group comes from the meet's cut-off
+        // (set by TAA Admin), never from what the secretary types.
+        const MASTER = () => window.TAA_MASTER_DATA;
+        const dmy = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso)); return m ? `${m[3]}.${m[2]}.${m[1]}` : String(iso); };
+        const todayIST = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        let entryMeet = null, entryRules = null, myEntries = [], entryAthlete = null;
+
+        // EMM takes marks as digits only (last two digits = hundredths), NT / NM for none.
+        function cleanMark(m) { const t = String(m ?? '').trim().toUpperCase(); if (t === 'NT' || t === 'NM') return t; return t.replace(/\D/g, ''); }
+
+        function entryBlockReason() {
+            if (!entryMeet) return 'No competition selected.';
+            if (!entryRules.cutoff) return 'The age cut-off for this competition has not been set yet, so athletes cannot be entered. Please contact TAA.';
+            if (entryMeet.deadline && todayIST() > entryMeet.deadline) return `The entry deadline (${dmy(entryMeet.deadline)}) has passed.`;
+            return '';
+        }
+
+        window.openEntryPanel = async function(meetId) {
+            const meet = openMeets[meetId];
+            if (!meet) return;
+            entryMeet = meet;
+            const er = meet.entry_rules || {};
+            entryRules = { cutoff: MASTER().resolveCutoff(meet), maxEvents: er.maxEvents || 2, perDistrict: er.maxPerDistrictPerEvent || 0 };
+            document.getElementById('entryPanel').style.display = 'block';
+            document.getElementById('entryMeetTitle').innerText = meet.title || '';
+            document.getElementById('entryMeetInfo').innerText = [
+                `Age cut-off: ${entryRules.cutoff ? dmy(entryRules.cutoff) : 'not set'}`,
+                meet.deadline ? `Entries close: ${dmy(meet.deadline)}` : '',
+                `Up to ${entryRules.maxEvents} event${entryRules.maxEvents > 1 ? 's' : ''} per athlete`,
+                entryRules.perDistrict ? `Max ${entryRules.perDistrict} athletes per event from a district` : ''
+            ].filter(Boolean).join('  |  ');
+            const reason = entryBlockReason();
+            document.getElementById('entryBlocked').style.display = reason ? 'block' : 'none';
+            document.getElementById('entryBlocked').innerText = reason;
+            document.getElementById('entryFormWrap').style.display = reason ? 'none' : 'block';
+            clearEntryForm();
+            document.getElementById('entryUid').value = '';
+            await loadMyEntries();
+            document.getElementById('entryPanel').scrollIntoView && document.getElementById('entryPanel').scrollIntoView({ behavior: 'smooth' });
+        };
+        window.closeEntryPanel = function() { entryMeet = null; document.getElementById('entryPanel').style.display = 'none'; };
+
+        async function loadMyEntries() {
+            const body = document.getElementById('entriesBody');
+            try {
+                const snap = await getDocs(query(collection(window.db, "meet_entries"), where("meetId", "==", entryMeet.id), where("district", "==", currentDistrict)));
+                myEntries = [];
+                snap.forEach(d => myEntries.push({ id: d.id, ...d.data() }));
+            } catch (e) {
+                console.error(e);
+                body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#b91c1c;">Could not load your entries. Please refresh.</td></tr>';
+                return;
+            }
+            myEntries.sort((a, b) => String(a.surname || '').localeCompare(String(b.surname || '')) || String(a.full_name || '').localeCompare(String(b.full_name || '')));
+            const total = myEntries.reduce((n, e) => n + (e.events || []).length, 0);
+            document.getElementById('entryCount').innerText = `(${myEntries.length} athletes, ${total} entries)`;
+            const blocked = !!entryBlockReason();
+            body.innerHTML = myEntries.length ? myEntries.map(e => `
+                <tr>
+                    <td><strong>${esc(e.full_name)} ${esc(e.surname || '')}</strong><br><small>${esc(e.afi_uid)}</small></td>
+                    <td>${esc(e.ageCategory)}</td>
+                    <td>${(e.events || []).map(x => `${esc(x.event)}${x.mark ? ` <small>(${esc(x.mark)})</small>` : ''}`).join('<br>')}</td>
+                    <td>${blocked ? '' : `<button class="btn btn-primary" data-uid="${esc(e.athleteUid)}" onclick="editEntry(this.dataset.uid)">Edit</button> <button class="btn btn-reject" data-uid="${esc(e.athleteUid)}" onclick="removeEntry(this.dataset.uid)">Remove</button>`}</td>
+                </tr>`).join('') : '<tr><td colspan="4" style="text-align:center; padding:20px; color:#64748b;">No entries yet for this meet.</td></tr>';
+        }
+
+        window.clearEntryForm = function() {
+            entryAthlete = null;
+            document.getElementById('entryAthlete').style.display = 'none';
+            document.getElementById('entryEvents').innerHTML = '';
+            document.getElementById('entrySaveMsg').innerText = '';
+            document.getElementById('entryFindMsg').innerText = '';
+        };
+
+        function findMsg(text, ok) { const el = document.getElementById('entryFindMsg'); el.innerText = text; el.style.color = ok ? '#166534' : '#b91c1c'; }
+
+        window.findEntryAthlete = function() {
+            clearEntryForm();
+            const reason = entryBlockReason();
+            if (reason) return findMsg(reason, false);
+            const id = document.getElementById('entryUid').value.trim().toUpperCase();
+            if (!id) return findMsg('Type the athlete\'s AFI ID.', false);
+            const u = districtUsers.find(x => x.regType === 'Athlete' && x.district === currentDistrict && String(x.afi_uid || '').toUpperCase() === id);
+            if (!u) return findMsg(`No registered athlete with ID ${id} in ${currentDistrict}. Check the ID, or ask the athlete to register under this district.`, false);
+            if (!['Approved', 'Verified'].includes(u.status)) return findMsg(`${u.first_name} ${u.last_name || ''} is not approved yet (status: ${u.status || 'Pending'}). Approve the registration first.`, false);
+            if (!MASTER().isIsoDate(u.dob) || !['Male', 'Female'].includes(u.gender)) return findMsg('This athlete\'s date of birth or gender is missing from the profile, so the age group cannot be worked out. Please contact TAA.', false);
+            const age = MASTER().ageOn(u.dob, entryRules.cutoff);
+            const group = MASTER().getAthleteCategory(u.dob, entryRules.cutoff);
+            if (age === null || age < 0 || !group) return findMsg('This athlete\'s date of birth is after the cut-off date, so the age group cannot be worked out. Please contact TAA.', false);
+            const events = MASTER().eventsFor(group, u.gender);
+            if (events.length === 0) return findMsg(`No events are defined for ${MASTER().categoryLabel(group, u.gender)}.`, false);
+
+            const existing = myEntries.find(e => e.athleteUid === u.id) || null;
+            entryAthlete = { user: u, group, label: MASTER().categoryLabel(group, u.gender), age, events, existing };
+            document.getElementById('entrySurname').value = u.last_name || '';
+            document.getElementById('entryFullName').value = u.first_name || '';
+            document.getElementById('entryFather').value = (existing && existing.father_name) || u.father_name || '';
+            document.getElementById('entryGender').value = u.gender;
+            document.getElementById('entryDob').value = `${dmy(u.dob)}  (age ${age} on ${dmy(entryRules.cutoff)})`;
+            document.getElementById('entryGroup').value = entryAthlete.label;
+            document.getElementById('entryLimitNote').innerText = `(choose up to ${entryRules.maxEvents})`;
+            findMsg(existing ? 'This athlete already has an entry. You are editing it.' : 'Athlete found.', true);
+            renderEntryEvents();
+            document.getElementById('entryAthlete').style.display = 'block';
+        };
+
+        function districtCount(label, event) {
+            return myEntries.filter(e => e.athleteUid !== entryAthlete.user.id && e.ageCategory === label && (e.events || []).some(x => x.event === event)).length;
+        }
+
+        function renderEntryEvents() {
+            const chosen = new Map(((entryAthlete.existing && entryAthlete.existing.events) || []).map(x => [x.event, x.mark || '']));
+            document.getElementById('entryEvents').innerHTML = entryAthlete.events.map((ev, i) => {
+                const full = entryRules.perDistrict && districtCount(entryAthlete.label, ev.event) >= entryRules.perDistrict && !chosen.has(ev.event);
+                return `<div class="ev-row ${full ? 'off' : ''}">
+                    <input type="checkbox" id="evChk${i}" data-i="${i}" ${chosen.has(ev.event) ? 'checked' : ''} ${full ? 'disabled' : ''} onchange="onEntryEventToggle(this)">
+                    <label for="evChk${i}">${esc(ev.event)} <small>${esc(ev.group)}${full ? ` - district limit of ${entryRules.perDistrict} reached` : ''}</small></label>
+                    <input type="text" class="form-control" id="evMark${i}" placeholder="Seed mark" value="${esc(chosen.get(ev.event) || '')}" ${chosen.has(ev.event) ? '' : 'disabled'} title="Digits only. The last two digits are hundredths, e.g. 1150 = 11.50. Leave empty if none.">
+                </div>`;
+            }).join('');
+        }
+
+        window.onEntryEventToggle = function(chk) {
+            const i = chk.dataset.i;
+            if (chk.checked && document.querySelectorAll('#entryEvents input[type=checkbox]:checked').length > entryRules.maxEvents) {
+                chk.checked = false;
+                document.getElementById('entrySaveMsg').style.color = '#b91c1c';
+                document.getElementById('entrySaveMsg').innerText = `An athlete can be entered in at most ${entryRules.maxEvents} event${entryRules.maxEvents > 1 ? 's' : ''} in this meet.`;
+                return;
+            }
+            document.getElementById('entrySaveMsg').innerText = '';
+            document.getElementById('evMark' + i).disabled = !chk.checked;
+        };
+
+        window.saveEntry = async function() {
+            const msg = document.getElementById('entrySaveMsg');
+            const fail = (t) => { msg.style.color = '#b91c1c'; msg.innerText = t; };
+            const reason = entryBlockReason();
+            if (reason) return fail(reason);
+            if (!entryAthlete) return fail('Find an athlete first.');
+            const u = entryAthlete.user;
+            const events = [];
+            entryAthlete.events.forEach((ev, i) => {
+                if (document.getElementById('evChk' + i).checked) events.push({ event: ev.event, group: ev.group, mark: cleanMark(document.getElementById('evMark' + i).value) });
+            });
+            if (events.length === 0) return fail('Choose at least one event. To take an athlete out of the meet, use Remove.');
+            if (events.length > entryRules.maxEvents) return fail(`At most ${entryRules.maxEvents} events per athlete.`);
+            if (entryRules.perDistrict) {
+                const over = events.find(x => districtCount(entryAthlete.label, x.event) >= entryRules.perDistrict);
+                if (over) return fail(`${currentDistrict} already has ${entryRules.perDistrict} athletes entered in ${entryAthlete.label} ${over.event}.`);
+            }
+            const payload = {
+                meetId: entryMeet.id, meetTitle: entryMeet.title || '',
+                athleteUid: u.id, afi_uid: u.afi_uid,
+                district: currentDistrict, homeDistrict: currentDistrict,
+                surname: u.last_name || '', full_name: u.first_name || '',
+                father_name: document.getElementById('entryFather').value.trim().replace(/\s+/g, ' ').slice(0, 80),
+                gender: u.gender, dob: u.dob,
+                ageCategory: entryAthlete.label, ageGroup: entryAthlete.group, cutoff: entryRules.cutoff,
+                events, submittedBy: window.TAA_CURRENT_UID, updatedAt: serverTimestamp()
+            };
+            if (!entryAthlete.existing) payload.createdAt = serverTimestamp();
+            const btn = document.getElementById('entrySaveBtn');
+            btn.disabled = true;
+            try {
+                await setDoc(doc(window.db, "meet_entries", `${entryMeet.id}__${u.id}`), payload, { merge: true });
+            } catch (e) {
+                console.error(e);
+                btn.disabled = false;
+                return fail(e && e.code === 'permission-denied' ? 'Could not save. Entries may have just closed for this meet, or this athlete is not registered under your district.' : 'Could not save this entry. Please try again.');
+            }
+            btn.disabled = false;
+            await loadMyEntries();
+            clearEntryForm();
+            document.getElementById('entryUid').value = '';
+            findMsg(`Entry saved for ${u.first_name} ${u.last_name || ''}.`, true);
+        };
+
+        window.editEntry = function(athleteUid) {
+            const e = myEntries.find(x => x.athleteUid === athleteUid);
+            if (!e) return;
+            document.getElementById('entryUid').value = e.afi_uid;
+            findEntryAthlete();
+        };
+
+        window.removeEntry = async function(athleteUid) {
+            const e = myEntries.find(x => x.athleteUid === athleteUid);
+            if (!e || entryBlockReason()) return;
+            if (!confirm(`Remove ${e.full_name} ${e.surname || ''} from ${entryMeet.title}? All of this athlete's events in this meet will be removed.`)) return;
+            try {
+                await deleteDoc(doc(window.db, "meet_entries", e.id));
+            } catch (err) {
+                console.error(err);
+                return alert('Could not remove this entry. Entries may have closed for this meet.');
+            }
+            clearEntryForm();
+            await loadMyEntries();
+        };
 
         // --- UI HELPERS ---
         window.switchTab = (id, el) => {
