@@ -110,7 +110,7 @@
     </div>
 
     <script type="module">
-        import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         // --- 1. YOUR ORIGINAL MASTER DATA (STRICTLY PRESERVED) ---
         const masterData = [
@@ -155,21 +155,38 @@
             // Fetch Additional Updates from Admin Cloud
             try {
                 if (window.db) {
-                    const q = query(collection(window.db, "competitions"), orderBy("startDate", "asc"));
-                    const querySnapshot = await getDocs(q);
+                    const querySnapshot = await getDocs(collection(window.db, "competitions"));
+                    const added = [];
                     querySnapshot.forEach((doc) => {
                         const cloudMeet = doc.data();
-                        const cloudYear = new Date(cloudMeet.startDate).getFullYear().toString();
-                        if (cloudYear === selectedYear) {
-                            filtered.push({
-                                title: cloudMeet.title,
-                                venue: cloudMeet.venue,
-                                date: cloudMeet.startDate,
-                                fullDate: cloudMeet.startDate,
-                                isCloud: true
-                            });
+                        if (cloudMeet.startDate) {
+                            // A meet added from the admin panel.
+                            const cloudYear = new Date(cloudMeet.startDate).getFullYear().toString();
+                            if (cloudYear === selectedYear) {
+                                added.push({
+                                    title: cloudMeet.title,
+                                    venue: cloudMeet.venue,
+                                    date: cloudMeet.date || cloudMeet.startDate,
+                                    fullDate: cloudMeet.fullDate || cloudMeet.startDate,
+                                    status: cloudMeet.status,
+                                    sortKey: cloudMeet.startDate,
+                                    isCloud: true
+                                });
+                            }
+                        } else if (cloudMeet.title && cloudMeet.categoryYear === selectedYear) {
+                            // An update to one of the built-in meets (venue, dates, status), matched by its number.
+                            const num = (String(cloudMeet.title).match(/^(\d+)\./) || [])[1];
+                            const base = num && filtered.find(f => !f.isCloud && f.title.startsWith(num + '.'));
+                            if (base) {
+                                if (cloudMeet.venue) base.venue = cloudMeet.venue;
+                                if (cloudMeet.date) base.date = cloudMeet.date;
+                                if (cloudMeet.fullDate) base.fullDate = cloudMeet.fullDate;
+                                if (cloudMeet.status) base.status = cloudMeet.status;
+                            }
                         }
                     });
+                    added.sort((a, b) => String(a.sortKey).localeCompare(String(b.sortKey)));
+                    filtered = filtered.concat(added);
                 }
             } catch (e) { console.warn("Cloud connection offline."); }
 
@@ -184,10 +201,16 @@
 
             container.innerHTML = filtered.map(meet => {
                 const mapSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(meet.venue + " Telangana")}`;
-                const badge = meet.isCloud ? `<span style="background:var(--primary); color:white; padding:2px 8px; border-radius:4px; font-size:0.7em; margin-left:10px;">NEW</span>` : "";
+                const flagged = ['Cancelled', 'Postponed', 'Completed'].includes(meet.status);
+                const flagColor = { Cancelled: '#dc2626', Postponed: '#d97706', Completed: '#64748b' }[meet.status];
+                const badge = flagged
+                    ? `<span style="background:${flagColor}; color:white; padding:2px 8px; border-radius:4px; font-size:0.7em; margin-left:10px; text-transform:uppercase;">${meet.status}</span>`
+                    : (meet.isCloud ? `<span style="background:var(--primary); color:white; padding:2px 8px; border-radius:4px; font-size:0.7em; margin-left:10px;">NEW</span>` : "");
+                const dim = (meet.status === 'Cancelled') ? ' style="opacity:0.6;"' : '';
+                const inquiry = (meet.status === 'Cancelled') ? '' : `<button class="btn-inquiry" onclick="sendInquiry('${meet.title}')">Inquiry ✉️</button>`;
                 
                 return `
-                <div class="event-card">
+                <div class="event-card"${dim}>
                     <div class="event-date">
                         <span class="month">${meet.date.split(' ')[0]}</span>
                         <span class="year">${meet.date.split(' ')[1] || selectedYear}</span>
@@ -202,7 +225,7 @@
                                 <div class="info-item">🗓️ ${meet.fullDate}</div>
                             </div>
                         </div>
-                        <button class="btn-inquiry" onclick="sendInquiry('${meet.title}')">Inquiry ✉️</button>
+                        ${inquiry}
                     </div>
                 </div>
                 `;

@@ -497,6 +497,49 @@
                     </div>
                     <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="window.addToCalendar()">+ Add to Master Calendar</button></div>
                 </div>
+
+                <div class="card" id="calEditCard" style="display:none; border:2px solid var(--primary);">
+                    <div class="card-header">
+                        <div>
+                            <h3 id="calEditTitle">Edit Competition</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">Changes appear on the public Events page.</p>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Venue</label><input type="text" id="calEditVenue" class="form-control"></div>
+                        <div class="form-group"><label>Status</label>
+                            <select id="calEditStatus" class="form-control">
+                                <option value="Scheduled">Scheduled</option>
+                                <option value="Postponed">Postponed</option>
+                                <option value="Cancelled">Cancelled</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Start Date</label><input type="date" id="calEditStart" class="form-control"></div>
+                        <div class="form-group"><label>End Date</label><input type="date" id="calEditEnd" class="form-control"></div>
+                    </div>
+                    <p id="calEditNote" style="font-size:0.8em; color:#64748b; margin-top:8px;"></p>
+                    <div style="margin-top: 20px; text-align: right;">
+                        <button class="btn btn-clear" onclick="window.cancelCalendarEdit()">Close</button>
+                        <button class="btn btn-primary" onclick="window.saveCalendarEdit(this)">Save Changes</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Master Calendar</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">Every competition for the season. Meets added here can be deleted; the built-in meets can be edited, postponed or cancelled.</p>
+                        </div>
+                        <select id="calListYear" class="form-control" style="width:120px;" onchange="window.loadCalendarList()"></select>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Competition</th><th>Venue</th><th>Dates</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody id="calendarListBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <div id="tab-registrations" class="tab-content">
@@ -830,6 +873,7 @@
             document.getElementById('topbarTitle').innerText = btn.innerText.substring(2).trim(); 
             if (tabId === 'tab-circulars') window.loadPublishedCirculars();
             if (tabId === 'tab-media') window.loadPublishedMedia();
+            if (tabId === 'tab-calendar') window.loadCalendarList();
         }
 
         // --- CREATE OFFICIAL ACCOUNTS ---
@@ -1127,6 +1171,7 @@
             document.getElementById('regYearFilter').innerHTML = options;
             document.getElementById('archiveYearFilter').innerHTML = options;
             document.getElementById('newMeetYear').innerHTML = options;
+            document.getElementById('calListYear').innerHTML = options;
         }
 
         // --- MEMBER DATABASE (FIREBASE CONVERTED) ---
@@ -1237,8 +1282,132 @@
 
             alert(`${name} added to the Master Calendar.`);
             document.getElementById('newMeetName').value = ''; document.getElementById('newMeetStart').value = ''; document.getElementById('newMeetEnd').value = ''; document.getElementById('newMeetVenue').value = '';
-            window.loadRegistrationControl(); window.loadLiveMeetDropdown(); window.loadArchives();
+            window.loadRegistrationControl(); window.loadLiveMeetDropdown(); window.loadArchives(); window.loadCalendarList();
         }
+
+        // --- CALENDAR MANAGER: list, edit, status, delete ---
+        const BASELINE_TITLES = new Set(fullCalendarData.map(m => m.title));
+        const isBaselineMeet = (m) => BASELINE_TITLES.has(m.title);
+        const longMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const shortDate = (iso) => { const [y, m, d] = String(iso).split('-'); return `${d} ${monthNames[Number(m) - 1]} ${y}`; };
+        // "June 06 - 07, 2026" style, matching the text on the public Events page
+        function longDateRange(start, end) {
+            const [sy, sm, sd] = start.split('-'), [ey, em, ed] = end.split('-');
+            if (start === end) return `${longMonths[+sm - 1]} ${sd}, ${sy}`;
+            if (sy === ey && sm === em) return `${longMonths[+sm - 1]} ${sd} - ${ed}, ${sy}`;
+            return `${longMonths[+sm - 1]} ${sd}, ${sy} - ${longMonths[+em - 1]} ${ed}, ${ey}`;
+        }
+        const STATUS_BADGE = { Scheduled: 'bg-green', Postponed: 'bg-red', Cancelled: 'bg-red', Completed: 'bg-green' };
+        window.calEditId = null;
+
+        window.loadCalendarList = function() {
+            const body = document.getElementById('calendarListBody');
+            const year = document.getElementById('calListYear').value;
+            const rows = window.meetsCache.filter(m => m.categoryYear === year);
+            if (rows.length === 0) { body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No competitions in this season.</td></tr>'; return; }
+            body.innerHTML = rows.map(m => {
+                const status = m.status || 'Scheduled';
+                const dates = m.fullDate || (m.startDate ? longDateRange(m.startDate, m.endDate || m.startDate) : m.date || '');
+                return `
+                <tr>
+                    <td style="font-weight:700;">${esc(m.title)}</td>
+                    <td>${esc(m.venue || '')}</td>
+                    <td>${esc(dates)}</td>
+                    <td><span class="badge ${STATUS_BADGE[status] || 'bg-green'}">${esc(status)}</span></td>
+                    <td style="white-space:nowrap;">
+                        <button class="btn btn-primary" style="padding:6px 12px; font-size:0.8em;" onclick="window.editCalendarMeet('${esc(m._id)}')">Edit</button>
+                        ${isBaselineMeet(m) ? '' : `<button class="btn btn-clear" style="padding:6px 12px; font-size:0.8em;" onclick="window.deleteCalendarMeet('${esc(m._id)}')">Delete</button>`}
+                    </td>
+                </tr>`;
+            }).join('');
+        };
+
+        window.editCalendarMeet = function(id) {
+            const m = window.meetsCache.find(x => x._id === id);
+            if (!m) return;
+            window.calEditId = id;
+            document.getElementById('calEditTitle').innerText = `Edit: ${m.title}`;
+            document.getElementById('calEditVenue').value = m.venue || '';
+            document.getElementById('calEditStatus').value = m.status || 'Scheduled';
+            document.getElementById('calEditStart').value = m.startDate || '';
+            document.getElementById('calEditEnd').value = m.endDate || '';
+            document.getElementById('calEditNote').innerText = isBaselineMeet(m)
+                ? 'This is a built-in meet. Set exact dates here to replace the dates shown on the Events page; leave them empty to keep the current ones.'
+                : 'Start date is required for meets added from this panel.';
+            const card = document.getElementById('calEditCard');
+            card.style.display = 'block';
+            if (card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+
+        window.cancelCalendarEdit = function() {
+            window.calEditId = null;
+            document.getElementById('calEditCard').style.display = 'none';
+        };
+
+        window.saveCalendarEdit = async function(btn) {
+            const m = window.meetsCache.find(x => x._id === window.calEditId);
+            if (!m) return alert("Pick a competition to edit first.");
+            const venue = document.getElementById('calEditVenue').value.trim();
+            const status = document.getElementById('calEditStatus').value;
+            const start = document.getElementById('calEditStart').value;
+            const end = document.getElementById('calEditEnd').value || start;
+            const baseline = isBaselineMeet(m);
+            if (!venue) return alert("Venue cannot be empty.");
+            if (!baseline && !start) return alert("Start date is required for this competition.");
+            if (end && start && end < start) return alert("The end date cannot be before the start date.");
+
+            const fields = { venue, status };
+            if (start) {
+                fields.date = `${monthNames[Number(start.split('-')[1]) - 1]} ${start.split('-')[0]}`;
+                fields.fullDate = longDateRange(start, end);
+                // Built-in meets are listed by the Events page itself; a startDate would list them twice.
+                if (!baseline) { fields.startDate = start; fields.endDate = end; }
+            }
+            const closing = (status === 'Cancelled' || status === 'Postponed') && m.status !== status;
+            if (closing && !confirm(`Mark "${m.title}" as ${status}?\n\nIt will show as ${status} on the public Events page${window.activeReg && window.activeReg.isActive && window.activeReg.meet === m.title ? ' and its open entries banner will be closed' : ''}.`)) return;
+
+            btn.disabled = true;
+            try {
+                await saveMeetFields(m, fields);
+            } catch(e) {
+                console.error(e);
+                btn.disabled = false;
+                return alert("Could not save to the cloud. Nothing was changed.");
+            }
+            btn.disabled = false;
+            if (closing && window.activeReg && window.activeReg.isActive === true && window.activeReg.meet === m.title) {
+                try {
+                    await setDoc(doc(window.db, "site_settings", "active_registration"), { isActive: false, updatedAt: serverTimestamp() }, { merge: true });
+                    window.activeReg.isActive = false;
+                } catch(e) { console.error(e); alert("Status saved, but entries could not be closed. Please close them in Registration Control."); }
+            }
+            alert("Competition updated.");
+            window.cancelCalendarEdit();
+            window.loadCalendarList(); window.loadRegistrationControl(); window.loadLiveMeetDropdown(); window.loadArchives();
+        };
+
+        window.deleteCalendarMeet = async function(id) {
+            const m = window.meetsCache.find(x => x._id === id);
+            if (!m) return;
+            if (isBaselineMeet(m)) return alert("Built-in meets cannot be deleted. Mark it as Cancelled instead.");
+            if (!confirm(`Delete "${m.title}"?\n\nIt will be removed from the calendar and the public Events page. Entries, results and documents for it are not deleted, but will no longer be linked to a competition. Consider marking it Cancelled instead. This cannot be undone.`)) return;
+            try {
+                await deleteDoc(doc(window.db, "competitions", id));
+            } catch(e) {
+                console.error(e);
+                return alert("Could not delete this competition from the cloud. Nothing was changed.");
+            }
+            window.meetsCache = window.meetsCache.filter(x => x._id !== id);
+            if (window.calEditId === id) window.cancelCalendarEdit();
+            if (window.activeReg && window.activeReg.isActive === true && window.activeReg.meet === m.title) {
+                try {
+                    await setDoc(doc(window.db, "site_settings", "active_registration"), { isActive: false, updatedAt: serverTimestamp() }, { merge: true });
+                    window.activeReg.isActive = false;
+                } catch(e) { console.error(e); alert("Competition deleted, but its open entries banner could not be closed. Please close it in Registration Control."); }
+            }
+            alert("Competition deleted.");
+            window.loadCalendarList(); window.loadRegistrationControl(); window.loadLiveMeetDropdown(); window.loadArchives();
+        };
 
         // --- REGISTRATION CONTROL (Firestore: site_settings/active_registration, read by index.html) ---
         window.loadRegistrationControl = async function() {
