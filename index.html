@@ -185,71 +185,77 @@
    <div id="footer-container"></div>
 
     <script type="module">
-        import { collection, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { collection, getDocs, getDoc, doc, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         window.addEventListener('DOMContentLoaded', async () => {
-            
+            if (!window.db) { console.warn("Cloud database not available."); return; }
+
             // 1. DYNAMIC REGISTRATION ZONE
-            const regData = JSON.parse(localStorage.getItem('taa_active_registration'));
-            if (regData && regData.isActive) {
-                const zone = document.getElementById('dynamicRegistrationZone');
-                const b = document.createElement('a');
-                b.href = "login.html"; b.className = "reg-banner"; 
-                b.style.background = "linear-gradient(135deg, #FF8C00, #e67e00)"; 
-                b.style.borderLeft = "6px solid #0056b3";
-                b.innerHTML = `<div><h3>🚨 ${regData.meet}</h3><p>Last Date for Entries: ${regData.deadline}</p></div><div class="btn-reg" style="color:#FF8C00">REGISTER NOW ➞</div>`;
-                zone.prepend(b);
-            }
+            try {
+                const regSnap = await getDoc(doc(window.db, "site_settings", "active_registration"));
+                if (regSnap.exists() && regSnap.data().isActive) {
+                    const regData = regSnap.data();
+                    const zone = document.getElementById('dynamicRegistrationZone');
+                    const b = document.createElement('a');
+                    b.href = "login.html"; b.className = "reg-banner";
+                    b.style.background = "linear-gradient(135deg, #FF8C00, #e67e00)";
+                    b.style.borderLeft = "6px solid #0056b3";
+                    b.innerHTML = `<div><h3>🚨 ${regData.meet}</h3><p>Last Date for Entries: ${regData.deadline}</p></div><div class="btn-reg" style="color:#FF8C00">REGISTER NOW ➞</div>`;
+                    zone.prepend(b);
+                }
+            } catch(e) { console.warn("Registration banner sync pending.", e); }
+
+            // Home page content manager (ticker, news, featured athletes, gallery links)
+            let cms = {};
+            try {
+                const cmsSnap = await getDoc(doc(window.db, "site_settings", "home_cms"));
+                if (cmsSnap.exists()) cms = cmsSnap.data();
+            } catch(e) { console.warn("Home content sync pending.", e); }
 
             // 2. NEWS TICKER HYDRATION
-            const localTicker = JSON.parse(localStorage.getItem('taa_home_ticker'));
-            if (localTicker && localTicker.text) {
+            if (cms.ticker_text) {
                 const track = document.getElementById('tickerTrack');
-                const headlines = localTicker.text.split('|').map(h => h.trim()).filter(h => h);
-                const link = localTicker.link || '#';
+                const headlines = cms.ticker_text.split('|').map(h => h.trim()).filter(h => h);
+                const link = cms.ticker_link || '#';
                 const tickerHTML = headlines.map(h => `<a href="${link}">${h}</a>`).join('');
                 track.innerHTML = tickerHTML + tickerHTML;
             }
 
             // 3. NEWS CARD HYDRATION
-            const localNews = JSON.parse(localStorage.getItem('taa_home_news'));
-            if (localNews && localNews.title) {
+            if (cms.news_title) {
                 document.getElementById('newsGrid').innerHTML = `
                     <div class="news-card">
-                        <span style="color:var(--accent); font-weight:800; font-size: 0.8em;">${localNews.date || 'LATEST'}</span>
-                        <h3 style="margin:10px 0;">${localNews.title}</h3>
-                        <a href="${localNews.link || '#'}" style="color:var(--primary); font-weight:800; text-decoration:none;">READ FULL ARTICLE ➞</a>
+                        <span style="color:var(--accent); font-weight:800; font-size: 0.8em;">${cms.news_date || 'LATEST'}</span>
+                        <h3 style="margin:10px 0;">${cms.news_title}</h3>
+                        <a href="${cms.news_link || '#'}" style="color:var(--primary); font-weight:800; text-decoration:none;">READ FULL ARTICLE ➞</a>
                     </div>
                 `;
             }
 
-            // 4. FEATURED ATHLETES (FIXED REDIRECTION)
-            const featuredUIDs = JSON.parse(localStorage.getItem('taa_home_featured_uids')) || [];
+            // 4. FEATURED ATHLETES (from the world-readable public_profiles directory)
+            const featuredUIDs = (cms.featured_uids || []).slice(0, 10);
             if (featuredUIDs.length > 0) {
-                const marqueeTrack = document.getElementById('profileTrack');
-                const allUsers = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-                let athleteHTML = '';
-                
-                featuredUIDs.forEach(uid => {
-                    const athlete = allUsers.find(u => u.afi_uid === uid);
-                    if(athlete) {
+                try {
+                    const marqueeTrack = document.getElementById('profileTrack');
+                    const q = query(collection(window.db, "public_profiles"), where("afi_uid", "in", featuredUIDs));
+                    const snap = await getDocs(q);
+                    let athleteHTML = '';
+                    snap.forEach(docSnap => {
+                        const athlete = docSnap.data();
                         athleteHTML += `
-                        <a href="profile-view.html?id=${uid}&from=home" class="profile-card">
-                            <img src="https://images.unsplash.com/photo-1552674605-15c2145bc118?w=300" alt="${athlete.first_name}">
-                            <h4 style="margin-top:10px;">${athlete.first_name.toUpperCase()} ${athlete.last_name ? athlete.last_name.toUpperCase() : ''}</h4>
-                            <p style="margin-bottom:10px; color:var(--text-muted);">${athlete.event || 'Athlete'}</p>
+                        <a href="profile-view.html?id=${athlete.afi_uid}&from=home" class="profile-card">
+                            <img src="https://images.unsplash.com/photo-1552674605-15c2145bc118?w=300" alt="${athlete.full_name || 'Athlete'}">
+                            <h4 style="margin-top:10px;">${(athlete.full_name || '').toUpperCase()}</h4>
+                            <p style="margin-bottom:10px; color:var(--text-muted);">${athlete.event || athlete.specialty || 'Athlete'}</p>
                         </a>`;
-                    }
-                });
-                if (athleteHTML) marqueeTrack.innerHTML = athleteHTML + athleteHTML;
+                    });
+                    if (athleteHTML) marqueeTrack.innerHTML = athleteHTML + athleteHTML;
+                } catch(e) { console.warn("Featured athletes sync pending.", e); }
             }
 
             // 5. GALLERY LINKS
-            const media = JSON.parse(localStorage.getItem('taa_home_media'));
-            if (media) {
-                if (media.photo) document.getElementById('photoAlbumBtn').href = media.photo;
-                if (media.video) document.getElementById('videoBtn').href = media.video;
-            }
+            if (cms.photo_link) document.getElementById('photoAlbumBtn').href = cms.photo_link;
+            if (cms.video_link) document.getElementById('videoBtn').href = cms.video_link;
         });
     </script>
 </body>

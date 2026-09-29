@@ -242,7 +242,6 @@
                         <h3>Master Registration Directory</h3>
                         <div>
                             <button class="btn btn-excel" onclick="window.exportFullExcel()">📥 Export CSV</button>
-                            <button class="btn btn-clear" onclick="window.clearAll()">⚠️ Wipe DB</button>
                         </div>
                     </div>
                     
@@ -529,16 +528,17 @@
 
                     <div class="meet-section">
                         <h4>Master Meet Documents</h4>
+                        <div id="masterDocsStatus" style="font-size:0.8em; color:#64748b; margin-bottom:10px;">Select a meet to see its published documents.</div>
                         <div class="form-grid">
-                            <div class="form-group"><label>Start Lists (PDF)</label><input type="file" class="form-control"></div>
-                            <div class="form-group"><label>Rejected Athletes (PDF)</label><input type="file" class="form-control"></div>
-                            <div class="form-group"><label>Bib Number List (PDF)</label><input type="file" class="form-control"></div>
-                            <div class="form-group"><label>Event-Wise List (PDF)</label><input type="file" class="form-control"></div>
-                            
-                            <div class="form-group"><label>Day Wise Results (Zip/PDF)</label><input type="file" class="form-control"></div>
-                            <div class="form-group"><label>Complete Meet Results (PDF)</label><input type="file" class="form-control"></div>
+                            <div class="form-group"><label>Start Lists (PDF)</label><input type="file" id="docStartLists" class="form-control" accept=".pdf"></div>
+                            <div class="form-group"><label>Rejected Athletes (PDF)</label><input type="file" id="docRejected" class="form-control" accept=".pdf"></div>
+                            <div class="form-group"><label>Bib Number List (PDF)</label><input type="file" id="docBib" class="form-control" accept=".pdf"></div>
+                            <div class="form-group"><label>Event-Wise List (PDF)</label><input type="file" id="docEventWise" class="form-control" accept=".pdf"></div>
+
+                            <div class="form-group"><label>Day Wise Results (PDF)</label><input type="file" id="docDayWise" class="form-control" accept=".pdf"></div>
+                            <div class="form-group"><label>Complete Meet Results (PDF)</label><input type="file" id="docComplete" class="form-control" accept=".pdf"></div>
                         </div>
-                        <div style="margin-top: 10px; text-align:right;"><button class="btn-primary" style="padding: 6px 12px; font-size:0.8em;" onclick="alert('Master Files Published to Public Portal!')">Publish Master Files</button></div>
+                        <div style="margin-top: 10px; text-align:right;"><button class="btn-primary" style="padding: 6px 12px; font-size:0.8em;" onclick="window.publishMasterFiles(this)">Publish Master Files</button></div>
                     </div>
 
                     <div class="meet-section">
@@ -552,7 +552,16 @@
                     </div>
 
                     <div class="meet-section">
-                        <h4>Broadcast & Gallery</h4>
+                        <h4>Live Results Portal</h4>
+                        <p style="font-size:0.8em; color:#64748b; margin-bottom:10px;">Link to the page where this meet's live results are published. Leave it empty and save to remove the link.</p>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Live Results Page URL</label><input type="url" class="form-control" id="liveResultsUrl" placeholder="https://..."></div>
+                        </div>
+                        <div style="margin-top: 10px; text-align:right;"><button class="btn-primary" style="padding: 6px 12px; font-size:0.8em;" onclick="window.saveLiveResultsLink()">Save Results Link</button></div>
+                    </div>
+
+                    <div class="meet-section">
+                        <h4>Broadcast</h4>
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Live Stream Link (YouTube URL)</label>
@@ -561,9 +570,9 @@
                                     <iframe id="ytIframe" allowfullscreen></iframe>
                                 </div>
                             </div>
-                            <div class="form-group"><label>Meet Photo Gallery (Upload Zip/Images)</label><input type="file" class="form-control" multiple accept="image/*"></div>
                         </div>
-                        <div style="margin-top: 10px; text-align:right;"><button class="btn-primary" style="padding: 6px 12px; font-size:0.8em;" onclick="alert('Broadcast details updated live!')">Update Broadcast</button></div>
+                        <p style="font-size:0.8em; color:#64748b; margin-top:8px;">Meet photo albums are published from the Media Manager.</p>
+                        <div style="margin-top: 10px; text-align:right;"><button class="btn-primary" style="padding: 6px 12px; font-size:0.8em;" onclick="window.saveBroadcast()">Update Broadcast</button></div>
                     </div>
                 </div>
             </div>
@@ -602,12 +611,15 @@
                 <div class="card">
                     <div class="card-header"><h3>Upload Official Circular</h3></div>
                     <div class="form-grid">
-                        <div class="form-group"><label>Circular Title / Subject</label><input type="text" class="form-control" placeholder="e.g. Guidelines for State Meet"></div>
-                        <div class="form-group"><label>Category</label><select class="form-control"><option>State Circular</option><option>National (AFI) Circular</option></select></div>
-                        <div class="form-group"><label>Issue Date</label><input type="date" class="form-control"></div>
-                        <div class="form-group"><label>Upload PDF</label><input type="file" class="form-control" accept=".pdf"></div>
+                        <div class="form-group"><label>Circular Title / Subject</label><input type="text" id="circTitle" class="form-control" placeholder="e.g. Guidelines for State Meet"></div>
+                        <div class="form-group"><label>Issued By</label><select class="form-control" id="circSource"><option value="TAA">State (TAA) Circular</option><option value="AFI">National (AFI) Circular</option></select></div>
+                        <div class="form-group"><label>Category</label><select class="form-control" id="circCategory"><option>Events</option><option>AGM</option><option>Technical</option><option>General</option></select></div>
+                        <div class="form-group"><label>Circular No. (optional)</label><input type="text" id="circNumber" class="form-control" placeholder="e.g. TAA/CIR/2026/06"></div>
+                        <div class="form-group"><label>Issue Date</label><input type="date" id="circDate" class="form-control"></div>
+                        <div class="form-group"><label>Upload PDF</label><input type="file" id="circFile" class="form-control" accept=".pdf"></div>
+                        <div class="form-group"><label>...or PDF Link</label><input type="url" id="circLink" class="form-control" placeholder="https://..."></div>
                     </div>
-                    <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="alert('Circular published successfully!')">Publish Circular</button></div>
+                    <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="window.publishCircular(this)">Publish Circular</button></div>
                 </div>
             </div>
 
@@ -615,19 +627,28 @@
                 <div class="card">
                     <div class="card-header"><h3>Upload to Media Gallery</h3></div>
                     <div class="form-grid">
-                        <div class="form-group"><label>Album / Title</label><input type="text" class="form-control" placeholder="e.g. 2026 Highlights"></div>
+                        <div class="form-group"><label>Title</label><input type="text" id="mediaTitle" class="form-control" placeholder="e.g. 2026 Highlights"></div>
                         <div class="form-group">
                             <label>Media Type (Auto-Routes)</label>
-                            <select class="form-control" id="mediaTypeSelect">
+                            <select class="form-control" id="mediaTypeSelect" onchange="window.onMediaTypeChange()">
                                 <option value="photo-gallery.html">Photo Gallery</option>
                                 <option value="videos.html">Video Link (YouTube)</option>
                                 <option value="press-releases.html">Press Release</option>
                                 <option value="press-articles.html">Press Article</option>
                             </select>
                         </div>
-                        <div class="form-group"><label>Upload Files / URL</label><input type="file" class="form-control" multiple></div>
+                        <div class="form-group"><label>Date</label><input type="date" id="mediaDate" class="form-control"></div>
+                        <div class="form-group media-field" data-types="photo-gallery.html videos.html"><label>Level</label><select id="mediaLevel" class="form-control"><option>State</option><option>National</option></select></div>
+                        <div class="form-group media-field" data-types="press-releases.html"><label>Issued By</label><select id="mediaSource" class="form-control"><option value="TAA">TAA</option><option value="AFI">AFI</option></select></div>
+                        <div class="form-group media-field" data-types="press-releases.html"><label>Topic</label><select id="mediaCategory" class="form-control"><option value="Competitions">Competitions</option><option value="Administration">Administration</option><option value="Achievements">Athlete Achievements</option></select></div>
+                        <div class="form-group media-field" data-types="press-articles.html"><label>Publisher</label><input type="text" id="mediaPublisher" class="form-control" placeholder="e.g. The Hindu"></div>
+                        <div class="form-group media-field" data-types="photo-gallery.html"><label>Number of Photos</label><input type="number" id="mediaPhotosCount" class="form-control" min="0" placeholder="e.g. 48"></div>
+                        <div class="form-group media-field" data-types="photo-gallery.html press-articles.html"><label>Cover Image (upload)</label><input type="file" id="mediaImageFile" class="form-control" accept="image/*"></div>
+                        <div class="form-group media-field" data-types="photo-gallery.html press-articles.html"><label>...or Cover Image Link</label><input type="url" id="mediaImageUrl" class="form-control" placeholder="https://..."></div>
+                        <div class="form-group media-field" data-types="videos.html press-releases.html press-articles.html"><label id="mediaLinkLabel">Link (YouTube URL / article or PDF link)</label><input type="url" id="mediaLink" class="form-control" placeholder="https://..."></div>
+                        <div class="form-group media-field" data-types="press-releases.html press-articles.html"><label>Short Summary</label><textarea id="mediaExcerpt" class="form-control" rows="3" placeholder="Two or three lines shown on the card"></textarea></div>
                     </div>
-                    <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="window.publishMedia()">Smart Publish Media</button></div>
+                    <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="window.publishMedia(this)">Smart Publish Media</button></div>
                 </div>
             </div>
 
@@ -635,8 +656,8 @@
     </main>
 
     <script type="module">
-        // NEW ADDITION: Added `query` and `where` to the imports
-        import { collection, getDocs, getDoc, doc, setDoc, updateDoc, addDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { collection, getDocs, getDoc, doc, setDoc, updateDoc, addDoc, deleteDoc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
         import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth as getSecondaryAuth, createUserWithEmailAndPassword, signOut as secondarySignOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
@@ -661,6 +682,57 @@
             { categoryYear: "2026", title: "17. State Sub Juniors and Juniors Athletics", venue: "Karimnagar", date: "FEB 2027", isLive: false }
         ];
 
+        // --- SHARED HELPERS ---
+        const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+        const slugify = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120) || 'item';
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const displayDate = (iso) => { const [y, m, d] = String(iso).split('-'); return (y && m && d) ? `${d} ${monthNames[Number(m) - 1]} ${y}` : ''; };
+        const isWebUrl = (s) => { try { const u = new URL(s); return u.protocol === 'https:' || u.protocol === 'http:'; } catch(e) { return false; } };
+
+        // Uploads go to public/<folder>/ in Firebase Storage (rules: signed-in, PDF or image, under 10 MB).
+        async function uploadPublicFile(file, folder) {
+            if (!(file.type === 'application/pdf' || file.type.startsWith('image/'))) throw new Error(`"${file.name}" must be a PDF or an image.`);
+            if (file.size >= 10 * 1024 * 1024) throw new Error(`"${file.name}" is larger than 10 MB.`);
+            const safeName = file.name.replace(/[^A-Za-z0-9._-]+/g, '_');
+            const fileRef = storageRef(window.storage, `public/${folder}/${Date.now()}-${safeName}`);
+            await uploadBytes(fileRef, file, { contentType: file.type });
+            return await getDownloadURL(fileRef);
+        }
+
+        // The Master Calendar = baseline 17 events + whatever exists in Firestore `competitions`.
+        // Cloud docs win when the title matches. `_id` is the Firestore document id (never written back).
+        window.meetsCache = [];
+        window.loadMeets = async function() {
+            const merged = fullCalendarData.map(fc => ({ ...fc, _id: slugify(fc.title) }));
+            try {
+                const snap = await getDocs(collection(window.db, "competitions"));
+                snap.forEach(d => {
+                    const cc = d.data();
+                    if (!cc.title) return;
+                    const idx = merged.findIndex(m => m.title === cc.title);
+                    if (idx === -1) merged.push({ ...cc, _id: d.id });
+                    else merged[idx] = { ...merged[idx], ...cc, _id: d.id };
+                });
+            } catch(e) {
+                console.error(e);
+                alert("Could not load the live competition list from the cloud. Only the baseline calendar is shown, so please refresh before making changes.");
+            }
+            window.meetsCache = merged;
+        };
+
+        // Merge fields into a competition doc (creates it for baseline meets on first write).
+        async function saveMeetFields(meet, fields) {
+            await setDoc(doc(window.db, "competitions", meet._id), { title: meet.title, categoryYear: meet.categoryYear, ...fields, updatedAt: serverTimestamp() }, { merge: true });
+            Object.assign(meet, fields);
+        }
+
+        function requireMeet() {
+            const id = document.getElementById('activeMeetSelect').value;
+            const meet = window.meetsCache.find(m => m._id === id);
+            if (!meet) alert("Please select a meet from the dropdown first.");
+            return meet || null;
+        }
+
         // Real Firebase Auth session check — not a URL parameter or a
         // hardcoded doc. A signed-in Admin's own `users` doc (role: "Admin")
         // is what grants isAdmin() in the Firestore rules.
@@ -670,27 +742,9 @@
 
             document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-            // --- SMART MERGE LOGIC ---
-            let localDb = JSON.parse(localStorage.getItem('taa_master_db')) || [];
-
-            fullCalendarData.forEach(fc => {
-                let idx = localDb.findIndex(lc => lc.title === fc.title);
-                if (idx === -1) localDb.push(fc);
-            });
-
-            try {
-                if(window.db) {
-                    const compSnap = await getDocs(collection(window.db, "competitions"));
-                    compSnap.forEach(doc => {
-                        let cc = doc.data();
-                        let idx = localDb.findIndex(lc => lc.title === cc.title);
-                        if(idx === -1) localDb.push(cc);
-                        else localDb[idx] = {...localDb[idx], ...cc};
-                    });
-                }
-            } catch(e) { console.warn("Cloud sync pending."); }
-
-            localStorage.setItem('taa_master_db', JSON.stringify(localDb));
+            // Competitions now come from Firestore (baseline calendar + everything added here).
+            await window.loadMeets();
+            window.onMediaTypeChange();
 
             document.getElementById('adminRecEmail').value = profile.email || "";
             document.getElementById('adminRecMobile').value = profile.mobile || "";
@@ -912,53 +966,77 @@
             } catch(e) { alert("Failed to update cloud. Check connection."); }
         }
 
-        // --- ORIGINAL CMS LOGIC ---
-        window.loadCMSValues = function() {
-            const ticker = JSON.parse(localStorage.getItem('taa_home_ticker')) || {};
-            const news = JSON.parse(localStorage.getItem('taa_home_news')) || {};
-            const athletes = JSON.parse(localStorage.getItem('taa_home_featured_uids')) || [];
-            const media = JSON.parse(localStorage.getItem('taa_home_media')) || {};
-
-            document.getElementById('cms_tickerText').value = ticker.text || "";
-            document.getElementById('cms_tickerLink').value = ticker.link || "";
-            document.getElementById('cms_newsTitle').value = news.title || "";
-            document.getElementById('cms_newsLink').value = news.link || "";
-            document.getElementById('cms_featuredAthletes').value = athletes.join(', ') || "";
-            document.getElementById('cms_photoLink').value = media.photo || "";
-            document.getElementById('cms_videoLink').value = media.video || "";
+        // --- HOME PAGE CMS (Firestore: site_settings/home_cms, read by index.html) ---
+        window.currentCms = {};
+        window.loadCMSValues = async function() {
+            let cms = {};
+            try {
+                const snap = await getDoc(doc(window.db, "site_settings", "home_cms"));
+                if (snap.exists()) cms = snap.data();
+            } catch(e) {
+                console.error(e);
+                return alert("Could not load the current home page content from the cloud. Please refresh before editing so nothing gets overwritten.");
+            }
+            window.currentCms = cms;
+            document.getElementById('cms_tickerText').value = cms.ticker_text || "";
+            document.getElementById('cms_tickerLink').value = cms.ticker_link || "";
+            document.getElementById('cms_newsTitle').value = cms.news_title || "";
+            document.getElementById('cms_newsLink').value = cms.news_link || "";
+            document.getElementById('cms_featuredAthletes').value = (cms.featured_uids || []).join(', ');
+            document.getElementById('cms_photoLink').value = cms.photo_link || "";
+            document.getElementById('cms_videoLink').value = cms.video_link || "";
         }
 
-        window.pushAllCMSUpdates = function() {
-            const ticker = { text: document.getElementById('cms_tickerText').value, link: document.getElementById('cms_tickerLink').value };
-            const news = { title: document.getElementById('cms_newsTitle').value, link: document.getElementById('cms_newsLink').value, date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase() };
-            const athleteUIDs = document.getElementById('cms_featuredAthletes').value.split(',').map(u => u.trim()).filter(u => u !== "");
-            const media = { photo: document.getElementById('cms_photoLink').value, video: document.getElementById('cms_videoLink').value };
+        window.pushAllCMSUpdates = async function() {
+            const val = id => document.getElementById(id).value.trim();
+            const athleteUIDs = val('cms_featuredAthletes').split(',').map(u => u.trim()).filter(u => u !== "");
+            if (athleteUIDs.length > 10) return alert("The home page shows at most 10 featured athletes. Please remove some UIDs.");
 
-            localStorage.setItem('taa_home_ticker', JSON.stringify(ticker));
-            localStorage.setItem('taa_home_news', JSON.stringify(news));
-            localStorage.setItem('taa_home_featured_uids', JSON.stringify(athleteUIDs));
-            localStorage.setItem('taa_home_media', JSON.stringify(media));
-            alert("Content Manager: All updates pushed to Home Page!");
+            const newsTitle = val('cms_newsTitle');
+            // Keep the original article date unless the headline actually changed.
+            const newsDate = !newsTitle ? "" : (newsTitle === window.currentCms.news_title && window.currentCms.news_date)
+                ? window.currentCms.news_date
+                : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase();
+
+            const payload = {
+                ticker_text: val('cms_tickerText'), ticker_link: val('cms_tickerLink'),
+                news_title: newsTitle, news_link: val('cms_newsLink'), news_date: newsDate,
+                featured_uids: athleteUIDs,
+                photo_link: val('cms_photoLink'), video_link: val('cms_videoLink'),
+                updatedAt: serverTimestamp()
+            };
+            try {
+                await setDoc(doc(window.db, "site_settings", "home_cms"), payload);
+                window.currentCms = payload;
+                alert("Content Manager: all updates are now live on the Home Page.");
+            } catch(e) {
+                console.error(e);
+                alert("Could not publish to the cloud. The Home Page was NOT updated.");
+            }
         }
 
-        window.clearCMSSection = function(section) {
-            if(confirm(`Remove this section from the Home Page?`)) {
-                if(section === 'ticker') { localStorage.removeItem('taa_home_ticker'); }
-                else if(section === 'news') { localStorage.removeItem('taa_home_news'); }
-                else if(section === 'athletes') { localStorage.removeItem('taa_home_featured_uids'); }
-                else if(section === 'media') { localStorage.removeItem('taa_home_media'); }
-                window.loadCMSValues();
+        window.clearCMSSection = async function(section) {
+            const cleared = {
+                ticker: { ticker_text: "", ticker_link: "" },
+                news: { news_title: "", news_link: "", news_date: "" },
+                athletes: { featured_uids: [] },
+                media: { photo_link: "", video_link: "" }
+            }[section];
+            if(!cleared || !confirm("Remove this section from the Home Page?")) return;
+            try {
+                await setDoc(doc(window.db, "site_settings", "home_cms"), { ...cleared, updatedAt: serverTimestamp() }, { merge: true });
+                await window.loadCMSValues();
                 alert("Section cleared.");
-            }
+            } catch(e) { console.error(e); alert("Could not clear this section in the cloud. Nothing was changed."); }
         }
 
-        window.clearAllCMS = function() {
-            if(confirm("Wipe all Home Page custom content?")) {
-                localStorage.removeItem('taa_home_ticker'); localStorage.removeItem('taa_home_news');
-                localStorage.removeItem('taa_home_featured_uids'); localStorage.removeItem('taa_home_media');
-                window.loadCMSValues();
+        window.clearAllCMS = async function() {
+            if(!confirm("Wipe all Home Page custom content?")) return;
+            try {
+                await deleteDoc(doc(window.db, "site_settings", "home_cms"));
+                await window.loadCMSValues();
                 alert("Home content wiped.");
-            }
+            } catch(e) { console.error(e); alert("Could not wipe the home content in the cloud. Nothing was changed."); }
         }
 
         window.populateAdminYears = function() {
@@ -979,14 +1057,17 @@
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Loading cloud data...</td></tr>';
             
             try {
-                if(window.db) {
-                    const snap = await getDocs(collection(window.db, "users"));
-                    window.cloudUsersCache = [];
-                    snap.forEach(doc => window.cloudUsersCache.push({ id: doc.id, ...doc.data() }));
-                }
-            } catch(e) { console.warn("Using local fallback."); }
+                if(!window.db) throw new Error("Database not initialized");
+                const snap = await getDocs(collection(window.db, "users"));
+                window.cloudUsersCache = [];
+                snap.forEach(d => window.cloudUsersCache.push({ id: d.id, ...d.data() }));
+            } catch(e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#b91c1c;">Could not load members from the cloud. Please refresh and try again.</td></tr>';
+                return;
+            }
 
-            let portalData = window.cloudUsersCache.length > 0 ? window.cloudUsersCache : (JSON.parse(localStorage.getItem('taa_portal_data')) || []);
+            let portalData = window.cloudUsersCache;
 
             const searchInput = document.getElementById('adminSearch') ? document.getElementById('adminSearch').value.toLowerCase() : "";
             const roleFilter = document.getElementById('adminRoleFilter') ? document.getElementById('adminRoleFilter').value : "All";
@@ -1023,7 +1104,6 @@
                         <div class="detail-item"><b>District</b><input type="text" class="form-control" id="dist-${uid}" value="${item.district || ''}"></div>
                         <div class="detail-item"><b>Event/Specs</b><input type="text" class="form-control" id="ev-${uid}" value="${item.event || item.specialty || ''}"></div>
                         <div class="detail-item"><b>Status</b><select class="form-control" id="stat-${uid}"><option ${item.status==='Verified'?'selected':''}>Verified</option><option ${item.status==='Pending'?'selected':''}>Pending</option><option ${item.status==='Rejected'?'selected':''}>Rejected</option></select></div>
-                        <div class="detail-item"><b>Reset Password</b><input type="text" class="form-control" id="pwd-${uid}" placeholder="Enter new password..."></div>
                         <div class="detail-item" style="justify-content:flex-end;"><button class="btn-save-inline" onclick="window.saveUserEdit('${uid}', '${item.id || uid}')">💾 Save to Cloud</button></div>
                     </div></td></tr>`;
             }).join('');
@@ -1039,91 +1119,191 @@
                 email: document.getElementById(`em-${uid}`).value, district: document.getElementById(`dist-${uid}`).value,
                 event: document.getElementById(`ev-${uid}`).value, status: document.getElementById(`stat-${uid}`).value
             };
-            const newPwd = document.getElementById(`pwd-${uid}`).value;
-            if(newPwd.trim() !== "") payload.password = newPwd.trim();
-
             try {
-                if(window.db) {
-                    await updateDoc(doc(window.db, "users", docId), payload);
-                    alert("Profile updated in Cloud successfully!");
-                    window.renderAdminUsers();
-                }
+                await updateDoc(doc(window.db, "users", docId), payload);
+                alert("Profile updated in the cloud.");
+                window.renderAdminUsers();
             } catch(e) {
-                let db = JSON.parse(localStorage.getItem('taa_portal_data')) || [];
-                let userIndex = db.findIndex(u => u.afi_uid === uid);
-                if(userIndex > -1) { db[userIndex] = {...db[userIndex], ...payload}; localStorage.setItem('taa_portal_data', JSON.stringify(db)); alert("Saved locally."); window.renderAdminUsers(); }
+                console.error(e);
+                alert("Could not save this profile to the cloud. Nothing was changed.");
             }
         }
 
         window.exportFullExcel = function() { alert("Exporting database to CSV..."); }
-        window.clearAll = function() { if(confirm("DANGER: Wipe database?")) { localStorage.removeItem('taa_portal_data'); window.renderAdminUsers(); } }
 
-        // --- CALENDAR & COMPETITIONS ---
+        // --- CALENDAR & COMPETITIONS (Firestore: competitions/{id}) ---
         window.addToCalendar = async function() {
-            const name = document.getElementById('newMeetName').value;
+            const name = document.getElementById('newMeetName').value.trim();
             const year = document.getElementById('newMeetYear').value;
             const startDate = document.getElementById('newMeetStart').value;
-            const venue = document.getElementById('newMeetVenue').value;
+            const endDate = document.getElementById('newMeetEnd').value || startDate;
+            const venue = document.getElementById('newMeetVenue').value.trim();
 
             if(!name || !year || !startDate || !venue) return alert("Please fill all required fields!");
+            if(endDate < startDate) return alert("The end date cannot be before the start date.");
 
-            let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
-            const dateObj = new Date(startDate);
-            const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-            const formattedDate = `${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+            const [startY, startM] = startDate.split('-');
+            const title = `${window.meetsCache.filter(m => m.categoryYear === year).length + 1}. ${name}`;
+            const id = slugify(title);
+            if(window.meetsCache.some(m => m._id === id)) return alert("A competition with this name already exists in that season.");
 
-            const newMeet = { categoryYear: year, title: `${db.length + 1}. ${name}`, venue: venue, date: formattedDate, isLive: false };
-            
-            db.push(newMeet);
-            localStorage.setItem('taa_master_db', JSON.stringify(db));
+            const newMeet = { categoryYear: year, title, venue, date: `${monthNames[Number(startM) - 1]} ${startY}`, startDate, endDate, isLive: false };
+            try {
+                await setDoc(doc(window.db, "competitions", id), { ...newMeet, createdAt: serverTimestamp() });
+            } catch(e) {
+                console.error(e);
+                return alert("Could not save to the cloud. The competition was NOT added.");
+            }
+            window.meetsCache.push({ ...newMeet, _id: id });
 
-            try { if(window.db) await addDoc(collection(window.db, "competitions"), newMeet); } catch(e){}
-
-            alert(`${name} added! Synced to Calendar & Cloud.`);
+            alert(`${name} added to the Master Calendar.`);
             document.getElementById('newMeetName').value = ''; document.getElementById('newMeetStart').value = ''; document.getElementById('newMeetEnd').value = ''; document.getElementById('newMeetVenue').value = '';
             window.loadRegistrationControl(); window.loadLiveMeetDropdown(); window.loadArchives();
         }
 
-        window.loadRegistrationControl = function() {
-            let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
-            const activeReg = JSON.parse(localStorage.getItem('taa_active_registration'));
+        // --- REGISTRATION CONTROL (Firestore: site_settings/active_registration, read by index.html) ---
+        window.loadRegistrationControl = async function() {
+            const body = document.getElementById('regControlBody');
             const selectedYear = document.getElementById('regYearFilter').value;
-            const filtered = db.filter(item => item.categoryYear === selectedYear);
+            window.regFiltered = window.meetsCache.filter(item => item.categoryYear === selectedYear);
 
-            if (filtered.length === 0) { document.getElementById('regControlBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No events found for this calendar year.</td></tr>'; return; }
+            if (window.regFiltered.length === 0) { body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No events found for this calendar year.</td></tr>'; return; }
 
-            document.getElementById('regControlBody').innerHTML = filtered.map((meet, index) => {
-                const isActive = activeReg && activeReg.meet === meet.title;
+            try {
+                const snap = await getDoc(doc(window.db, "site_settings", "active_registration"));
+                window.activeReg = snap.exists() ? snap.data() : null;
+            } catch(e) {
+                console.error(e);
+                body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#b91c1c;">Could not load registration status from the cloud. Please refresh.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = window.regFiltered.map((meet, index) => {
+                const isActive = !!(window.activeReg && window.activeReg.isActive === true && window.activeReg.meet === meet.title);
                 return `
                     <tr>
-                        <td style="font-weight:700;">${meet.title}</td>
-                        <td><input type="date" class="form-control" id="regDate-${index}" style="padding:6px; width:auto;"></td>
+                        <td style="font-weight:700;">${esc(meet.title)}</td>
+                        <td><input type="date" class="form-control" id="regDate-${index}" value="${isActive ? esc(window.activeReg.deadline || '') : ''}" style="padding:6px; width:auto;"></td>
                         <td><span class="badge ${isActive ? 'bg-green' : 'bg-red'}" id="statusBadge${index}">${isActive ? 'ENTRIES OPEN' : 'CLOSED'}</span></td>
-                        <td><label class="toggle-switch"><input type="checkbox" ${isActive ? 'checked' : ''} onchange="window.toggleRegistration(${index}, this, '${meet.title}')"><span class="slider"></span></label></td>
-                        <td><button class="btn btn-primary" id="pushBtn${index}" style="padding: 6px 12px; font-size: 0.8em; ${!isActive ? 'opacity:0.5;' : ''}" ${!isActive ? 'disabled' : ''} onclick="window.pushToHome('${meet.title}', document.getElementById('regDate-${index}').value)">Push to Home Page</button></td>
+                        <td><label class="toggle-switch"><input type="checkbox" ${isActive ? 'checked' : ''} onchange="window.toggleRegistration(${index}, this)"><span class="slider"></span></label></td>
+                        <td><button class="btn btn-primary" id="pushBtn${index}" style="padding: 6px 12px; font-size: 0.8em; ${!isActive ? 'opacity:0.5;' : ''}" ${!isActive ? 'disabled' : ''} onclick="window.pushToHome(${index})">Push to Home Page</button></td>
                     </tr>
                 `;
             }).join('');
         }
 
-        window.toggleRegistration = function(id, checkbox, meetName) {
-            const badge = document.getElementById('statusBadge' + id);
-            const actionBtn = document.getElementById('pushBtn' + id);
-            if (checkbox.checked) { badge.className = 'badge bg-green'; badge.innerText = 'ENTRIES OPEN'; actionBtn.style.opacity = '1'; actionBtn.disabled = false; } 
-            else { badge.className = 'badge bg-red'; badge.innerText = 'CLOSED'; actionBtn.style.opacity = '0.5'; actionBtn.disabled = true; localStorage.removeItem('taa_active_registration'); }
+        window.toggleRegistration = async function(index, checkbox) {
+            const meet = window.regFiltered[index];
+            const badge = document.getElementById('statusBadge' + index);
+            const actionBtn = document.getElementById('pushBtn' + index);
+
+            if (checkbox.checked) {
+                // Nothing is public until the deadline is set and "Push to Home Page" is pressed.
+                badge.className = 'badge bg-orange'; badge.innerText = 'SET DEADLINE & PUSH';
+                actionBtn.style.opacity = '1'; actionBtn.disabled = false;
+                return;
+            }
+
+            actionBtn.style.opacity = '0.5'; actionBtn.disabled = true;
+            badge.className = 'badge bg-red'; badge.innerText = 'CLOSED';
+            // Only take the banner down if THIS meet is the one currently live.
+            if (window.activeReg && window.activeReg.isActive === true && window.activeReg.meet === meet.title) {
+                try {
+                    await setDoc(doc(window.db, "site_settings", "active_registration"), { isActive: false, updatedAt: serverTimestamp() }, { merge: true });
+                    window.activeReg.isActive = false;
+                } catch(e) {
+                    console.error(e);
+                    alert("Could not close entries in the cloud. The home page banner is still live. Please try again.");
+                    window.loadRegistrationControl();
+                }
+            }
         }
 
-        window.pushToHome = function(meetName, deadline) {
+        window.pushToHome = async function(index) {
+            const meet = window.regFiltered[index];
+            const deadline = document.getElementById(`regDate-${index}`).value;
             if(!deadline) return alert("Please select an entry deadline first!");
-            localStorage.setItem('taa_active_registration', JSON.stringify({ meet: meetName, deadline: deadline, isActive: true }));
-            alert(`Success! Entry banner for ${meetName} is now live on the public Home Page.`);
+            try {
+                await setDoc(doc(window.db, "site_settings", "active_registration"), { meet: meet.title, deadline, isActive: true, updatedAt: serverTimestamp() });
+            } catch(e) {
+                console.error(e);
+                return alert("Could not publish to the cloud. The home page was NOT updated.");
+            }
+            alert(`Entry banner for ${meet.title} is now live on the public Home Page.`);
+            window.loadRegistrationControl();
         }
 
+        // --- LIVE MEET MANAGER (Firestore: competitions/{id} fields) ---
         window.loadLiveMeetDropdown = function() {
-            let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
             const select = document.getElementById('activeMeetSelect');
-            if (db.length === 0) { select.innerHTML = '<option>No Meets in Calendar</option>'; return; }
-            select.innerHTML = '<option>Select Meet to Manage...</option>' + db.map(meet => `<option value="${meet.title}">${meet.title} (${meet.categoryYear})</option>`).join('');
+            select.onchange = window.onLiveMeetSelected;
+            if (window.meetsCache.length === 0) { select.innerHTML = '<option value="">No Meets in Calendar</option>'; return; }
+            select.innerHTML = '<option value="">Select Meet to Manage...</option>' + window.meetsCache.map(meet => `<option value="${esc(meet._id)}">${esc(meet.title)} (${esc(meet.categoryYear)})</option>`).join('');
+        }
+
+        window.onLiveMeetSelected = function() {
+            const id = document.getElementById('activeMeetSelect').value;
+            const meet = window.meetsCache.find(m => m._id === id);
+            document.getElementById('liveResultsUrl').value = (meet && meet.live_results_url) || '';
+            document.getElementById('ytInput').value = (meet && meet.live_stream_url) || '';
+            window.updateYtEmbed();
+            window.renderMasterDocsStatus(meet);
+        }
+
+        window.renderMasterDocsStatus = function(meet) {
+            const labels = { start_lists: 'Start Lists', rejected: 'Rejected Athletes', bib_list: 'Bib List', event_wise: 'Event-Wise List', day_wise: 'Day Wise Results', complete: 'Complete Results' };
+            const docs = (meet && meet.master_docs) || {};
+            const links = Object.keys(labels).filter(k => docs[k]).map(k => `<a href="${esc(docs[k])}" target="_blank" rel="noopener">${labels[k]}</a>`);
+            document.getElementById('masterDocsStatus').innerHTML = links.length ? `Published: ${links.join(' &middot; ')}` : 'No master documents published for this meet yet.';
+        }
+
+        window.publishMasterFiles = async function(btn) {
+            const meet = requireMeet(); if(!meet) return;
+            const defs = [['docStartLists', 'start_lists'], ['docRejected', 'rejected'], ['docBib', 'bib_list'], ['docEventWise', 'event_wise'], ['docDayWise', 'day_wise'], ['docComplete', 'complete']];
+            const picked = defs.filter(([inputId]) => document.getElementById(inputId).files.length > 0);
+            if(picked.length === 0) return alert("Choose at least one PDF to publish.");
+
+            btn.disabled = true; btn.innerText = 'Uploading...';
+            try {
+                const docs = { ...(meet.master_docs || {}) };
+                for (const [inputId, key] of picked) {
+                    docs[key] = await uploadPublicFile(document.getElementById(inputId).files[0], `meets/${meet._id}`);
+                }
+                await saveMeetFields(meet, { master_docs: docs });
+                picked.forEach(([inputId]) => { document.getElementById(inputId).value = ''; });
+                window.renderMasterDocsStatus(meet);
+                alert("Master files published.");
+            } catch(e) {
+                console.error(e);
+                alert(`Publishing failed: ${e.message || 'please check your connection and try again.'}`);
+            } finally { btn.disabled = false; btn.innerText = 'Publish Master Files'; }
+        }
+
+        window.saveLiveResultsLink = async function() {
+            const meet = requireMeet(); if(!meet) return;
+            const raw = document.getElementById('liveResultsUrl').value.trim();
+            let url = '';
+            if (raw) {
+                try {
+                    const u = new URL(raw);
+                    if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error('bad protocol');
+                    url = u.href;
+                } catch(e) { return alert("Please enter a full web address starting with https://"); }
+            }
+            try {
+                await saveMeetFields(meet, { live_results_url: url });
+                alert(url ? "Live results link saved." : "Live results link removed.");
+            } catch(e) { console.error(e); alert("Could not save to the cloud. Nothing was changed."); }
+        }
+
+        window.saveBroadcast = async function() {
+            const meet = requireMeet(); if(!meet) return;
+            const raw = document.getElementById('ytInput').value.trim();
+            if (raw && !/(youtube\.com|youtu\.be)/i.test(raw)) return alert("Please paste a YouTube link.");
+            try {
+                await saveMeetFields(meet, { live_stream_url: raw });
+                alert(raw ? "Broadcast link saved." : "Broadcast link removed.");
+            } catch(e) { console.error(e); alert("Could not save to the cloud. Nothing was changed."); }
         }
 
         let dayCounter = 0;
@@ -1175,37 +1355,115 @@
             let videoId = "";
             if (url.includes("v=")) videoId = url.split("v=")[1].substring(0, 11);
             else if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1].substring(0, 11);
-            
-            if(videoId) { iframe.src = `https://www.youtube.com/embed/${videoId}`; container.style.display = 'block'; } 
+
+            if(videoId) { iframe.src = `https://www.youtube.com/embed/${videoId}`; container.style.display = 'block'; }
             else { container.style.display = 'none'; iframe.src = ""; }
         }
 
-        window.publishMedia = function() { alert(`Files successfully processed. Automatically routed to public section.`); }
+        // --- CIRCULARS (Firestore: circulars/{id}, merged into circulars.html by circular number) ---
+        window.publishCircular = async function(btn) {
+            const val = id => document.getElementById(id).value.trim();
+            const source = val('circSource'), category = val('circCategory'), title = val('circTitle'), date = val('circDate');
+            const file = document.getElementById('circFile').files[0];
+            let link = val('circLink');
 
+            if(!title || !date) return alert("Please enter the circular title and issue date.");
+            if(!file && !link) return alert("Attach a PDF or paste a link to the circular.");
+            if(link && !isWebUrl(link)) return alert("The PDF link must be a full web address starting with https://");
+
+            const year = date.slice(0, 4);
+            const number = val('circNumber') || `${source}/CIR/${year}/${Date.now().toString(36).toUpperCase()}`;
+            const docId = number.replace(/[^A-Za-z0-9_-]+/g, '-');
+
+            btn.disabled = true; btn.innerText = 'Publishing...';
+            try {
+                const existing = await getDoc(doc(window.db, "circulars", docId));
+                if (existing.exists() && !confirm(`A circular numbered ${number} is already published. Replace it?`)) return;
+                if (file) link = await uploadPublicFile(file, 'circulars');
+                await setDoc(doc(window.db, "circulars", docId), { source, id: number, date, title, category, year, link, createdAt: serverTimestamp() });
+                ['circTitle', 'circNumber', 'circDate', 'circFile', 'circLink'].forEach(id => { document.getElementById(id).value = ''; });
+                alert("Circular published. It now appears on the public Circulars page.");
+            } catch(e) {
+                console.error(e);
+                alert(`Publishing failed: ${e.message || 'please check your connection and try again.'}`);
+            } finally { btn.disabled = false; btn.innerText = 'Publish Circular'; }
+        }
+
+        // --- MEDIA MANAGER (Firestore: gallery / media / press_releases / press_articles) ---
+        window.onMediaTypeChange = function() {
+            const type = document.getElementById('mediaTypeSelect').value;
+            document.querySelectorAll('.media-field').forEach(el => {
+                el.style.display = el.dataset.types.split(' ').includes(type) ? '' : 'none';
+            });
+        }
+
+        window.publishMedia = async function(btn) {
+            const val = id => document.getElementById(id).value.trim();
+            const type = val('mediaTypeSelect'), title = val('mediaTitle'), dateIso = val('mediaDate');
+            if(!title || !dateIso) return alert("Please enter a title and a date.");
+            const year = dateIso.slice(0, 4), shownDate = displayDate(dateIso);
+            const link = val('mediaLink');
+            if(link && !isWebUrl(link)) return alert("The link must be a full web address starting with https://");
+            const imageFile = document.getElementById('mediaImageFile').files[0];
+
+            let target, data;
+            btn.disabled = true; btn.innerText = 'Publishing...';
+            try {
+                let img = val('mediaImageUrl');
+                if (imageFile && (type === 'photo-gallery.html' || type === 'press-articles.html')) img = await uploadPublicFile(imageFile, 'media');
+                if (img && !isWebUrl(img)) throw new Error("The image link must be a full web address starting with https://");
+
+                if (type === 'photo-gallery.html') {
+                    if(!img) throw new Error("Add a cover image (upload one or paste its link).");
+                    target = "gallery";
+                    data = { title, date: shownDate, categoryYear: year, level: val('mediaLevel'), img, photosCount: Number(val('mediaPhotosCount')) || 0 };
+                } else if (type === 'videos.html') {
+                    if(!/(youtube\.com|youtu\.be)/i.test(link)) throw new Error("Paste the YouTube link for this video.");
+                    target = "media";
+                    data = { type: 'videos.html', title, date: shownDate, categoryYear: year, level: val('mediaLevel'), url: link };
+                } else if (type === 'press-releases.html') {
+                    if(!val('mediaExcerpt')) throw new Error("Add a short summary for the press release.");
+                    target = "press_releases";
+                    data = { source: val('mediaSource'), date: dateIso, title, excerpt: val('mediaExcerpt'), category: val('mediaCategory'), year, link: link || '#' };
+                } else {
+                    target = "press_articles";
+                    data = { title, publisher: val('mediaPublisher') || 'TAA Update', date: shownDate, categoryYear: year, excerpt: val('mediaExcerpt'), img, link: link || '#' };
+                }
+
+                await addDoc(collection(window.db, target), { ...data, createdAt: serverTimestamp() });
+                ['mediaTitle', 'mediaDate', 'mediaLink', 'mediaExcerpt', 'mediaPublisher', 'mediaPhotosCount', 'mediaImageUrl', 'mediaImageFile'].forEach(id => { document.getElementById(id).value = ''; });
+                alert("Published. It now appears on the public page.");
+            } catch(e) {
+                console.error(e);
+                alert(`Publishing failed: ${e.message || 'please check your connection and try again.'}`);
+            } finally { btn.disabled = false; btn.innerText = 'Smart Publish Media'; }
+        }
+
+        // --- RESULTS ARCHIVE (Firestore: competitions/{id}.isLive, read by results.html) ---
         window.loadArchives = function() {
-            let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
             const selectedYear = document.getElementById('archiveYearFilter').value;
-            const filtered = db.filter(item => item.categoryYear === selectedYear);
+            window.archiveFiltered = window.meetsCache.filter(item => item.categoryYear === selectedYear);
 
-            if (filtered.length === 0) { document.getElementById('archiveTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No events found.</td></tr>'; return; }
+            if (window.archiveFiltered.length === 0) { document.getElementById('archiveTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No events found.</td></tr>'; return; }
 
-            document.getElementById('archiveTableBody').innerHTML = filtered.map((meet, index) => `
+            document.getElementById('archiveTableBody').innerHTML = window.archiveFiltered.map((meet, index) => `
                 <tr>
-                    <td style="font-weight:700;">${meet.title}</td><td>${meet.date || 'TBD'}</td>
-                    <td><select class="form-control" style="width: auto; padding: 6px;"><option>Page: ${meet.title} (Live)</option></select></td>
+                    <td style="font-weight:700;">${esc(meet.title)}</td><td>${esc(meet.date || 'TBD')}</td>
+                    <td><select class="form-control" style="width: auto; padding: 6px;"><option>Page: ${esc(meet.title)} (Live)</option></select></td>
                     <td><span class="badge ${meet.isLive ? 'bg-green' : 'bg-gray'}" id="arcBadge${index}">${meet.isLive ? 'PUBLISHED' : 'DORMANT'}</span></td>
-                    <td><button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8em;" onclick="window.publishArchiveResult('${meet.title}', ${index})">Publish Result</button></td>
+                    <td><button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8em;" onclick="window.publishArchiveResult(${index})">Publish Result</button></td>
                 </tr>
             `).join('');
         }
 
-        window.publishArchiveResult = async function(meetTitle, index) {
-            let db = JSON.parse(localStorage.getItem('taa_master_db')) || [];
-            const meetIndex = db.findIndex(m => m.title === meetTitle);
-            if(meetIndex > -1) { db[meetIndex].isLive = true; localStorage.setItem('taa_master_db', JSON.stringify(db)); }
-            
-            try { if(window.db) await setDoc(doc(window.db, "competitions", meetTitle), { isLive: true }, { merge: true }); } catch(e){}
-
+        window.publishArchiveResult = async function(index) {
+            const meet = window.archiveFiltered[index];
+            try {
+                await saveMeetFields(meet, { isLive: true });
+            } catch(e) {
+                console.error(e);
+                return alert("Could not publish to the cloud. The result page was NOT activated.");
+            }
             const badge = document.getElementById(`arcBadge${index}`);
             badge.className = 'badge bg-green'; badge.innerText = 'PUBLISHED';
             alert(`Result Published! The "View Results" button is now active on the public page.`);

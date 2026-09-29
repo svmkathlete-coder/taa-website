@@ -399,9 +399,10 @@
                 console.warn("Cloud connection issue. Using local fallback.");
             }
 
-            // Sync with local calendar master if cloud failed
+            // Fall back to the hardcoded calendar only if the cloud fetch failed
+            // (taa_master_db was a browser-local cache and never a real source of truth)
             if(window.cloudEvents.length === 0) {
-                window.cloudEvents = JSON.parse(localStorage.getItem('taa_master_db')) || fallbackEvents;
+                window.cloudEvents = fallbackEvents;
             }
 
             window.loadRoster();
