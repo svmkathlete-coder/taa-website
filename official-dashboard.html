@@ -175,9 +175,10 @@
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border);">
                         <h4 style="font-family:'Montserrat'; color:var(--primary); margin-bottom: 15px;">Upload Exam/Certification Document</h4>
                         <div style="display: flex; gap: 15px; align-items: center;">
-                            <input type="file" class="form-control" style="max-width: 400px;" accept=".pdf, image/*">
-                            <button class="btn btn-primary" onclick="alert('Certification uploaded for admin review. Your level will be updated upon approval in the cloud database.')">Submit Document</button>
+                            <input type="file" id="certFileInput" class="form-control" style="max-width: 400px;" accept=".pdf, image/*">
+                            <button class="btn btn-primary" id="certSubmitBtn" onclick="window.submitCertification()">Submit Document</button>
                         </div>
+                        <div id="certUploadMsg" style="display:none; margin-top:10px; font-size:0.85em; font-weight:700;"></div>
                     </div>
                 </div>
             </div>
@@ -218,6 +219,7 @@
 
     <script type="module">
         import { collection, query, where, getDocs, doc, updateDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
         window.currentUser = null;
         window.currentDocId = null;
@@ -337,6 +339,56 @@
             } finally {
                 btn.disabled = false;
                 btn.innerText = "💾 Save Preferences";
+            }
+        };
+
+        // Uploads the official's exam/certification document to their own
+        // private Storage folder (matches storage.rules: owner read/write
+        // only under users/{uid}/**) and records the URL on their `users`
+        // doc so an Admin — who already has full read access to `users` —
+        // can review it and update their level.
+        window.submitCertification = async function() {
+            const fileInput = document.getElementById('certFileInput');
+            const msgBox = document.getElementById('certUploadMsg');
+            const btn = document.getElementById('certSubmitBtn');
+            const file = fileInput.files[0];
+
+            const showMsg = (text, ok) => {
+                msgBox.style.display = 'block';
+                msgBox.style.color = ok ? '#059669' : '#ef4444';
+                msgBox.innerText = text;
+            };
+
+            if (!file) { showMsg("Please choose a file first.", false); return; }
+            if (!window.currentDocId || !window.db || !window.storage) {
+                showMsg("Not connected to TAA secure servers. Please refresh and try again.", false);
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Uploading...";
+            msgBox.style.display = 'none';
+
+            try {
+                const ext = (file.name.split('.').pop() || 'pdf').toLowerCase();
+                const path = `users/${window.currentDocId}/certification-${Date.now()}.${ext}`;
+                const fileRef = ref(window.storage, path);
+                await uploadBytes(fileRef, file);
+                const url = await getDownloadURL(fileRef);
+
+                await updateDoc(doc(window.db, "users", window.currentDocId), {
+                    pending_certification_url: url,
+                    pending_certification_uploaded_at: new Date().toISOString()
+                });
+
+                fileInput.value = "";
+                showMsg("Certification uploaded for admin review. Your level will be updated upon approval.", true);
+            } catch (err) {
+                console.error("Certification upload failed:", err);
+                showMsg("Upload failed. Please try again.", false);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Submit Document";
             }
         };
     </script>
