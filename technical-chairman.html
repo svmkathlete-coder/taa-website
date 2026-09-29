@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     
     <script type="module" src="firebase-init.js"></script>
+    <script type="module" src="auth.js"></script>
 
     <style>
         :root {
@@ -362,19 +363,23 @@
         };
 
         window.logout = function() {
-            sessionStorage.clear();
-            window.location.href = 'login.html';
+            window.TAA_AUTH.logout();
         };
 
         // --- INIT & FETCH ---
-        window.onload = async () => {
+        // Real Firebase Auth guard — this page used to have NO login check at
+        // all (anyone who typed the URL saw officials' phone numbers and could
+        // trigger nominations). The Firestore rules now let a Technical Chairman
+        // read `users` docs scoped to role=="Official" only, so the query below
+        // works for them (and for Admin) without opening up every private record.
+        window.TAA_AUTH.guard(["Technical Chairman", "Admin"], async (profile) => {
             try {
                 if(window.db) {
                     // Fetch verified Officials
                     const usersSnap = await getDocs(collection(window.db, "users"));
                     usersSnap.forEach(doc => {
                         const u = doc.data();
-                        if (u.regType === "Official") {
+                        if (u.role === "Official" || u.regType === "Official") {
                             window.cloudOfficials.push({
                                 uid: u.afi_uid || doc.id,
                                 name: `${u.first_name || ''} ${u.last_name || ''}`.trim(),
@@ -401,7 +406,7 @@
 
             window.loadRoster();
             window.loadMeets();
-        };
+        });
     </script>
 </body>
 </html>

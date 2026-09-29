@@ -306,18 +306,20 @@
 
             let allAthletes = [...mockAthletes];
 
-            // Extract from Cloud
+            // Extract from Cloud (public_profiles — the safe subset everyone can read;
+            // the private `users` collection is locked to its owner/Admin, and doesn't
+            // carry the performance fields below anyway).
             window.cloudUsers.forEach(u => {
-                if(u.regType === "Athlete" || u.role === "Athlete") {
+                if(u.role === "Athlete") {
                     if(!allAthletes.find(ma => ma.uid === u.afi_uid)) {
                         allAthletes.push({
                             uid: u.afi_uid || "PENDING",
-                            name: `${u.first_name || ''} ${u.last_name || ''}`.trim(),
-                            gender: u.gender || "Male", 
+                            name: u.full_name || "Unknown",
+                            gender: u.gender || "Male",
                             dob: u.dob || "2000-01-01",
                             dist: u.district || "N/A",
                             event: u.event || "100m",
-                            perf: u.pb || u.sb || "0", 
+                            perf: u.pb || u.sb || "0",
                             meas: u.measurement_type || "Electronic",
                             comp: u.latest_meet || "Verified Record",
                             venue: u.latest_venue || "TBA",
@@ -422,21 +424,21 @@
         window.generateCoachRankings = function() {
             const tbody = document.getElementById('coachesLeaderboardBody');
             
-            const coaches = window.cloudUsers.filter(u => u.regType === "Coach" || u.role === "Coach");
+            const coaches = window.cloudUsers.filter(u => u.role === "Coach");
             let leaderboardData = [];
 
             coaches.forEach(coach => {
-                const linkedAthletesCount = window.cloudUsers.filter(a => 
-                    (a.regType === "Athlete" || a.role === "Athlete") && 
-                    (a.coach || a.current_coach_id || "").toUpperCase() === (coach.afi_uid || "").toUpperCase()
+                const linkedAthletesCount = window.cloudUsers.filter(a =>
+                    a.role === "Athlete" &&
+                    (a.current_coach_id || "").toUpperCase() === (coach.afi_uid || "").toUpperCase()
                 ).length;
-                
+
                 leaderboardData.push({
-                    name: `${coach.first_name} ${coach.last_name || ''}`.trim(),
+                    name: coach.full_name || "Unknown",
                     uid: coach.afi_uid,
-                    academy: coach.academy || coach.district || "Independent",
+                    academy: coach.coaching_place || coach.district || "Independent",
                     athletes: linkedAthletesCount,
-                    score: coach.coach_score || 0 
+                    score: coach.coach_score || 0
                 });
             });
 
@@ -499,7 +501,10 @@
         window.onload = async () => {
             try {
                 if (window.db) {
-                    const snapUsers = await getDocs(collection(window.db, "users"));
+                    // public_profiles is the world-readable, safe-to-show subset —
+                    // the private `users` collection is locked to its owner/Admin
+                    // by the Firestore rules, so leaderboards must read this instead.
+                    const snapUsers = await getDocs(collection(window.db, "public_profiles"));
                     snapUsers.forEach(doc => window.cloudUsers.push(doc.data()));
 
                     const snapDistricts = await getDocs(collection(window.db, "districts"));

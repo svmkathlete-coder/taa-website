@@ -57,7 +57,10 @@ service cloud.firestore {
 
     // ---- users: private profile + role -------------------------------
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin() || isDistrictSecretaryFor(resource.data.district);
+      // Technical Chairman needs Officials' contact details (phone) to staff a
+      // meet — scoped to Official records only, not every private user doc.
+      allow read: if isOwner(userId) || isAdmin() || isDistrictSecretaryFor(resource.data.district)
+                  || (callerRole() == "Technical Chairman" && resource.data.role == "Official");
       allow create: if (isOwner(userId)
                         && request.resource.data.role in ["Athlete", "Coach", "Official", "District"]
                         && !("password" in request.resource.data))

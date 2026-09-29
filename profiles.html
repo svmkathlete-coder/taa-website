@@ -138,16 +138,20 @@
         async function fetchProfilesFromCloud() {
             try {
                 if (window.db) {
-                    const snap = await getDocs(collection(window.db, "users"));
+                    // public_profiles is the world-readable, safe-to-show subset —
+                    // the private `users` collection is locked to its owner/Admin
+                    // by the Firestore rules, so a directory page must read this
+                    // collection instead.
+                    const snap = await getDocs(collection(window.db, "public_profiles"));
                     const fetched = [];
-                    
+
                     snap.forEach(doc => {
                         const d = doc.data();
                         fetched.push({
                             uid: d.afi_uid || "PENDING",
-                            name: `${d.first_name || ''} ${d.last_name || ''}`.trim() || "Unknown",
+                            name: d.full_name || "Unknown",
                             dist: d.district || "Unassigned",
-                            role: d.regType || d.role || "Athlete"
+                            role: d.role || "Athlete"
                         });
                     });
 

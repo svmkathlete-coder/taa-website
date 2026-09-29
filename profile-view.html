@@ -78,24 +78,26 @@
             let user = null;
 
             // --- 1. FETCH FROM CLOUD DATABASE ---
+            // public_profiles is the world-readable, safe-to-show subset. This page
+            // is public, so it must never query the private `users` collection (which
+            // is locked to its owner/Admin anyway, and holds sensitive fields like DOB,
+            // father's name, and blood group that don't belong on a public page).
             if (uidParam) {
                 try {
                     if (window.db) {
-                        const q = query(collection(window.db, "users"), where("afi_uid", "==", uidParam.toUpperCase()));
+                        const q = query(collection(window.db, "public_profiles"), where("afi_uid", "==", uidParam.toUpperCase()));
                         const snap = await getDocs(q);
-                        
+
                         if (!snap.empty) {
                             const data = snap.docs[0].data();
                             user = {
                                 uid: data.afi_uid || "PENDING",
-                                name: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
-                                role: data.regType || data.role || "Athlete",
+                                name: data.full_name || "Unknown",
+                                role: data.role || "Athlete",
                                 dist: data.district || "N/A",
-                                father: data.father_name || "N/A",
-                                dob: data.dob || "N/A",
-                                blood: data.blood_group || "N/A",
                                 event: data.event || data.specialty || "Athletics",
-                                coach: data.coach || "N/A",
+                                coachingPlace: data.coaching_place || "N/A",
+                                level: data.level || "N/A",
                                 pb: data.pb || "N/A",
                                 sb: data.sb || "N/A",
                                 rank: data.rank || "Unranked",
@@ -168,11 +170,10 @@
                         <div class="info-grid">
                             <div class="info-item"><label>Full Name</label><span>${user.name}</span></div>
                             <div class="info-item"><label>AFI UID (Masked)</label><span>${maskedUID}</span></div>
-                            <div class="info-item"><label>Father's Name</label><span>${user.father || 'N/A'}</span></div>
-                            <div class="info-item"><label>Date of Birth</label><span>${user.dob || 'N/A'}</span></div>
-                            <div class="info-item"><label>Blood Group</label><span>${user.blood || 'N/A'}</span></div>
+                            <div class="info-item"><label>Role</label><span>${user.role}</span></div>
                             <div class="info-item"><label>District Affiliation</label><span>${user.dist}</span></div>
-                            <div class="info-item"><label>Present Coach</label><span>${user.coach || 'N/A'}</span></div>
+                            ${user.role === "Coach" || user.role === "Official" ? `<div class="info-item"><label>Level</label><span>${user.level || 'N/A'}</span></div>` : ''}
+                            ${user.role === "Coach" ? `<div class="info-item"><label>Coaching Base</label><span>${user.coachingPlace || 'N/A'}</span></div>` : ''}
                         </div>
                     </div>
 
