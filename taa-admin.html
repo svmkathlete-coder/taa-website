@@ -296,6 +296,20 @@
             <div id="tab-cms" class="tab-content">
                 <div class="card">
                     <div class="card-header">
+                        <div>
+                            <h3>Live on the Home Page Now</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">What visitors see right now. Remove single items here; use the boxes below to add or change content.</p>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <a class="btn btn-excel" href="index.html" target="_blank" rel="noopener" style="text-decoration:none;">View Home Page</a>
+                            <button class="btn btn-primary" onclick="window.loadCMSValues()">Refresh</button>
+                        </div>
+                    </div>
+                    <div id="cmsLive"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
                         <h3>Home Page Content Manager</h3>
                         <div style="display: flex; gap: 10px;">
                             <button class="btn btn-clear" onclick="window.clearAllCMS()">🗑️ Wipe Home Content</button>
@@ -666,6 +680,31 @@
                     </div>
                     <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="window.publishMedia(this)">Smart Publish Media</button></div>
                 </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Published Media</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">Items published from this panel. Content built into the public pages is not listed here.</p>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <select class="form-control" id="mediaListType" style="width: 200px;" onchange="window.loadPublishedMedia()">
+                                <option value="all">All types</option>
+                                <option value="photo-gallery.html">Photo Albums</option>
+                                <option value="videos.html">Videos</option>
+                                <option value="press-releases.html">Press Releases</option>
+                                <option value="press-articles.html">Press Articles</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="window.loadPublishedMedia()">Refresh</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Type</th><th>Date</th><th>Title</th><th>Link</th><th>Action</th></tr></thead>
+                            <tbody id="publishedMediaBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -775,6 +814,7 @@
             window.addNewDay();
             window.loadCMSValues();
             window.loadExecutiveBody();
+            window.loadInstitutionSettings();
             window.loadDistrictDetails();
         });
 
@@ -789,6 +829,7 @@
             document.getElementById(tabId).classList.add('active');
             document.getElementById('topbarTitle').innerText = btn.innerText.substring(2).trim(); 
             if (tabId === 'tab-circulars') window.loadPublishedCirculars();
+            if (tabId === 'tab-media') window.loadPublishedMedia();
         }
 
         // --- CREATE OFFICIAL ACCOUNTS ---
@@ -879,92 +920,111 @@
         }
 
         // --- INSTITUTION MANAGER ---
+        // Each editor below refuses to save until its current values have loaded, so a failed
+        // load can never overwrite what is saved with blank fields.
+        window.execLoaded = false;
         window.loadExecutiveBody = async function() {
             try {
-                if(window.db) {
-                    const snap = await getDoc(doc(window.db, "site_settings", "executive_body"));
-                    if(snap.exists()) {
-                        const data = snap.data();
-                        document.getElementById('exec_pres').value = data.president || "";
-                        document.getElementById('exec_work_pres').value = data.working_president || "";
-                        document.getElementById('exec_sec').value = data.general_secretary || "";
-                        document.getElementById('exec_treas').value = data.treasurer || "";
-                    }
+                const snap = await getDoc(doc(window.db, "site_settings", "executive_body"));
+                if(snap.exists()) {
+                    const data = snap.data();
+                    document.getElementById('exec_pres').value = data.president || "";
+                    document.getElementById('exec_work_pres').value = data.working_president || "";
+                    document.getElementById('exec_sec').value = data.general_secretary || "";
+                    document.getElementById('exec_treas').value = data.treasurer || "";
                 }
-            } catch(e) {}
+                window.execLoaded = true;
+            } catch(e) {
+                console.error(e);
+                alert("Could not load the State Executive Body from the cloud. Saving is switched off until it loads, so nothing gets overwritten. Please refresh.");
+            }
         };
 
         window.saveExecutiveBody = async function() {
+            if(!window.execLoaded) return alert("The current Executive Body has not loaded, so saving is blocked. Please refresh the page.");
             const payload = {
-                president: document.getElementById('exec_pres').value,
-                working_president: document.getElementById('exec_work_pres').value,
-                general_secretary: document.getElementById('exec_sec').value,
-                treasurer: document.getElementById('exec_treas').value
+                president: document.getElementById('exec_pres').value.trim(),
+                working_president: document.getElementById('exec_work_pres').value.trim(),
+                general_secretary: document.getElementById('exec_sec').value.trim(),
+                treasurer: document.getElementById('exec_treas').value.trim()
             };
             try {
-                if(window.db) {
-                    await setDoc(doc(window.db, "site_settings", "executive_body"), payload, { merge: true });
-                    alert("State Executive Body updated in the Cloud!");
+                await setDoc(doc(window.db, "site_settings", "executive_body"), payload, { merge: true });
+                alert("State Executive Body updated.");
+            } catch(e) { console.error(e); alert("Could not save to the cloud. Nothing was changed."); }
+        };
+
+        window.institutionLoaded = false;
+        window.loadInstitutionSettings = async function() {
+            try {
+                const snap = await getDoc(doc(window.db, "site_settings", "institution"));
+                if(snap.exists()) {
+                    const data = snap.data();
+                    document.getElementById('inst_aboutText').value = data.about_history || "";
+                    document.getElementById('inst_constLink').value = data.constitution_link || "";
+                    document.getElementById('inst_address').value = data.contact_address || "";
+                    document.getElementById('inst_phone').value = data.contact_phone || "";
+                    document.getElementById('inst_email').value = data.contact_email || "";
                 }
-            } catch(e) { alert("Cloud update failed."); }
+                window.institutionLoaded = true;
+            } catch(e) {
+                console.error(e);
+                alert("Could not load the saved institution details from the cloud. Saving is switched off until they load, so nothing gets overwritten. Please refresh.");
+            }
         };
 
         window.saveInstitutionSettings = async function() {
-            const about = document.getElementById('inst_aboutText').value;
-            const constLink = document.getElementById('inst_constLink').value;
-            const address = document.getElementById('inst_address').value;
-            const phone = document.getElementById('inst_phone').value;
-            const email = document.getElementById('inst_email').value;
-
+            if(!window.institutionLoaded) return alert("The saved institution details have not loaded, so saving is blocked. Please refresh the page.");
+            const constLink = document.getElementById('inst_constLink').value.trim();
+            if(constLink && !isWebUrl(constLink)) return alert("The Constitution link must be a full web address starting with https://");
             try {
-                if(window.db) {
-                    await setDoc(doc(window.db, "site_settings", "institution"), {
-                        about_history: about, constitution_link: constLink,
-                        contact_address: address, contact_phone: phone, contact_email: email
-                    });
-                }
-                alert("Institution settings saved to Cloud!");
-            } catch(e) { alert("Failed to sync to cloud."); }
+                await setDoc(doc(window.db, "site_settings", "institution"), {
+                    about_history: document.getElementById('inst_aboutText').value,
+                    constitution_link: constLink,
+                    contact_address: document.getElementById('inst_address').value.trim(),
+                    contact_phone: document.getElementById('inst_phone').value.trim(),
+                    contact_email: document.getElementById('inst_email').value.trim()
+                }, { merge: true });
+                alert("Institution settings saved.");
+            } catch(e) { console.error(e); alert("Could not save to the cloud. Nothing was changed."); }
         }
 
+        window.districtLoadedFor = null;
         window.loadDistrictDetails = async function() {
             const dist = document.getElementById('inst_districtSelect').value;
+            window.districtLoadedFor = null;
+            ['dist_pres', 'dist_sec', 'dist_treas', 'dist_phone'].forEach(id => { document.getElementById(id).value = ""; });
             try {
-                if(window.db) {
-                    const snap = await getDocs(collection(window.db, "districts"));
-                    let found = false;
-                    snap.forEach(d => {
-                        const data = d.data();
-                        if(data.name === dist) {
-                            document.getElementById('dist_pres').value = data.president || "";
-                            document.getElementById('dist_sec').value = data.secretary || "";
-                            document.getElementById('dist_treas').value = data.treasurer || "";
-                            document.getElementById('dist_phone').value = data.phone || "";
-                            found = true;
-                        }
-                    });
-                    if(!found) {
-                        document.getElementById('dist_pres').value = ""; document.getElementById('dist_sec').value = "";
-                        document.getElementById('dist_treas').value = ""; document.getElementById('dist_phone').value = "";
+                const snap = await getDocs(collection(window.db, "districts"));
+                snap.forEach(d => {
+                    const data = d.data();
+                    if(data.name === dist) {
+                        document.getElementById('dist_pres').value = data.president || "";
+                        document.getElementById('dist_sec').value = data.secretary || "";
+                        document.getElementById('dist_treas').value = data.treasurer || "";
+                        document.getElementById('dist_phone').value = data.phone || "";
                     }
-                }
-            } catch(e) {}
+                });
+                window.districtLoadedFor = dist;
+            } catch(e) {
+                console.error(e);
+                alert("Could not load this district from the cloud. Saving is switched off until it loads, so nothing gets overwritten. Please pick the district again or refresh.");
+            }
         }
 
         window.saveDistrictDetails = async function() {
             const dist = document.getElementById('inst_districtSelect').value;
+            if(window.districtLoadedFor !== dist) return alert("This district's saved details have not loaded, so saving is blocked. Please pick the district again or refresh.");
             const payload = {
-                name: dist, president: document.getElementById('dist_pres').value,
-                secretary: document.getElementById('dist_sec').value,
-                treasurer: document.getElementById('dist_treas').value,
-                phone: document.getElementById('dist_phone').value
+                name: dist, president: document.getElementById('dist_pres').value.trim(),
+                secretary: document.getElementById('dist_sec').value.trim(),
+                treasurer: document.getElementById('dist_treas').value.trim(),
+                phone: document.getElementById('dist_phone').value.trim()
             };
             try {
-                if(window.db) {
-                    await setDoc(doc(window.db, "districts", dist), payload, { merge: true });
-                    alert(`${dist} District updated in the Cloud!`);
-                }
-            } catch(e) { alert("Cloud update failed."); }
+                await setDoc(doc(window.db, "districts", dist), payload, { merge: true });
+                alert(`${dist} District updated.`);
+            } catch(e) { console.error(e); alert("Could not save to the cloud. Nothing was changed."); }
         }
 
         window.updateMasterAdminCredentials = async function() {
@@ -1002,6 +1062,7 @@
             document.getElementById('cms_featuredAthletes').value = (cms.featured_uids || []).join(', ');
             document.getElementById('cms_photoLink').value = cms.photo_link || "";
             document.getElementById('cms_videoLink').value = cms.video_link || "";
+            window.renderCmsLive();
         }
 
         window.pushAllCMSUpdates = async function() {
@@ -1025,6 +1086,7 @@
             try {
                 await setDoc(doc(window.db, "site_settings", "home_cms"), payload);
                 window.currentCms = payload;
+                window.renderCmsLive();
                 alert("Content Manager: all updates are now live on the Home Page.");
             } catch(e) {
                 console.error(e);
@@ -1377,6 +1439,123 @@
             else { container.style.display = 'none'; iframe.src = ""; }
         }
 
+        // --- CMS LIVE VIEW: what visitors see now, with single-item removal ---
+        window.renderCmsLive = async function() {
+            const cms = window.currentCms || {};
+            const box = document.getElementById('cmsLive');
+            const headlines = (cms.ticker_text || '').split('|').map(h => h.trim()).filter(Boolean);
+            const uids = cms.featured_uids || [];
+
+            const names = {};
+            let lookupFailed = false;
+            if (uids.length) {
+                try {
+                    const snap = await getDocs(query(collection(window.db, "public_profiles"), where("afi_uid", "in", uids.slice(0, 10))));
+                    snap.forEach(d => { const p = d.data(); names[p.afi_uid] = p.full_name || ''; });
+                } catch(e) { console.warn("Could not look up featured athlete names.", e); lookupFailed = true; }
+            }
+
+            const chip = (text, onclick) => `<span style="display:inline-flex; align-items:center; gap:8px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:20px; padding:4px 6px 4px 12px; margin:0 8px 8px 0; font-size:0.85em; font-weight:600;">${esc(text)}<button title="Remove" onclick="${onclick}" style="border:none; background:#ef4444; color:white; border-radius:50%; width:20px; height:20px; cursor:pointer; line-height:1;">&times;</button></span>`;
+            const empty = (msg) => `<p style="margin:0; color:#94a3b8; font-size:0.85em;">${msg}</p>`;
+            const section = (title, body) => `<div style="margin-bottom:18px;"><h4 style="font-family:'Montserrat'; color:var(--primary); margin-bottom:8px; font-size:0.9em;">${title}</h4>${body}</div>`;
+            const link = (label, url) => isWebUrl(url) ? `<a href="${esc(url)}" target="_blank" rel="noopener">${label}</a>` : '';
+
+            const athleteChips = uids.map((u, i) => {
+                let label = u;
+                if (!lookupFailed) label = (u in names) ? `${names[u] || 'Unnamed'} (${u})` : `${u} - no matching profile, will not show`;
+                return chip(label, `window.removeFeaturedAthlete(${i})`);
+            }).join('');
+            const mediaLinks = [link('Photo album', cms.photo_link), link('Video', cms.video_link)].filter(Boolean).join(' &middot; ');
+
+            box.innerHTML =
+                section('News ticker', headlines.length ? headlines.map((h, i) => chip(h, `window.removeTickerHeadline(${i})`)).join('') : empty('Nothing set - the default headlines are showing.')) +
+                section('Featured article', cms.news_title
+                    ? `<div style="font-size:0.9em;"><b>${esc(cms.news_title)}</b> <span style="color:#64748b;">${esc(cms.news_date || '')}</span> <button class="btn btn-clear" style="padding:4px 10px; font-size:0.75em; margin-left:8px;" onclick="window.clearCMSSection('news')">Remove</button></div>`
+                    : empty('Nothing set - the default card is showing.')) +
+                section('Featured athletes', uids.length ? athleteChips : empty('Nothing set - the default athletes are showing.')) +
+                section('Album and video links', mediaLinks ? `<div style="font-size:0.9em;">${mediaLinks} <button class="btn btn-clear" style="padding:4px 10px; font-size:0.75em; margin-left:8px;" onclick="window.clearCMSSection('media')">Remove</button></div>` : empty('Nothing set - the default buttons are showing.'));
+        }
+
+        async function saveCmsFields(fields) {
+            try {
+                await setDoc(doc(window.db, "site_settings", "home_cms"), { ...fields, updatedAt: serverTimestamp() }, { merge: true });
+                await window.loadCMSValues();
+            } catch(e) { console.error(e); alert("Could not update the home page in the cloud. Nothing was changed."); }
+        }
+
+        window.removeTickerHeadline = async function(i) {
+            const headlines = ((window.currentCms || {}).ticker_text || '').split('|').map(h => h.trim()).filter(Boolean);
+            if (!headlines[i] || !confirm(`Remove "${headlines[i]}" from the news ticker?`)) return;
+            headlines.splice(i, 1);
+            await saveCmsFields({ ticker_text: headlines.join(' | ') });
+        }
+
+        window.removeFeaturedAthlete = async function(i) {
+            const uids = [...((window.currentCms || {}).featured_uids || [])];
+            if (!uids[i] || !confirm(`Remove ${uids[i]} from the featured athletes?`)) return;
+            uids.splice(i, 1);
+            await saveCmsFields({ featured_uids: uids });
+        }
+
+        // --- PUBLISHED MEDIA: list + delete across the four media collections ---
+        const MEDIA_SOURCES = [
+            { col: 'gallery', filter: 'photo-gallery.html', label: 'Photo Album', link: d => d.img },
+            { col: 'media', filter: 'videos.html', label: 'Video', link: d => d.url },
+            { col: 'press_releases', filter: 'press-releases.html', label: 'Press Release', link: d => d.link },
+            { col: 'press_articles', filter: 'press-articles.html', label: 'Press Article', link: d => d.link }
+        ];
+        window.publishedMedia = [];
+        window.loadPublishedMedia = async function() {
+            const body = document.getElementById('publishedMediaBody');
+            const filter = document.getElementById('mediaListType').value;
+            body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">Loading...</td></tr>';
+            try {
+                const sources = MEDIA_SOURCES.filter(m => filter === 'all' || m.filter === filter);
+                const groups = await Promise.all(sources.map(async m => {
+                    const snap = await getDocs(collection(window.db, m.col));
+                    const rows = [];
+                    snap.forEach(d => {
+                        const data = d.data();
+                        if (m.col === 'media' && data.type !== 'videos.html') return; // the media collection can hold other types
+                        rows.push({ docId: d.id, col: m.col, label: m.label, title: data.title || '', date: data.date || '', link: m.link(data), sortKey: (data.createdAt && data.createdAt.toMillis) ? data.createdAt.toMillis() : 0 });
+                    });
+                    return rows;
+                }));
+                window.publishedMedia = groups.flat().sort((a, b) => b.sortKey - a.sortKey);
+            } catch(e) {
+                console.error(e);
+                body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#b91c1c;">Could not load media from the cloud. Please refresh.</td></tr>';
+                return;
+            }
+            if (window.publishedMedia.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">Nothing published from this panel yet.</td></tr>';
+                return;
+            }
+            body.innerHTML = window.publishedMedia.map((m, index) => `
+                <tr>
+                    <td>${esc(m.label)}</td>
+                    <td>${esc(m.date)}</td>
+                    <td style="font-weight:700;">${esc(m.title)}</td>
+                    <td>${isWebUrl(m.link) ? `<a href="${esc(m.link)}" target="_blank" rel="noopener">Open</a>` : '-'}</td>
+                    <td><button class="btn btn-clear" style="padding: 6px 12px; font-size: 0.8em;" onclick="window.deleteMedia(${index})">Delete</button></td>
+                </tr>
+            `).join('');
+        }
+
+        window.deleteMedia = async function(index) {
+            const m = window.publishedMedia[index];
+            if (!m) return;
+            if (!confirm(`Delete the ${m.label.toLowerCase()} "${m.title}"?\n\nIt will be removed from the public page. This cannot be undone.`)) return;
+            try {
+                await deleteDoc(doc(window.db, m.col, m.docId));
+            } catch(e) {
+                console.error(e);
+                return alert("Could not delete this item from the cloud. Nothing was changed.");
+            }
+            alert("Deleted.");
+            window.loadPublishedMedia();
+        }
+
         // --- CIRCULARS (Firestore: circulars/{id}, merged into circulars.html by circular number) ---
         window.publishCircular = async function(btn) {
             const val = id => document.getElementById(id).value.trim();
@@ -1496,6 +1675,7 @@
                 await addDoc(collection(window.db, target), { ...data, createdAt: serverTimestamp() });
                 ['mediaTitle', 'mediaDate', 'mediaLink', 'mediaExcerpt', 'mediaPublisher', 'mediaPhotosCount', 'mediaImageUrl', 'mediaImageFile'].forEach(id => { document.getElementById(id).value = ''; });
                 alert("Published. It now appears on the public page.");
+                window.loadPublishedMedia();
             } catch(e) {
                 console.error(e);
                 alert(`Publishing failed: ${e.message || 'please check your connection and try again.'}`);
