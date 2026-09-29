@@ -621,6 +621,22 @@
                     </div>
                     <div style="margin-top: 20px; text-align: right;"><button class="btn btn-primary" onclick="window.publishCircular(this)">Publish Circular</button></div>
                 </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Published Circulars</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">Circulars published from this panel. The older archive built into the Circulars page is not listed here.</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="window.loadPublishedCirculars()">Refresh</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Date</th><th>Circular No.</th><th>Title</th><th>By</th><th>File</th><th>Action</th></tr></thead>
+                            <tbody id="publishedCircularsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <div id="tab-media" class="tab-content">
@@ -772,6 +788,7 @@
             document.querySelectorAll('.tab-content').forEach(m => m.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             document.getElementById('topbarTitle').innerText = btn.innerText.substring(2).trim(); 
+            if (tabId === 'tab-circulars') window.loadPublishedCirculars();
         }
 
         // --- CREATE OFFICIAL ACCOUNTS ---
@@ -1383,10 +1400,56 @@
                 await setDoc(doc(window.db, "circulars", docId), { source, id: number, date, title, category, year, link, createdAt: serverTimestamp() });
                 ['circTitle', 'circNumber', 'circDate', 'circFile', 'circLink'].forEach(id => { document.getElementById(id).value = ''; });
                 alert("Circular published. It now appears on the public Circulars page.");
+                window.loadPublishedCirculars();
             } catch(e) {
                 console.error(e);
                 alert(`Publishing failed: ${e.message || 'please check your connection and try again.'}`);
             } finally { btn.disabled = false; btn.innerText = 'Publish Circular'; }
+        }
+
+        // Circulars this panel published live in Firestore `circulars`; list them so they can be removed.
+        window.publishedCirculars = [];
+        window.loadPublishedCirculars = async function() {
+            const body = document.getElementById('publishedCircularsBody');
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#64748b;">Loading...</td></tr>';
+            try {
+                const snap = await getDocs(collection(window.db, "circulars"));
+                window.publishedCirculars = [];
+                snap.forEach(d => window.publishedCirculars.push({ docId: d.id, ...d.data() }));
+            } catch(e) {
+                console.error(e);
+                body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#b91c1c;">Could not load circulars from the cloud. Please refresh.</td></tr>';
+                return;
+            }
+            window.publishedCirculars.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+            if (window.publishedCirculars.length === 0) {
+                body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#64748b;">No circulars published from this panel yet.</td></tr>';
+                return;
+            }
+            body.innerHTML = window.publishedCirculars.map((c, index) => `
+                <tr>
+                    <td>${esc(c.date || '')}</td>
+                    <td>${esc(c.id || c.docId)}</td>
+                    <td style="font-weight:700;">${esc(c.title || '')}</td>
+                    <td>${esc(c.source || '')}</td>
+                    <td>${isWebUrl(c.link) ? `<a href="${esc(c.link)}" target="_blank" rel="noopener">Open</a>` : '-'}</td>
+                    <td><button class="btn btn-clear" style="padding: 6px 12px; font-size: 0.8em;" onclick="window.deleteCircular(${index})">Delete</button></td>
+                </tr>
+            `).join('');
+        }
+
+        window.deleteCircular = async function(index) {
+            const c = window.publishedCirculars[index];
+            if (!c) return;
+            if (!confirm(`Delete "${c.title}"?\n\nIt will be removed from the public Circulars page. This cannot be undone.`)) return;
+            try {
+                await deleteDoc(doc(window.db, "circulars", c.docId));
+            } catch(e) {
+                console.error(e);
+                return alert("Could not delete this circular from the cloud. Nothing was changed.");
+            }
+            alert("Circular deleted.");
+            window.loadPublishedCirculars();
         }
 
         // --- MEDIA MANAGER (Firestore: gallery / media / press_releases / press_articles) ---
