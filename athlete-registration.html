@@ -222,7 +222,7 @@
                     <div class="input-group"><label>Photograph*</label><input type="file" name="photo" accept="image/*" required></div>
                     <div class="input-group"><label>Aadhaar Proof*</label><input type="file" name="doc" accept="image/*" required></div>
                 </div>
-                <p style="font-size:0.8em; color:#888; margin-top:-10px;">Note: document upload to secure storage is being finalized — for now the filename is recorded; you may be asked to email these separately.</p>
+                <p style="font-size:0.8em; color:#888; margin-top:-10px;">These are uploaded securely and are visible only to you and TAA administrators.</p>
 
                 <div class="disclaimer-box">
                     <div class="disclaimer-item"><input type="checkbox" required><span>I certify that all information is true to the best of my knowledge.</span></div>
@@ -259,6 +259,18 @@
 <script type="module">
     import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
     import { doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+
+    // Uploads a registration document to this user's own private Storage
+    // folder (users/{authId}/...) — matches storage.rules, which only lets
+    // the account owner read/write there. Returns the download URL.
+    async function uploadRegistrationFile(authId, file, label) {
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+        const path = `users/${authId}/${label}.${ext}`;
+        const fileRef = ref(window.storage, path);
+        await uploadBytes(fileRef, file);
+        return await getDownloadURL(fileRef);
+    }
 
     async function sha256Hex(text) {
         const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
@@ -379,6 +391,8 @@
 
         const formData = new FormData(this);
         const data = {};
+        const photoFile = formData.get('photo') instanceof File ? formData.get('photo') : null;
+        const docFile = formData.get('doc') instanceof File ? formData.get('doc') : null;
         formData.forEach((value, key) => {
             data[key] = (value instanceof File) ? value.name : value;
         });
@@ -418,8 +432,6 @@
                 throw new Error("This Aadhaar number is already linked to an existing account. Please log in or contact the TAA office.");
             }
 
-            submitBtn.innerText = "Creating Account...";
-
             data.afi_uid = enteredUID;
             data.events = selectedEvents;
             data.event = selectedEvents[0]; // primary event, kept for backward compatibility
@@ -433,7 +445,16 @@
             const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
             const authId = userCredential.user.uid;
 
+            // 1b. Upload the actual document files to this user's own Storage
+            // folder — now that they're signed in as authId, storage.rules
+            // lets them write to users/{authId}/**. Previously only the
+            // filename was ever recorded in Firestore.
+            submitBtn.innerText = "Uploading Documents...";
+            if (photoFile) data.photo_url = await uploadRegistrationFile(authId, photoFile, "photo");
+            if (docFile) data.aadhaar_proof_url = await uploadRegistrationFile(authId, docFile, "aadhaar-proof");
+
             // 2. Save the private profile, keyed by the real account ID (not the AFI UID)
+            submitBtn.innerText = "Creating Account...";
             await setDoc(doc(window.db, "users", authId), data);
 
             // 3. Save the public-safe subset for directories/rankings/coach lookups
