@@ -55,11 +55,22 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.district == districtName;
     }
 
+    // An Academy account's own `users` doc carries which academy it runs (field `academy`).
+    function isAcademySecretaryFor(academyName) {
+      return isSignedIn()
+        && callerRole() == "Academy"
+        && academyName is string
+        && academyName != ""
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.academy == academyName;
+    }
+
     // ---- users: private profile + role -------------------------------
     match /users/{userId} {
       // Technical Chairman needs Officials' contact details (phone) to staff a
       // meet — scoped to Official records only, not every private user doc.
+      // An Academy secretary reads only the athletes registered under their own academy.
       allow read: if isOwner(userId) || isAdmin() || isDistrictSecretaryFor(resource.data.district)
+                  || isAcademySecretaryFor(resource.data.get("academy", ""))
                   || (callerRole() == "Technical Chairman" && resource.data.role == "Official");
       allow create: if (isOwner(userId)
                         && request.resource.data.role in ["Athlete", "Coach", "Official", "District"]
@@ -126,49 +137,67 @@ service cloud.firestore {
     }
 
     // ---- meet entries -------------------------------------------------
-    // One document per athlete per meet, id = "<meetId>__<athleteUid>".
-    // Staff (Admin / Technical Chairman / Official) can read-write everything for
-    // imports and BIB assignment. A District secretary can create, change and
-    // remove entries ONLY for athletes of their own district, ONLY while the
-    // meet is open for entries (competitions/{meetId}.isActive), and can never
-    // set a BIB.
+    // One document per athlete per meet, id = "<meetId>__<athleteUid>", so an athlete can only
+    // ever be entered once per meet - by their district OR their academy, not both.
+    // `district` on an entry is the name of the ENTERING entity (a district, or an academy when
+    // entityType == "Academy"); `homeDistrict` is always the athlete's own district.
+    // Staff (Admin / Technical Chairman / Official) can read-write everything for imports and
+    // BIB assignment. A District or Academy secretary can create, change and remove entries
+    // ONLY for their own athletes, ONLY while the meet is open (competitions/{meetId}.isActive),
+    // and can never set a BIB. A district secretary can also READ entries an academy made for
+    // that district's athletes.
     function meetIsOpen(meetId) {
       return exists(/databases/$(database)/documents/competitions/$(meetId))
         && get(/databases/$(database)/documents/competitions/$(meetId)).data.get("isActive", false) == true;
     }
 
-    function validDistrictEntry(d, docId) {
-      return d.keys().hasOnly(["meetId", "meetTitle", "athleteUid", "afi_uid", "district", "homeDistrict",
+    function entryEntityIs(entityType, name) {
+      return (entityType == "District" && isDistrictSecretaryFor(name))
+          || (entityType == "Academy" && isAcademySecretaryFor(name));
+    }
+
+    function validEntry(d, docId) {
+      return d.keys().hasOnly(["meetId", "meetTitle", "athleteUid", "afi_uid", "district", "entityType", "homeDistrict",
                                "surname", "full_name", "father_name", "gender", "dob", "ageCategory",
                                "ageGroup", "cutoff", "events", "bib", "submittedBy", "createdAt", "updatedAt"])
         && d.meetId is string && d.athleteUid is string
+        && d.entityType in ["District", "Academy"]
         && docId == d.meetId + "__" + d.athleteUid
-        && d.homeDistrict == d.district
         && d.submittedBy == request.auth.uid
         && d.events is list && d.events.size() >= 1 && d.events.size() <= 10
         && get(/databases/$(database)/documents/users/$(d.athleteUid)).data.role == "Athlete"
-        && get(/databases/$(database)/documents/users/$(d.athleteUid)).data.district == d.district;
+        && d.homeDistrict == get(/databases/$(database)/documents/users/$(d.athleteUid)).data.district
+        && (d.entityType == "District"
+              ? d.district == d.homeDistrict
+              : d.district == get(/databases/$(database)/documents/users/$(d.athleteUid)).data.academy);
     }
 
     match /meet_entries/{docId} {
-      allow read: if isAdmin() || isDistrictSecretaryFor(resource.data.district);
+      // A district secretary reads every entry for their district's athletes (their own and any an
+      // academy made); an academy secretary reads the entries their academy made. Queries must
+      // filter on homeDistrict (district) or on district + entityType "Academy" (academy).
+      allow read: if isAdmin()
+                  || isDistrictSecretaryFor(resource.data.homeDistrict)
+                  || (resource.data.entityType == "Academy" && isAcademySecretaryFor(resource.data.district));
 
       allow create: if isOfficialOrAdmin()
-                    || (isDistrictSecretaryFor(request.resource.data.district)
+                    || (entryEntityIs(request.resource.data.entityType, request.resource.data.district)
                         && meetIsOpen(request.resource.data.meetId)
-                        && validDistrictEntry(request.resource.data, docId)
+                        && validEntry(request.resource.data, docId)
                         && !("bib" in request.resource.data));
 
       allow update: if isOfficialOrAdmin()
-                    || (isDistrictSecretaryFor(resource.data.district)
+                    || (entryEntityIs(resource.data.get("entityType", "District"), resource.data.district)
                         && request.resource.data.district == resource.data.district
+                        && request.resource.data.entityType == resource.data.get("entityType", "District")
                         && request.resource.data.meetId == resource.data.meetId
                         && meetIsOpen(resource.data.meetId)
-                        && validDistrictEntry(request.resource.data, docId)
+                        && validEntry(request.resource.data, docId)
                         && request.resource.data.get("bib", null) == resource.data.get("bib", null));
 
       allow delete: if isOfficialOrAdmin()
-                    || (isDistrictSecretaryFor(resource.data.district) && meetIsOpen(resource.data.meetId));
+                    || (entryEntityIs(resource.data.get("entityType", "District"), resource.data.district)
+                        && meetIsOpen(resource.data.meetId));
     }
 
     match /{document=**} {
