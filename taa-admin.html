@@ -239,7 +239,10 @@
 
                 <div class="card">
                     <div class="card-header">
-                        <h3>Master Registration Directory</h3>
+                        <div>
+                            <h3>Master Registration Directory</h3>
+                            <p id="memberCount" style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;"></p>
+                        </div>
                         <div>
                             <button class="btn btn-excel" onclick="window.exportFullExcel()">📥 Export CSV</button>
                         </div>
@@ -1197,38 +1200,43 @@
             const roleFilter = document.getElementById('adminRoleFilter') ? document.getElementById('adminRoleFilter').value : "All";
             
             const filtered = portalData.filter(u => {
-                const nameMatch = `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchInput);
+                const nameMatch = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase().includes(searchInput);
                 const uidMatch = (u.afi_uid || "").toLowerCase().includes(searchInput);
                 return (nameMatch || uidMatch) && (roleFilter === "All" || u.regType === roleFilter);
             });
 
-            tbody.innerHTML = filtered.map((item, index) => {
+            window.adminFiltered = filtered;
+            const countEl = document.getElementById('memberCount');
+            if (countEl) countEl.innerText = `Showing ${filtered.length} of ${portalData.length} members`;
+
+            tbody.innerHTML = filtered.length === 0 ? '<tr><td colspan="6" style="text-align:center; padding:20px; color:#64748b;">No members match.</td></tr>' : filtered.map((item, index) => {
                 const type = item.regType || 'Official';
                 const rowId = 'details-' + index;
                 const uid = item.afi_uid || `TEMP-${index}`;
+                const key = String(uid).replace(/[^A-Za-z0-9_-]/g, '_');
 
                 return `
                     <tr>
                         <td>${item.timestamp ? item.timestamp.split(',')[0].split('T')[0] : 'N/A'}</td>
-                        <td style="font-weight:700; color:var(--primary-light);">${uid}</td>
-                        <td style="font-weight:600;">${item.first_name} ${item.last_name || ''}</td>
-                        <td><span class="badge ${type==='Athlete'?'bg-blue': type==='District_Admin'?'bg-purple': type==='Master_Admin'?'bg-orange':'bg-green'}">${type}</span></td>
-                        <td><span class="badge bg-green">${item.status || 'Verified'}</span></td>
+                        <td style="font-weight:700; color:var(--primary-light);">${esc(uid)}</td>
+                        <td style="font-weight:600;">${esc(item.first_name || '')} ${esc(item.last_name || '')}</td>
+                        <td><span class="badge ${type==='Athlete'?'bg-blue': type==='District_Admin'?'bg-purple': type==='Master_Admin'?'bg-orange':'bg-green'}">${esc(type)}</span></td>
+                        <td><span class="badge bg-green">${esc(item.status || 'Verified')}</span></td>
                         <td><button class="btn btn-view" onclick="window.toggleDetails('${rowId}')">Edit Profile</button></td>
                     </tr>
                     <tr id="${rowId}" class="detail-row"><td colspan="6"><div class="detail-container">
-                        <div class="detail-item"><b>AFI UID</b><input type="text" class="form-control" id="uid-${uid}" value="${uid}" disabled style="background:#e2e8f0; cursor:not-allowed;"></div>
-                        <div class="detail-item"><b>Role</b><select class="form-control" id="role-${uid}"><option ${item.regType==='Athlete'?'selected':''}>Athlete</option><option ${item.regType==='Coach'?'selected':''}>Coach</option><option ${item.regType==='Official'?'selected':''}>Official</option><option ${item.regType==='District_Admin'?'selected':''}>District_Admin</option><option ${item.regType==='Master_Admin'?'selected':''}>Master_Admin</option></select></div>
-                        <div class="detail-item"><b>First Name</b><input type="text" class="form-control" id="fn-${uid}" value="${item.first_name || ''}"></div>
-                        <div class="detail-item"><b>Last Name</b><input type="text" class="form-control" id="ln-${uid}" value="${item.last_name || ''}"></div>
-                        <div class="detail-item"><b>Gender</b><select class="form-control" id="gen-${uid}"><option ${item.gender==='Male'?'selected':''}>Male</option><option ${item.gender==='Female'?'selected':''}>Female</option></select></div>
-                        <div class="detail-item"><b>D.O.B</b><input type="date" class="form-control" id="dob-${uid}" value="${item.dob || ''}"></div>
-                        <div class="detail-item"><b>Mobile</b><input type="text" class="form-control" id="mob-${uid}" value="${item.mobile || ''}"></div>
-                        <div class="detail-item"><b>Email</b><input type="email" class="form-control" id="em-${uid}" value="${item.email || ''}"></div>
-                        <div class="detail-item"><b>District</b><input type="text" class="form-control" id="dist-${uid}" value="${item.district || ''}"></div>
-                        <div class="detail-item"><b>Event/Specs</b><input type="text" class="form-control" id="ev-${uid}" value="${item.event || item.specialty || ''}"></div>
-                        <div class="detail-item"><b>Status</b><select class="form-control" id="stat-${uid}"><option ${item.status==='Verified'?'selected':''}>Verified</option><option ${item.status==='Pending'?'selected':''}>Pending</option><option ${item.status==='Rejected'?'selected':''}>Rejected</option></select></div>
-                        <div class="detail-item" style="justify-content:flex-end;"><button class="btn-save-inline" onclick="window.saveUserEdit('${uid}', '${item.id || uid}')">💾 Save to Cloud</button></div>
+                        <div class="detail-item"><b>AFI UID</b><input type="text" class="form-control" id="uid-${key}" value="${esc(uid)}" disabled style="background:#e2e8f0; cursor:not-allowed;"></div>
+                        <div class="detail-item"><b>Role</b><select class="form-control" id="role-${key}"><option ${item.regType==='Athlete'?'selected':''}>Athlete</option><option ${item.regType==='Coach'?'selected':''}>Coach</option><option ${item.regType==='Official'?'selected':''}>Official</option><option ${item.regType==='District_Admin'?'selected':''}>District_Admin</option><option ${item.regType==='Master_Admin'?'selected':''}>Master_Admin</option></select></div>
+                        <div class="detail-item"><b>First Name</b><input type="text" class="form-control" id="fn-${key}" value="${esc(item.first_name || '')}"></div>
+                        <div class="detail-item"><b>Last Name</b><input type="text" class="form-control" id="ln-${key}" value="${esc(item.last_name || '')}"></div>
+                        <div class="detail-item"><b>Gender</b><select class="form-control" id="gen-${key}"><option ${item.gender==='Male'?'selected':''}>Male</option><option ${item.gender==='Female'?'selected':''}>Female</option></select></div>
+                        <div class="detail-item"><b>D.O.B</b><input type="date" class="form-control" id="dob-${key}" value="${esc(item.dob || '')}"></div>
+                        <div class="detail-item"><b>Mobile</b><input type="text" class="form-control" id="mob-${key}" value="${esc(item.mobile || '')}"></div>
+                        <div class="detail-item"><b>Email</b><input type="email" class="form-control" id="em-${key}" value="${esc(item.email || '')}"></div>
+                        <div class="detail-item"><b>District</b><input type="text" class="form-control" id="dist-${key}" value="${esc(item.district || '')}"></div>
+                        <div class="detail-item"><b>Event/Specs</b><input type="text" class="form-control" id="ev-${key}" value="${esc(item.event || item.specialty || '')}"></div>
+                        <div class="detail-item"><b>Status</b><select class="form-control" id="stat-${key}"><option ${item.status==='Approved'?'selected':''}>Approved</option><option ${item.status==='Verified'?'selected':''}>Verified</option><option ${item.status==='Pending'?'selected':''}>Pending</option><option ${item.status==='Rejected'?'selected':''}>Rejected</option></select></div>
+                        <div class="detail-item" style="justify-content:flex-end;"><button class="btn-save-inline" onclick="window.saveUserEdit('${key}', '${esc(item.id || '')}')">💾 Save to Cloud</button></div>
                     </div></td></tr>`;
             }).join('');
         }
@@ -1253,7 +1261,32 @@
             }
         }
 
-        window.exportFullExcel = function() { alert("Exporting database to CSV..."); }
+        // CSV of the members currently shown (respects search and role filter). Opens in Excel.
+        window.buildMembersCsv = function(rows) {
+            const cell = (v) => {
+                let t = String(v ?? '');
+                if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; // stop spreadsheet formulas from user-typed text
+                return '"' + t.replace(/"/g, '""') + '"';
+            };
+            const head = ['Registered', 'AFI UID', 'First Name', 'Last Name', 'Role', 'Gender', 'Date of Birth', 'Mobile', 'Email', 'District', 'Event / Speciality', 'Status'];
+            const lines = rows.map(u => [
+                u.timestamp ? String(u.timestamp).split(',')[0].split('T')[0] : '', u.afi_uid, u.first_name, u.last_name, u.regType, u.gender,
+                u.dob, u.mobile, u.email, u.district, u.event || u.specialty, u.status || 'Verified'
+            ].map(cell).join(','));
+            return '\uFEFF' + [head.map(cell).join(','), ...lines].join('\r\n');
+        };
+
+        window.exportFullExcel = async function() {
+            if (!window.adminFiltered) await window.renderAdminUsers();
+            const rows = window.adminFiltered || [];
+            if (rows.length === 0) return alert("There are no members to export. Adjust the search or filter and try again.");
+            const blob = new Blob([window.buildMembersCsv(rows)], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `taa-members-${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
 
         // --- CALENDAR & COMPETITIONS (Firestore: competitions/{id}) ---
         window.addToCalendar = async function() {
