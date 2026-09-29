@@ -125,11 +125,50 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // ---- meet entry data imported from external entry-collection tools
-    //      (e.g. the district/state meet Google-Sheet entry systems) ----
+    // ---- meet entries -------------------------------------------------
+    // One document per athlete per meet, id = "<meetId>__<athleteUid>".
+    // Staff (Admin / Technical Chairman / Official) can read-write everything for
+    // imports and BIB assignment. A District secretary can create, change and
+    // remove entries ONLY for athletes of their own district, ONLY while the
+    // meet is open for entries (competitions/{meetId}.isActive), and can never
+    // set a BIB.
+    function meetIsOpen(meetId) {
+      return exists(/databases/$(database)/documents/competitions/$(meetId))
+        && get(/databases/$(database)/documents/competitions/$(meetId)).data.get("isActive", false) == true;
+    }
+
+    function validDistrictEntry(d, docId) {
+      return d.keys().hasOnly(["meetId", "meetTitle", "athleteUid", "afi_uid", "district", "homeDistrict",
+                               "surname", "full_name", "father_name", "gender", "dob", "ageCategory",
+                               "ageGroup", "cutoff", "events", "bib", "submittedBy", "createdAt", "updatedAt"])
+        && d.meetId is string && d.athleteUid is string
+        && docId == d.meetId + "__" + d.athleteUid
+        && d.homeDistrict == d.district
+        && d.submittedBy == request.auth.uid
+        && d.events is list && d.events.size() >= 1 && d.events.size() <= 10
+        && get(/databases/$(database)/documents/users/$(d.athleteUid)).data.role == "Athlete"
+        && get(/databases/$(database)/documents/users/$(d.athleteUid)).data.district == d.district;
+    }
+
     match /meet_entries/{docId} {
-      allow read: if isAdmin();
-      allow write: if isOfficialOrAdmin();
+      allow read: if isAdmin() || isDistrictSecretaryFor(resource.data.district);
+
+      allow create: if isOfficialOrAdmin()
+                    || (isDistrictSecretaryFor(request.resource.data.district)
+                        && meetIsOpen(request.resource.data.meetId)
+                        && validDistrictEntry(request.resource.data, docId)
+                        && !("bib" in request.resource.data));
+
+      allow update: if isOfficialOrAdmin()
+                    || (isDistrictSecretaryFor(resource.data.district)
+                        && request.resource.data.district == resource.data.district
+                        && request.resource.data.meetId == resource.data.meetId
+                        && meetIsOpen(resource.data.meetId)
+                        && validDistrictEntry(request.resource.data, docId)
+                        && request.resource.data.get("bib", null) == resource.data.get("bib", null));
+
+      allow delete: if isOfficialOrAdmin()
+                    || (isDistrictSecretaryFor(resource.data.district) && meetIsOpen(resource.data.meetId));
     }
 
     match /{document=**} {
