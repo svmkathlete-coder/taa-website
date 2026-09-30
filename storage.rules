@@ -38,7 +38,18 @@ service firebase.storage {
       allow write: if isSignedIn() && under10MB() && isImageOrPdf();
     }
 
-    match /users/{userId}/{allPaths=**} {
+    // Files directly under a user's folder (photo, aadhaar-proof, dob-proof-*).
+    // A birth certificate (dob-proof-*) can be uploaded once but never replaced or deleted by
+    // the owner, so a certificate TAA has verified cannot be swapped afterwards.
+    match /users/{userId}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && under10MB() && isImageOrPdf();
+      allow update, delete: if isSignedIn() && request.auth.uid == userId && under10MB() && isImageOrPdf()
+                            && !fileName.matches('dob-proof-.*');
+    }
+
+    // Anything deeper inside a user's folder keeps the original owner-only rule.
+    match /users/{userId}/{folder}/{allPaths=**} {
       allow read: if isSignedIn() && request.auth.uid == userId;
       allow write: if isSignedIn() && request.auth.uid == userId && under10MB() && isImageOrPdf();
     }

@@ -65,6 +65,20 @@ service cloud.firestore {
     }
 
     // ---- users: private profile + role -------------------------------
+    // Date of birth is confirmed by TAA from the birth certificate, then locked. For an Athlete:
+    //  - at registration the athlete can only start with dob_status "Pending" (never "Verified");
+    //  - once Verified, the athlete can no longer change dob or anything to do with its proof;
+    //  - before that, the athlete can change dob / the certificate, but only by putting it back to "Pending";
+    //  - only an Admin can set "Verified" or write the verified_* / changed_* audit fields.
+    function dobOwnerEditOk() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return resource.data.role != "Athlete"
+        || !changed.hasAny(["dob", "dob_status", "dob_proof_url", "dob_reject_reason", "dob_verified_by", "dob_verified_at", "dob_changed_from", "dob_changed_at", "dob_changed_by"])
+        || (resource.data.get("dob_status", "") != "Verified"
+            && request.resource.data.get("dob_status", "") == "Pending"
+            && !changed.hasAny(["dob_verified_by", "dob_verified_at", "dob_changed_from", "dob_changed_at", "dob_changed_by"]));
+    }
+
     match /users/{userId} {
       // Technical Chairman needs Officials' contact details (phone) to staff a
       // meet — scoped to Official records only, not every private user doc.
@@ -74,7 +88,9 @@ service cloud.firestore {
                   || (callerRole() == "Technical Chairman" && resource.data.role == "Official");
       allow create: if (isOwner(userId)
                         && request.resource.data.role in ["Athlete", "Coach", "Official", "District"]
-                        && !("password" in request.resource.data))
+                        && !("password" in request.resource.data)
+                        && (request.resource.data.role != "Athlete" || request.resource.data.get("dob_status", "") == "Pending")
+                        && !request.resource.data.keys().hasAny(["dob_verified_by", "dob_verified_at", "dob_changed_from", "dob_changed_at", "dob_changed_by"]))
                     // Admin provisions institutional accounts (District secretaries,
                     // Technical Chairman, other Admins) that don't self-register —
                     // still never allowed to carry a plaintext password field.
@@ -82,7 +98,8 @@ service cloud.firestore {
       allow update: if isAdmin()
                     || (isOwner(userId)
                         && request.resource.data.role == resource.data.role
-                        && !("password" in request.resource.data))
+                        && !("password" in request.resource.data)
+                        && dobOwnerEditOk())
                     // District secretaries may only flip status (approve/reject) for
                     // members of their own district — nothing else, no other district.
                     || (isDistrictSecretaryFor(resource.data.district)
@@ -167,6 +184,7 @@ service cloud.firestore {
         && d.events is list && d.events.size() >= 1 && d.events.size() <= 10
         && get(/databases/$(database)/documents/users/$(d.athleteUid)).data.role == "Athlete"
         && d.homeDistrict == get(/databases/$(database)/documents/users/$(d.athleteUid)).data.district
+        && d.get("dob", "") == get(/databases/$(database)/documents/users/$(d.athleteUid)).data.get("dob", "")
         && (d.entityType == "District"
               ? d.district == d.homeDistrict
               : d.district == get(/databases/$(database)/documents/users/$(d.athleteUid)).data.academy);
