@@ -79,6 +79,13 @@ service cloud.firestore {
             && !changed.hasAny(["dob_verified_by", "dob_verified_at", "dob_changed_from", "dob_changed_at", "dob_changed_by"]));
     }
 
+    // The full Aadhaar number is never stored (only `aadhaar_last4`). An owner may not add or change an
+    // `aadhaar` field; older profiles that still carry one can be saved unchanged or have it removed.
+    function aadhaarNotSet() {
+      return !("aadhaar" in request.resource.data)
+        || request.resource.data.aadhaar == resource.data.get("aadhaar", null);
+    }
+
     match /users/{userId} {
       // Technical Chairman needs Officials' contact details (phone) to staff a
       // meet — scoped to Official records only, not every private user doc.
@@ -89,6 +96,7 @@ service cloud.firestore {
       allow create: if (isOwner(userId)
                         && request.resource.data.role in ["Athlete", "Coach", "Official", "District"]
                         && !("password" in request.resource.data)
+                        && !("aadhaar" in request.resource.data)
                         && (request.resource.data.role != "Athlete" || request.resource.data.get("dob_status", "") == "Pending")
                         && !request.resource.data.keys().hasAny(["dob_verified_by", "dob_verified_at", "dob_changed_from", "dob_changed_at", "dob_changed_by"]))
                     // Admin provisions institutional accounts (District secretaries,
@@ -99,6 +107,7 @@ service cloud.firestore {
                     || (isOwner(userId)
                         && request.resource.data.role == resource.data.role
                         && !("password" in request.resource.data)
+                        && aadhaarNotSet()
                         && dobOwnerEditOk())
                     // District secretaries may only flip status (approve/reject) for
                     // members of their own district — nothing else, no other district.
