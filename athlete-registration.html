@@ -123,7 +123,7 @@
                         <label>Blood Group*</label>
                         <select name="blood_group" required><option value="">Select</option><option>O+</option><option>O-</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option></select>
                     </div>
-                    <div class="input-group"><label>Aadhaar Number*</label><input type="text" name="aadhaar" maxlength="12" placeholder="12 Digit Number" required></div>
+                    <div class="input-group"><label>Aadhaar Number*</label><input type="text" name="aadhaar" maxlength="12" inputmode="numeric" autocomplete="off" placeholder="12 Digit Number" required></div>
                 </div>
 
                 <h3>Contact Information</h3>
@@ -268,6 +268,7 @@
 
 <script type="module">
     import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import { isValidAadhaar, aadhaarLast4 } from "./aadhaar-utils.js";
     import { doc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
@@ -408,6 +409,17 @@
             return;
         }
 
+        if (!isValidAadhaar(document.querySelector('[name="aadhaar"]').value)) {
+
+            errorBox.innerText = "Please check your Aadhaar number. It must be 12 digits exactly as printed on the card.";
+
+            errorBox.style.display = 'block';
+
+            return;
+
+        }
+
+
         const submitBtn = document.getElementById('submitBtn');
         const originalBtnText = submitBtn.innerText;
         submitBtn.innerText = "Checking Availability...";
@@ -432,6 +444,8 @@
 
         const enteredUID = document.getElementById('reg_afi_uid').value.trim().toUpperCase();
         const aadhaarVal = (data.aadhaar || "").trim();
+        data.aadhaar_last4 = aadhaarLast4(aadhaarVal); // the full number is never saved, only its one-way hash (uniqueness) and these 4 digits
+        delete data.aadhaar;
         const email = data.email;
         const password = data.password;
         const firstName = data.first_name;
