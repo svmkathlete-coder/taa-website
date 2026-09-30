@@ -144,6 +144,7 @@
         </div>
         <div class="nav-links">
             <div class="nav-item active" onclick="window.switchTab('tab-database', this)"><span class="nav-icon">👥</span> Member Database</div>
+            <div class="nav-item" onclick="window.switchTab('tab-dob', this)"><span class="nav-icon">🪪</span> DOB Verification</div>
             <div class="nav-item" onclick="window.switchTab('tab-afi-bot', this)"><span class="nav-icon">🤖</span> AFI Auto-Bot</div>
             <div class="nav-item" onclick="window.switchTab('tab-cms', this)"><span class="nav-icon">🖥️</span> Website CMS</div>
             <div class="nav-item" onclick="window.switchTab('tab-institution', this)"><span class="nav-icon">🏛️</span> Institution Manager</div>
@@ -282,6 +283,33 @@
                         <table>
                             <thead><tr><th>Date</th><th>AFI UID</th><th>Full Name</th><th>Role & District</th><th>Status</th><th>Action</th></tr></thead>
                             <tbody id="tableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-dob" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Date of Birth Verification</h3>
+                            <p style="margin:0; font-size:0.85em; color:#64748b; text-transform:none;">Open each athlete's birth certificate, confirm the date of birth, and verify. A verified date of birth is locked: the athlete cannot change it, and meet entries always use it.</p>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Show</label>
+                            <select id="dobFilter" class="form-control" onchange="window.renderDobQueue()">
+                                <option value="Pending">Waiting for review</option><option value="None">No certificate submitted</option><option value="Rejected">Sent back to the athlete</option><option value="Verified">Verified</option><option value="All">All athletes</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Search name or AFI ID</label><input type="text" id="dobSearch" class="form-control" oninput="window.renderDobQueue()"></div>
+                        <div class="form-group" style="justify-content:flex-end;"><button class="btn btn-clear" onclick="window.loadDobQueue()">Refresh</button></div>
+                    </div>
+                    <p id="dobCounts" style="font-weight:700; margin:12px 0;"></p>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Athlete</th><th>Father</th><th>District / Academy</th><th>Certificate</th><th>Date of birth</th><th>Decision</th></tr></thead>
+                            <tbody id="dobBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -634,6 +662,9 @@
                         <div class="form-group"><label>Specific date</label><input type="date" id="ruleFixedDate" class="form-control" onchange="window.previewRuleCutoff()"></div>
                         <div class="form-group"><label>Max events per athlete</label><input type="number" id="ruleMaxEvents" class="form-control" min="1" max="10" value="2"></div>
                         <div class="form-group"><label>Max athletes per district in one event (0 = no limit)</label><input type="number" id="ruleMaxPerDistrict" class="form-control" min="0" max="20" value="0"></div>
+                        <div class="form-group"><label>Date of birth</label>
+                            <select id="ruleRequireDob" class="form-control"><option value="yes">Only athletes with a verified birth certificate can be entered</option><option value="no">Any registered athlete can be entered</option></select>
+                        </div>
                     </div>
                     <p id="ruleResolved" style="margin-top:12px; font-weight:700;"></p>
                     <div id="ruleRanges" class="table-responsive" style="margin-top:8px;"></div>
@@ -956,6 +987,7 @@
             document.querySelectorAll('.tab-content').forEach(m => m.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             document.getElementById('topbarTitle').innerText = btn.innerText.substring(2).trim(); 
+            if (tabId === 'tab-dob') window.loadDobQueue();
             if (tabId === 'tab-circulars') window.loadPublishedCirculars();
             if (tabId === 'tab-media') window.loadPublishedMedia();
             if (tabId === 'tab-calendar') window.loadCalendarList();
@@ -1343,6 +1375,11 @@
                 father_name: document.getElementById(`fa-${uid}`).value.trim(), academy: document.getElementById(`ac-${uid}`).value,
                 event: document.getElementById(`ev-${uid}`).value, status: document.getElementById(`stat-${uid}`).value
             };
+            const before = (window.cloudUsersCache || []).find(x => x.id === docId);
+            if (before && before.dob && before.dob !== payload.dob) {
+                // keep a trail whenever a date of birth is changed after the fact
+                payload.dob_changed_from = before.dob; payload.dob_changed_at = new Date().toISOString(); payload.dob_changed_by = window.currentDocId || '';
+            }
             try {
                 await updateDoc(doc(window.db, "users", docId), payload);
                 alert("Profile updated in the cloud.");
@@ -2100,6 +2137,7 @@
             document.getElementById('ruleFixedDate').value = rule.date || '';
             document.getElementById('ruleMaxEvents').value = er.maxEvents || 2;
             document.getElementById('ruleMaxPerDistrict').value = er.maxPerDistrictPerEvent || 0;
+            document.getElementById('ruleRequireDob').value = er.requireVerifiedDob === false || (m && m.entry_rules && er.requireVerifiedDob === undefined) ? 'no' : 'yes';
             window.previewRuleCutoff();
         };
         const isoToDmy = (iso) => { const [y, m, d] = iso.split('-'); return `${d}.${m}.${y}`; };
@@ -2134,10 +2172,69 @@
             const age_rule = mode === 'fixed' ? { mode, date } : { mode };
             btn.disabled = true;
             try {
-                await saveMeetFields(m, { age_rule, entry_rules: { maxEvents, maxPerDistrictPerEvent: perDistrict } });
+                await saveMeetFields(m, { age_rule, entry_rules: { maxEvents, maxPerDistrictPerEvent: perDistrict, requireVerifiedDob: document.getElementById('ruleRequireDob').value === 'yes' } });
             } catch(e) { console.error(e); btn.disabled = false; return alert("Could not save to the cloud. Nothing was changed."); }
             btn.disabled = false;
             alert("Entry rules saved for " + m.title + ".");
+        };
+
+        // --- DATE OF BIRTH VERIFICATION (users.dob_status: Pending / Verified / Rejected; none = not submitted) ---
+        window.dobUsers = [];
+        window.loadDobQueue = async function() {
+            const body = document.getElementById('dobBody');
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center;">Loading...</td></tr>';
+            try {
+                const snap = await getDocs(collection(window.db, "users"));
+                window.dobUsers = [];
+                snap.forEach(d => { const u = d.data(); if (u.regType === 'Athlete' || u.role === 'Athlete') window.dobUsers.push({ id: d.id, ...u }); });
+            } catch(e) { console.error(e); body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#b91c1c;">Could not load athletes from the cloud. Please refresh.</td></tr>'; return; }
+            window.renderDobQueue();
+        };
+        const dobState = (u) => u.dob_proof_url || u.dob_status ? (u.dob_status || 'Pending') : 'None';
+        window.renderDobQueue = function() {
+            const f = document.getElementById('dobFilter').value, q = document.getElementById('dobSearch').value.trim().toLowerCase();
+            const all = window.dobUsers, count = (s) => all.filter(u => dobState(u) === s).length;
+            document.getElementById('dobCounts').innerText = `${count('Pending')} waiting · ${count('None')} without a certificate · ${count('Rejected')} sent back · ${count('Verified')} verified`;
+            const list = all.filter(u => (f === 'All' || dobState(u) === f) && (`${u.first_name || ''} ${u.last_name || ''} ${u.afi_uid || ''}`.toLowerCase().includes(q)))
+                .sort((a, b) => String(a.timestamp || '').localeCompare(String(b.timestamp || '')));
+            document.getElementById('dobBody').innerHTML = list.length ? list.map(u => {
+                const st = dobState(u), id = esc(u.id);
+                const link = /^https:\/\//.test(u.dob_proof_url || '') ? `<a href="${esc(u.dob_proof_url)}" target="_blank" rel="noopener noreferrer">Open certificate</a>` : '<span style="color:#b91c1c;">None</span>';
+                const decide = st === 'Verified'
+                    ? `<small>Verified ${esc(String(u.dob_verified_at || '').split('T')[0])}</small><br><button class="btn btn-clear" data-id="${id}" onclick="window.reopenDob(this.dataset.id)">Reopen</button>`
+                    : st === 'None' ? '<small>Waiting for the athlete</small>'
+                    : `<input type="text" class="form-control" id="dobr-${id}" placeholder="Reason, if sending back" value="${esc(st === 'Rejected' ? (u.dob_reject_reason || '') : '')}">
+                       <div style="margin-top:6px; display:flex; gap:6px;"><button class="btn btn-primary" data-id="${id}" onclick="window.verifyDob(this.dataset.id)">Verify</button><button class="btn btn-reject" data-id="${id}" onclick="window.rejectDob(this.dataset.id)">Send back</button></div>`;
+                return `<tr><td><strong>${esc(u.first_name || '')} ${esc(u.last_name || '')}</strong><br><small>${esc(u.afi_uid || '')} · ${esc(st === 'None' ? 'no certificate' : st)}</small></td>
+                    <td>${esc(u.father_name || '')}</td><td>${esc(u.district || '')}${u.academy ? `<br><small>Academy: ${esc(u.academy)}</small>` : ''}</td><td>${link}</td>
+                    <td>${st === 'Verified' ? esc(u.dob || '') : `<input type="date" class="form-control" id="dobv-${id}" value="${esc(u.dob || '')}">`}</td><td>${decide}</td></tr>`;
+            }).join('') : '<tr><td colspan="6" style="text-align:center; padding:20px; color:#64748b;">Nothing here.</td></tr>';
+        };
+        async function saveDobDecision(id, fields) {
+            try { await updateDoc(doc(window.db, "users", id), fields); }
+            catch(e) { console.error(e); alert("Could not save to the cloud. Nothing was changed."); return false; }
+            const u = window.dobUsers.find(x => x.id === id); if (u) Object.assign(u, fields);
+            window.renderDobQueue();
+            return true;
+        }
+        window.verifyDob = async function(id) {
+            const u = window.dobUsers.find(x => x.id === id); if (!u) return;
+            if (!/^https:\/\//.test(u.dob_proof_url || '')) return alert("This athlete has not uploaded a birth certificate, so there is nothing to verify against.");
+            const dob = document.getElementById('dobv-' + id).value;
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dob) || dob > new Date().toISOString().slice(0, 10)) return alert("Enter the date of birth exactly as it appears on the certificate.");
+            const fields = { dob, dob_status: 'Verified', dob_verified_by: window.currentDocId || '', dob_verified_at: new Date().toISOString(), dob_reject_reason: '' };
+            if (u.dob && u.dob !== dob) { fields.dob_changed_from = u.dob; fields.dob_changed_at = fields.dob_verified_at; fields.dob_changed_by = fields.dob_verified_by; }
+            if (u.dob && u.dob !== dob && !confirm(`The athlete entered ${u.dob}, but you are verifying ${dob}. Save ${dob} as the locked date of birth?`)) return;
+            await saveDobDecision(id, fields);
+        };
+        window.rejectDob = async function(id) {
+            const reason = document.getElementById('dobr-' + id).value.trim();
+            if (!reason) return alert("Type a short reason so the athlete knows what to fix.");
+            await saveDobDecision(id, { dob_status: 'Rejected', dob_reject_reason: reason });
+        };
+        window.reopenDob = async function(id) {
+            if (!confirm("Reopen this date of birth? The athlete will show as waiting for review until you verify it again.")) return;
+            await saveDobDecision(id, { dob_status: 'Pending', dob_verified_by: '', dob_verified_at: '' });
         };
 
         // --- EMM ENTRY EXPORT ---
@@ -2401,6 +2498,16 @@
 
             const { rows, report } = window.buildEmmRows(entries, map, window.emmInitials, document.getElementById('emmDobFormat').value, { suffixClashes: document.getElementById('emmClash').value === 'suffix' });
             const notes = [];
+            try {
+                const us = await getDocs(collection(window.db, "users")), prof = new Map();
+                us.forEach(d => prof.set(d.id, d.data()));
+                const who = (e) => `${e.full_name || ''} ${e.surname || ''}`.trim() || e.afi_uid;
+                const people = entries.filter(e => e.type !== 'relay');
+                const unverified = people.filter(e => (prof.get(e.athleteUid) || {}).dob_status !== 'Verified').map(who);
+                const changed = people.filter(e => prof.get(e.athleteUid) && e.dob !== prof.get(e.athleteUid).dob).map(who);
+                if (unverified.length) notes.push(`<b style="color:#b45309;">${unverified.length} athlete${unverified.length > 1 ? 's' : ''} without a verified date of birth:</b> ${unverified.slice(0, 15).map(esc).join(', ')}${unverified.length > 15 ? ` and ${unverified.length - 15} more` : ''}`);
+                if (changed.length) notes.push(`<b style="color:#b91c1c;">Date of birth on the entry differs from the athlete's profile:</b> ${changed.slice(0, 15).map(esc).join(', ')}`);
+            } catch(e) { console.error(e); notes.push('<b style="color:#b45309;">Could not check date-of-birth status.</b>'); }
             if (report.clashes.length) notes.push(`<b style="color:#b45309;">${report.clashes.length} name${report.clashes.length > 1 ? 's are' : ' is'} shared by different athletes in the same team</b> (EMM would merge them into one person)${report.suffixed ? `; <b>${report.suffixed}</b> given (2), (3) after the last name to keep them apart` : ' - names left as they are'}:<br>${report.clashes.slice(0, 10).map(esc).join('<br>')}`);
             if (report.bibs.shared.length) notes.push(`<b style="color:#b91c1c;">Two athletes share a bib:</b><br>${report.bibs.shared.slice(0, 10).map(esc).join('<br>')}<br>Use Renumber all bibs, then download again.`);
             if (report.bibs.missing.length) notes.push(`<b style="color:#b45309;">${report.bibs.missing.length} athlete${report.bibs.missing.length > 1 ? 's have' : ' has'} no bib yet</b> - use Give bibs to athletes without one, then download again.`);

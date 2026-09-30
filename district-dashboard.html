@@ -373,7 +373,7 @@
 
             // Render Rosters
             document.getElementById('athletesBody').innerHTML = approved.filter(u => u.regType === "Athlete").map(u => `
-                <tr><td>${esc(u.afi_uid || 'PENDING')}</td><td>${esc(u.first_name)} ${esc(u.last_name || '')}</td><td>${esc(u.event || 'TBD')}</td><td>${entityType === 'Academy' ? esc(u.district || '') : (u.academy ? `<span class="status-badge bg-pending">At ${esc(u.academy)}</span>` : '')}</td><td>${esc(u.mobile)}</td></tr>
+                <tr><td>${esc(u.afi_uid || 'PENDING')}</td><td>${esc(u.first_name)} ${esc(u.last_name || '')} ${u.dob_status === 'Verified' ? '<span class="status-badge bg-approved" title="Birth certificate verified">DOB &#10003;</span>' : `<span class="status-badge bg-pending">DOB ${u.dob_status === 'Pending' ? 'pending' : u.dob_status === 'Rejected' ? 'sent back' : 'not submitted'}</span>`}</td><td>${esc(u.event || 'TBD')}</td><td>${entityType === 'Academy' ? esc(u.district || '') : (u.academy ? `<span class="status-badge bg-pending">At ${esc(u.academy)}</span>` : '')}</td><td>${esc(u.mobile)}</td></tr>
             `).join('');
             
             document.getElementById('coachesBody').innerHTML = approved.filter(u => u.regType === "Coach").map(u => `
@@ -466,14 +466,15 @@
             if (!meet) return;
             entryMeet = meet;
             const er = meet.entry_rules || {};
-            entryRules = { cutoff: MASTER().resolveCutoff(meet), maxEvents: er.maxEvents || 2, perDistrict: er.maxPerDistrictPerEvent || 0 };
+            entryRules = { cutoff: MASTER().resolveCutoff(meet), maxEvents: er.maxEvents || 2, perDistrict: er.maxPerDistrictPerEvent || 0, requireVerifiedDob: er.requireVerifiedDob === true };
             document.getElementById('entryPanel').style.display = 'block';
             document.getElementById('entryMeetTitle').innerText = meet.title || '';
             document.getElementById('entryMeetInfo').innerText = [
                 `Age cut-off: ${entryRules.cutoff ? dmy(entryRules.cutoff) : 'not set'}`,
                 meet.deadline ? `Entries close: ${dmy(meet.deadline)}` : '',
                 `Up to ${entryRules.maxEvents} event${entryRules.maxEvents > 1 ? 's' : ''} per athlete`,
-                entryRules.perDistrict ? `Max ${entryRules.perDistrict} athletes per event from a district` : ''
+                entryRules.perDistrict ? `Max ${entryRules.perDistrict} athletes per event from a district` : '',
+                entryRules.requireVerifiedDob ? 'Verified birth certificate required' : ''
             ].filter(Boolean).join('  |  ');
             const reason = entryBlockReason();
             document.getElementById('entryBlocked').style.display = reason ? 'block' : 'none';
@@ -538,6 +539,7 @@
             const elsewhere = otherEntries.find(e => e.athleteUid === u.id);
             if (elsewhere) return findMsg(`${u.first_name} ${u.last_name || ''} is already entered for this meet by ${elsewhere.entityType === 'Academy' ? 'academy ' : ''}${elsewhere.district}. An athlete can be entered by one entity only. Ask them to remove the entry first if it should come from you.`, false);
             if (!['Approved', 'Verified'].includes(u.status)) return findMsg(`${u.first_name} ${u.last_name || ''} is not approved yet (status: ${u.status || 'Pending'}). Approve the registration first.`, false);
+            if (entryRules.requireVerifiedDob && u.dob_status !== 'Verified') return findMsg(`${u.first_name} ${u.last_name || ''} cannot be entered yet: the date of birth is ${u.dob_status === 'Pending' ? 'still being verified by TAA' : u.dob_status === 'Rejected' ? 'not accepted - the athlete must resubmit the birth certificate' : 'not verified - the athlete has not uploaded a birth certificate'}.`, false);
             if (!MASTER().isIsoDate(u.dob) || !['Male', 'Female'].includes(u.gender)) return findMsg('This athlete\'s date of birth or gender is missing from the profile, so the age group cannot be worked out. Please contact TAA.', false);
             const age = MASTER().ageOn(u.dob, entryRules.cutoff);
             const group = MASTER().getAthleteCategory(u.dob, entryRules.cutoff);

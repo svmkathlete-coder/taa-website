@@ -114,7 +114,7 @@
                     <div class="input-group"><label>First Name*</label><input type="text" name="first_name" required></div>
                     <div class="input-group"><label>Last Name*</label><input type="text" name="last_name" required></div>
                     <div class="input-group"><label>Father's Name*</label><input type="text" name="father_name" maxlength="80" required></div>
-                    <div class="input-group"><label>Date of Birth*</label><input type="date" name="dob" required></div>
+                    <div class="input-group"><label>Date of Birth* <small style="font-weight:400; color:#888;">(as on your birth certificate - locked after registration)</small></label><input type="date" name="dob" required></div>
                     <div class="input-group">
                         <label>Gender*</label>
                         <select name="gender" required><option value="">Select</option><option>Male</option><option>Female</option></select>
@@ -229,7 +229,9 @@
                 <div class="grid">
                     <div class="input-group"><label>Photograph*</label><input type="file" name="photo" accept="image/*" required></div>
                     <div class="input-group"><label>Aadhaar Proof*</label><input type="file" name="doc" accept="image/*" required></div>
+                    <div class="input-group"><label>Birth Certificate*</label><input type="file" name="dob_proof" accept="image/*,application/pdf" required></div>
                 </div>
+                <p style="font-size:0.8em; color:#888; margin-top:-10px;">Upload your birth certificate (photo or PDF, under 10 MB). TAA checks it against the date of birth you entered; once verified, the date of birth cannot be changed.</p>
                 <p style="font-size:0.8em; color:#888; margin-top:-10px;">These are uploaded securely and are visible only to you and TAA administrators.</p>
 
                 <div class="disclaimer-box">
@@ -415,11 +417,18 @@
         const data = {};
         const photoFile = formData.get('photo') instanceof File ? formData.get('photo') : null;
         const docFile = formData.get('doc') instanceof File ? formData.get('doc') : null;
+        const dobProofFile = formData.get('dob_proof') instanceof File ? formData.get('dob_proof') : null;
+        if (!dobProofFile || !dobProofFile.size || dobProofFile.size >= 10 * 1024 * 1024 || !/^(image\/|application\/pdf)/.test(dobProofFile.type)) {
+            errorBox.innerText = "Please upload your birth certificate as a photo or PDF under 10 MB.";
+            errorBox.style.display = 'block';
+            return;
+        }
         formData.forEach((value, key) => {
             data[key] = (value instanceof File) ? value.name : value;
         });
         data.father_name = String(data.father_name || '').trim().replace(/\s+/g, ' ');
         if (!data.academy) delete data.academy;
+        delete data.dob_proof; // only the uploaded file's URL is stored, never the local file name
 
         const enteredUID = document.getElementById('reg_afi_uid').value.trim().toUpperCase();
         const aadhaarVal = (data.aadhaar || "").trim();
@@ -462,6 +471,7 @@
             data.regType = "Athlete";
             data.role = "Athlete";
             data.status = "Verified"; // Athletes auto-verify per current TAA policy
+            data.dob_status = "Pending"; // date of birth is confirmed by TAA from the birth certificate
             data.timestamp = new Date().toISOString();
             delete data.password; // never stored in Firestore — Firebase Auth handles this securely
 
@@ -476,6 +486,8 @@
             submitBtn.innerText = "Uploading Documents...";
             if (photoFile) data.photo_url = await uploadRegistrationFile(authId, photoFile, "photo");
             if (docFile) data.aadhaar_proof_url = await uploadRegistrationFile(authId, docFile, "aadhaar-proof");
+            // Unique file name so the certificate can never be replaced after TAA has checked it
+            data.dob_proof_url = await uploadRegistrationFile(authId, dobProofFile, `dob-proof-${Date.now()}`);
 
             // 2. Save the private profile, keyed by the real account ID (not the AFI UID)
             submitBtn.innerText = "Creating Account...";

@@ -189,6 +189,17 @@
                         <div class="info-vault"><small>District</small><p id="viewDistrict">-</p></div>
                         <div class="info-vault"><small>Blood Group</small><p id="viewBlood" style="color:#ef4444;">-</p></div>
                     </div>
+                    <div id="dobBox" style="margin-top:18px; padding:14px; border-radius:8px; background:#f8fafc; border:1px solid #e2e8f0;">
+                        <strong>Date of birth verification:</strong> <span id="dobStatusText">-</span>
+                        <p id="dobStatusHelp" style="margin:6px 0 0; font-size:0.85em; color:#64748b;"></p>
+                        <div id="dobResubmit" style="display:none; margin-top:12px;">
+                            <div class="grid-3">
+                                <div class="info-vault"><small>Date of birth (as on the certificate)</small><input type="date" id="dobFix" class="form-control"></div>
+                                <div class="info-vault"><small>Birth certificate (photo or PDF)</small><input type="file" id="dobProofFile" class="form-control" accept="image/*,application/pdf"></div>
+                            </div>
+                            <button class="btn btn-primary" style="margin-top:10px;" onclick="window.submitDobProof(this)">Submit for verification</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="card">
@@ -212,6 +223,7 @@
 
     <script type="module">
         import { collection, query, where, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
         // Global State
         window.currentUser = null;
@@ -280,8 +292,47 @@
             document.getElementById('viewDistrict').innerText = window.currentUser.district || "N/A";
             document.getElementById('viewBlood').innerText = window.currentUser.blood_group || "N/A";
 
+            window.renderDobStatus();
+
             document.getElementById('editMobile').value = window.currentUser.mobile || "";
             document.getElementById('editEmail').value = window.currentUser.email || "";
+        };
+
+        // Date of birth is confirmed by TAA from the birth certificate and then locked.
+        window.renderDobStatus = function() {
+            const u = window.currentUser, st = u.dob_status || '';
+            const text = document.getElementById('dobStatusText'), help = document.getElementById('dobStatusHelp');
+            const colours = { Verified: '#15803d', Pending: '#b45309', Rejected: '#b91c1c' };
+            text.innerText = st === 'Verified' ? 'Verified by TAA' : st === 'Pending' ? 'Under review' : st === 'Rejected' ? 'Needs correction' : 'Certificate not submitted';
+            text.style.color = colours[st] || '#b91c1c';
+            help.innerText = st === 'Verified' ? 'Your date of birth is locked. If it is wrong, contact the TAA office.'
+                : st === 'Pending' ? 'TAA is checking your birth certificate. You will be able to be entered for meets as soon as it is verified.'
+                : st === 'Rejected' ? 'TAA could not verify it: ' + (u.dob_reject_reason || 'the certificate did not match.') + ' Please submit the correct details below.'
+                : 'Upload your birth certificate so TAA can verify and lock your date of birth.';
+            document.getElementById('dobResubmit').style.display = (st === 'Verified' || st === 'Pending') ? 'none' : 'block';
+            document.getElementById('dobFix').value = u.dob || '';
+        };
+        window.submitDobProof = async function(btn) {
+            const file = document.getElementById('dobProofFile').files[0], dob = document.getElementById('dobFix').value;
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) return alert("Enter your date of birth as it appears on the certificate.");
+            if (!file || file.size >= 10 * 1024 * 1024 || !/^(image\/|application\/pdf)/.test(file.type)) return alert("Choose a photo or PDF of the birth certificate, under 10 MB.");
+            if (window.currentUser.dob_status === 'Verified') return;
+            btn.disabled = true;
+            try {
+                const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+                const fileRef = storageRef(window.storage, `users/${window.currentDocId}/dob-proof-${Date.now()}.${ext}`);
+                await uploadBytes(fileRef, file);
+                const url = await getDownloadURL(fileRef);
+                await updateDoc(doc(window.db, "users", window.currentDocId), { dob, dob_proof_url: url, dob_status: 'Pending', dob_reject_reason: '' });
+                Object.assign(window.currentUser, { dob, dob_proof_url: url, dob_status: 'Pending', dob_reject_reason: '' });
+                document.getElementById('viewDob').innerText = dob;
+                window.renderDobStatus();
+                alert("Submitted. TAA will verify your date of birth.");
+            } catch (e) {
+                console.error(e);
+                alert("Could not submit right now. Please try again.");
+            }
+            btn.disabled = false;
         };
 
         window.calculateCategory = function(dobString) {
