@@ -436,9 +436,18 @@
         const photoFile = formData.get('photo') instanceof File ? formData.get('photo') : null;
         const docFile = formData.get('doc') instanceof File ? formData.get('doc') : null;
         const dobProofFile = formData.get('dob_proof') instanceof File ? formData.get('dob_proof') : null;
-        if (!dobProofFile || !dobProofFile.size || dobProofFile.size >= 10 * 1024 * 1024 || !/^(image\/|application\/pdf)/.test(dobProofFile.type)) {
-            errorBox.innerText = "Please upload your birth certificate as a photo or PDF under 10 MB.";
+        const fileProblem = (f, label, required) => {
+            if (!f || !f.size) return required ? `Please choose your ${label}.` : '';
+            if (f.size >= 10 * 1024 * 1024) return `Your ${label} is larger than 10 MB (${(f.size / 1048576).toFixed(1)} MB). Please choose a smaller file, or take a lower-resolution photo.`;
+            if (!/^(image\/|application\/pdf)/.test(f.type)) return `Your ${label} must be a photo or a PDF.`;
+            return '';
+        };
+        const problem = fileProblem(photoFile, 'photograph', true) || fileProblem(docFile, 'Aadhaar document', false) || fileProblem(dobProofFile, 'birth certificate', true);
+        if (problem) {
+            errorBox.innerText = problem;
             errorBox.style.display = 'block';
+            submitBtn.innerText = originalBtnText;
+            submitBtn.disabled = false;
             return;
         }
         formData.forEach((value, key) => {
@@ -466,6 +475,7 @@
 
         let claimedUidIndex = false;
         let claimedAadhaarIndex = false;
+        let createdUser = null;
         let aadhaarHash = null;
 
         try {
@@ -497,6 +507,7 @@
 
             // 1. Create the secure account (Firebase Auth hashes and stores the password)
             const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
+            createdUser = userCredential.user;
             const authId = userCredential.user.uid;
 
             // 1b. Upload the actual document files to this user's own Storage
@@ -544,6 +555,8 @@
             console.error("Registration Error:", error);
 
             // Roll back whichever index claims succeeded, so a genuine retry isn't blocked
+            // The account was created but a later step failed: remove it so the same email can be used again
+            if (createdUser) { try { await createdUser.delete(); } catch (_) {} }
             if (claimedUidIndex) { try { await deleteDoc(doc(window.db, "afi_uid_index", enteredUID)); } catch (_) {} }
             if (claimedAadhaarIndex && aadhaarHash) { try { await deleteDoc(doc(window.db, "aadhaar_index", aadhaarHash)); } catch (_) {} }
 
@@ -551,6 +564,8 @@
                 errorBox.innerText = "This email address is already registered. Please log in or use Account Recovery.";
             } else if (error.code === 'auth/weak-password') {
                 errorBox.innerText = "Password is too weak. Please use at least 8 characters.";
+            } else if (error.code === 'storage/unauthorized') {
+                errorBox.innerText = "One of your files could not be uploaded. Please use photos or PDFs under 10 MB and try again.";
             } else {
                 errorBox.innerText = error.message || "Registration failed. Please try again.";
             }
