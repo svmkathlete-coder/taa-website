@@ -668,6 +668,10 @@
                         <div class="form-group"><label>Specific date</label><input type="date" id="ruleFixedDate" class="form-control" onchange="window.previewRuleCutoff()"></div>
                         <div class="form-group"><label>Max events per athlete</label><input type="number" id="ruleMaxEvents" class="form-control" min="1" max="10" value="2"></div>
                         <div class="form-group"><label>Max athletes per district in one event (0 = no limit)</label><input type="number" id="ruleMaxPerDistrict" class="form-control" min="0" max="20" value="0"></div>
+                        <div class="form-group"><label>Max athletes per academy in one event (0 = same as the district limit)</label><input type="number" id="ruleMaxPerAcademy" class="form-control" min="0" max="20" value="0"></div>
+                        <div class="form-group"><label>Combined events (e.g. triathlon)</label>
+                            <select id="ruleCombinedCounts" class="form-control"><option value="no">Extra: do not count toward the event limit</option><option value="yes">Count toward the event limit</option></select>
+                        </div>
                         <div class="form-group"><label>Date of birth</label>
                             <select id="ruleRequireDob" class="form-control"><option value="yes">Only athletes with a verified birth certificate can be entered</option><option value="no">Any registered athlete can be entered</option></select>
                         </div>
@@ -2165,6 +2169,8 @@
             document.getElementById('ruleFixedDate').value = rule.date || '';
             document.getElementById('ruleMaxEvents').value = er.maxEvents || 2;
             document.getElementById('ruleMaxPerDistrict').value = er.maxPerDistrictPerEvent || 0;
+            document.getElementById('ruleMaxPerAcademy').value = er.maxPerAcademyPerEvent || 0;
+            document.getElementById('ruleCombinedCounts').value = er.combinedCountsTowardLimit === true ? 'yes' : 'no';
             document.getElementById('ruleRequireDob').value = er.requireVerifiedDob === false || (m && m.entry_rules && er.requireVerifiedDob === undefined) ? 'no' : 'yes';
             window.previewRuleCutoff();
         };
@@ -2194,13 +2200,15 @@
             const date = document.getElementById('ruleFixedDate').value;
             const maxEvents = Number(document.getElementById('ruleMaxEvents').value);
             const perDistrict = Number(document.getElementById('ruleMaxPerDistrict').value);
+            const perAcademy = Number(document.getElementById('ruleMaxPerAcademy').value);
             if (!window.TAA_MASTER_DATA.resolveCutoff({ ...m, age_rule: { mode, date } })) return alert("The age cut-off cannot be worked out yet. Read the note under the form and fix it first.");
             if (!Number.isInteger(maxEvents) || maxEvents < 1 || maxEvents > 10) return alert("Max events per athlete must be a whole number from 1 to 10.");
             if (!Number.isInteger(perDistrict) || perDistrict < 0 || perDistrict > 20) return alert("Max athletes per district in one event must be a whole number from 0 to 20.");
+            if (!Number.isInteger(perAcademy) || perAcademy < 0 || perAcademy > 20) return alert("Max athletes per academy in one event must be a whole number from 0 to 20.");
             const age_rule = mode === 'fixed' ? { mode, date } : { mode };
             btn.disabled = true;
             try {
-                await saveMeetFields(m, { age_rule, entry_rules: { maxEvents, maxPerDistrictPerEvent: perDistrict, requireVerifiedDob: document.getElementById('ruleRequireDob').value === 'yes' } });
+                await saveMeetFields(m, { age_rule, entry_rules: { maxEvents, maxPerDistrictPerEvent: perDistrict, maxPerAcademyPerEvent: perAcademy, combinedCountsTowardLimit: document.getElementById('ruleCombinedCounts').value === 'yes', requireVerifiedDob: document.getElementById('ruleRequireDob').value === 'yes' } });
             } catch(e) { console.error(e); btn.disabled = false; return alert("Could not save to the cloud. Nothing was changed."); }
             btn.disabled = false;
             alert("Entry rules saved for " + m.title + ".");

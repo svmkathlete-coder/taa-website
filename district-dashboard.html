@@ -468,14 +468,16 @@
             if (!meet) return;
             entryMeet = meet;
             const er = meet.entry_rules || {};
-            entryRules = { cutoff: MASTER().resolveCutoff(meet), maxEvents: er.maxEvents || 2, perDistrict: er.maxPerDistrictPerEvent || 0, requireVerifiedDob: er.requireVerifiedDob === true };
+            entryRules = { cutoff: MASTER().resolveCutoff(meet), maxEvents: er.maxEvents || 2, perDistrict: (entityType === 'Academy' && er.maxPerAcademyPerEvent) ? er.maxPerAcademyPerEvent : (er.maxPerDistrictPerEvent || 0), // an academy can have its own cap for the meet
+                combinedCounts: er.combinedCountsTowardLimit === true, requireVerifiedDob: er.requireVerifiedDob === true };
             document.getElementById('entryPanel').style.display = 'block';
             document.getElementById('entryMeetTitle').innerText = meet.title || '';
             document.getElementById('entryMeetInfo').innerText = [
                 `Age cut-off: ${entryRules.cutoff ? dmy(entryRules.cutoff) : 'not set'}`,
                 meet.deadline ? `Entries close: ${dmy(meet.deadline)}` : '',
                 `Up to ${entryRules.maxEvents} event${entryRules.maxEvents > 1 ? 's' : ''} per athlete`,
-                entryRules.perDistrict ? `Max ${entryRules.perDistrict} athletes per event from a district` : '',
+                entryRules.perDistrict ? `Max ${entryRules.perDistrict} athletes per event from ${entityType === 'Academy' ? 'an academy' : 'a district'}` : '',
+                entryRules.combinedCounts ? '' : 'Combined events do not count toward the event limit',
                 entryRules.requireVerifiedDob ? 'Verified birth certificate required' : ''
             ].filter(Boolean).join('  |  ');
             const reason = entryBlockReason();
@@ -557,11 +559,14 @@
             document.getElementById('entryGender').value = u.gender;
             document.getElementById('entryDob').value = `${dmy(u.dob)}  (age ${age} on ${dmy(entryRules.cutoff)})`;
             document.getElementById('entryGroup').value = entryAthlete.label;
-            document.getElementById('entryLimitNote').innerText = `(choose up to ${entryRules.maxEvents})`;
+            document.getElementById('entryLimitNote').innerText = `(choose up to ${entryRules.maxEvents}${entryRules.combinedCounts ? '' : ', not counting combined events'})`;
             findMsg(existing ? 'This athlete already has an entry. You are editing it.' : 'Athlete found.', true);
             renderEntryEvents();
             document.getElementById('entryAthlete').style.display = 'block';
         };
+
+        // Events that count toward the per-athlete limit (a combined event does not, unless the meet says so).
+        function countedEvents(list) { return list.filter(x => entryRules.combinedCounts || x.group !== 'Combined').length; }
 
         function districtCount(label, event) {
             return myEntries.filter(e => e.athleteUid !== entryAthlete.user.id && e.ageCategory === label && (e.events || []).some(x => x.event === event)).length;
@@ -573,7 +578,7 @@
                 const full = entryRules.perDistrict && districtCount(entryAthlete.label, ev.event) >= entryRules.perDistrict && !chosen.has(ev.event);
                 return `<div class="ev-row ${full ? 'off' : ''}">
                     <input type="checkbox" id="evChk${i}" data-i="${i}" ${chosen.has(ev.event) ? 'checked' : ''} ${full ? 'disabled' : ''} onchange="onEntryEventToggle(this)">
-                    <label for="evChk${i}">${esc(ev.event)} <small>${esc(ev.group)}${full ? ` - district limit of ${entryRules.perDistrict} reached` : ''}</small></label>
+                    <label for="evChk${i}">${esc(ev.event)} <small>${esc(ev.group)}${full ? ` - ${entityType === 'Academy' ? 'academy' : 'district'} limit of ${entryRules.perDistrict} reached` : ''}</small></label>
                     <input type="text" class="form-control" id="evMark${i}" placeholder="Seed mark" value="${esc(chosen.get(ev.event) || '')}" ${chosen.has(ev.event) ? '' : 'disabled'} title="Digits only. The last two digits are hundredths, e.g. 1150 = 11.50. Leave empty if none.">
                 </div>`;
             }).join('');
@@ -581,10 +586,11 @@
 
         window.onEntryEventToggle = function(chk) {
             const i = chk.dataset.i;
-            if (chk.checked && document.querySelectorAll('#entryEvents input[type=checkbox]:checked').length > entryRules.maxEvents) {
+            const picked = [...document.querySelectorAll('#entryEvents input[type=checkbox]:checked')].map(c => entryAthlete.events[c.dataset.i]);
+            if (chk.checked && countedEvents(picked) > entryRules.maxEvents) {
                 chk.checked = false;
                 document.getElementById('entrySaveMsg').style.color = '#b91c1c';
-                document.getElementById('entrySaveMsg').innerText = `An athlete can be entered in at most ${entryRules.maxEvents} event${entryRules.maxEvents > 1 ? 's' : ''} in this meet.`;
+                document.getElementById('entrySaveMsg').innerText = `An athlete can be entered in at most ${entryRules.maxEvents} event${entryRules.maxEvents > 1 ? 's' : ''} in this meet${entryRules.combinedCounts ? '' : ' (combined events are extra)'}.`;
                 return;
             }
             document.getElementById('entrySaveMsg').innerText = '';
@@ -603,7 +609,7 @@
                 if (document.getElementById('evChk' + i).checked) events.push({ event: ev.event, group: ev.group, mark: cleanMark(document.getElementById('evMark' + i).value) });
             });
             if (events.length === 0) return fail('Choose at least one event. To take an athlete out of the meet, use Remove.');
-            if (events.length > entryRules.maxEvents) return fail(`At most ${entryRules.maxEvents} events per athlete.`);
+            if (countedEvents(events) > entryRules.maxEvents) return fail(`At most ${entryRules.maxEvents} events per athlete${entryRules.combinedCounts ? '' : ' (combined events are extra)'}.`);
             if (entryRules.perDistrict) {
                 const over = events.find(x => districtCount(entryAthlete.label, x.event) >= entryRules.perDistrict);
                 if (over) return fail(`${currentDistrict} already has ${entryRules.perDistrict} athletes entered in ${entryAthlete.label} ${over.event}.`);
