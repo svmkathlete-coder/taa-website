@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.jpg">
+    <meta name="description" content="Directory of registered athletes, coaches and officials of the Telangana Athletics Association.">
+    <meta property="og:site_name" content="Telangana Athletics Association">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Athlete Directory - TAA">
+    <meta property="og:description" content="Directory of registered athletes, coaches and officials of the Telangana Athletics Association.">
     <title>Athlete Directory - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
@@ -127,12 +133,7 @@
         window.allProfiles = []; // Will hold the cloud data
 
         // --- 1. FALLBACK SAMPLE DATA ---
-        const sampleFallback = [
-            { uid: "AFI20261001", name: "Rahul Kumar", dist: "Hyderabad", role: "Athlete" },
-            { uid: "AFI20262002", name: "Ananya Rao", dist: "Warangal", role: "Athlete" },
-            { uid: "AFI2026C001", name: "Vikram Reddy", dist: "Hyderabad", role: "Coach" },
-            { uid: "AFI2026O001", name: "Suresh Naidu", dist: "Warangal", role: "Official" }
-        ];
+        const sampleFallback = []; // no sample profiles: the directory shows registered members only
 
         // --- 2. FETCH CLOUD DATA ---
         async function fetchProfilesFromCloud() {

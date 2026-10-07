@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.jpg">
+    <meta name="description" content="Athlete, coach or official profile on the Telangana Athletics Association website.">
+    <meta property="og:site_name" content="Telangana Athletics Association">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Athlete Profile - TAA">
+    <meta property="og:description" content="Athlete, coach or official profile on the Telangana Athletics Association website.">
     <title>Athlete Profile - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
@@ -107,32 +113,6 @@
                     }
                 } catch (error) {
                     console.warn("Cloud fetch error:", error);
-                }
-            }
-
-            // --- 2. FALLBACK TO LOCAL STORAGE OR HARDCODED DEMO DATA ---
-            if (!user) {
-                const localDb = JSON.parse(localStorage.getItem('taa_profiles_db')) || [];
-                user = localDb.find(u => u.uid === uidParam);
-
-                if (!user && (uidParam === "rahul" || uidParam === "AFI20261001")) {
-                    user = {
-                        uid: "AFI20261001", name: "K. Rahul", role: "Athlete", dist: "Hyderabad",
-                        father: "S. Vijay Kumar", dob: "12 May 2005", blood: "B+", event: "100m Sprint", coach: "P. Srinivas",
-                        pb: "10.42s", sb: "10.42s", rank: "#1 State",
-                        history: [
-                            { date: "Mar 15, 2026", meet: "State Athletics Championships", venue: "Hanumakonda", perf: "10.42s", pos: "1st" }
-                        ]
-                    };
-                } else if (!user && uidParam === "anitha") {
-                    user = {
-                        uid: "AFI20262002", name: "P. Anitha", role: "Athlete", dist: "Warangal",
-                        father: "M. Rajamouli", dob: "22 Aug 2004", blood: "A+", event: "Long Jump", coach: "G. Kishan",
-                        pb: "6.15m", sb: "6.02m", rank: "#2 State",
-                        history: [
-                            { date: "Feb 10, 2026", meet: "District Level Meet", venue: "Warangal", perf: "6.02m", pos: "1st" }
-                        ]
-                    };
                 }
             }
 

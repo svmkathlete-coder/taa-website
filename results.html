@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.jpg">
+    <meta name="description" content="Results and archives of Telangana Athletics Association championships.">
+    <meta property="og:site_name" content="Telangana Athletics Association">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Meet Results - TAA Portal">
+    <meta property="og:description" content="Results and archives of Telangana Athletics Association championships.">
     <title>Meet Results - TAA Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     
@@ -274,7 +280,9 @@
 
             container.innerHTML = filtered.map(meet => {
                 // The crucial linking logic: if isLive is true, it becomes clickable
-                const isLive = meet.isLive === true; 
+                const isLive = meet.isLive === true;
+                // Only a real http(s) address saved for the meet becomes a link; never a made-up page.
+                const resultsUrl = /^https?:\/\//i.test(meet.live_results_url || '') ? meet.live_results_url : '';
                 
                 // Safety check for date formatting
                 const dateParts = meet.date ? meet.date.split(' ') : ["TBA", ""];
@@ -282,7 +290,7 @@
                 const displayYear = dateParts[1] || "";
 
                 return `
-                    <${isLive ? 'a href="meet-details.html?id=' + encodeURIComponent(meet.title) + '"' : 'div'} class="result-card ${isLive ? 'is-live' : 'is-dormant'}">
+                    <${resultsUrl ? 'a href="' + resultsUrl.replace(/"/g, '&quot;') + '" target="_blank" rel="noopener noreferrer"' : 'div'} class="result-card ${isLive ? 'is-live' : 'is-dormant'}">
                         <div class="date-box" style="${isLive ? 'background:var(--primary); color:white;' : ''}">
                             <span class="month">${displayMonth}</span>
                             <span class="year">${displayYear}</span>
@@ -295,9 +303,9 @@
                             </div>
                         </div>
                         <div class="status-badge" style="${isLive ? 'background:#dcfce7; color:#166534; border-color:#bbf7d0;' : ''}">
-                            ${isLive ? 'View Results ➞' : 'Available Soon'}
+                            ${resultsUrl ? 'View Results ➞' : (isLive ? 'Results Published' : 'Available Soon')}
                         </div>
-                    </${isLive ? 'a' : 'div'}>
+                    </${resultsUrl ? 'a' : 'div'}>
                 `;
             }).join('');
         }

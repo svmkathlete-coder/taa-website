@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.jpg">
+    <meta name="description" content="Telangana athletics rankings: athlete performances by event and age group, and district standings.">
+    <meta property="og:site_name" content="Telangana Athletics Association">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Global Rankings &amp; Leaderboards - TAA">
+    <meta property="og:description" content="Telangana athletics rankings: athlete performances by event and age group, and district standings.">
     <title>Global Rankings & Leaderboards - TAA</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     
@@ -294,15 +300,7 @@
             
             const tbody = document.getElementById('athletesLeaderboardBody');
 
-            const mockAthletes = [
-                { uid: "AFI20261001", name: "Rahul Kumar", gender: "Male", dob: "2004-05-12", dist: "Hyderabad", event: "100m", perf: "10.42", meas: "Electronic", comp: "State Athletics Championships", venue: "Hanumakonda", date: "Mar 2026", pos: "1st", points: 1120 },
-                { uid: "AFI110", name: "Ramesh Singh", gender: "Male", dob: "1996-07-14", dist: "Khammam", event: "100m", perf: "10.35", meas: "Electronic", comp: "State Athletics Championships", venue: "Hanumakonda", date: "Mar 2026", pos: "1st", points: 1180 },
-                { uid: "AFI102", name: "Arjun Singh", gender: "Male", dob: "2005-08-20", dist: "Warangal", event: "100m", perf: "10.65", meas: "Electronic", comp: "State Meet for Relay Teams", venue: "Jangaon", date: "Feb 2026", pos: "2nd", points: 1050 },
-                { uid: "AFI103", name: "Ravi Teja", gender: "Male", dob: "2008-01-15", dist: "Nizamabad", event: "100m", perf: "10.90", meas: "Hand", comp: "Junior Athletics Championships", venue: "Hyderabad", date: "Mar 2026", pos: "1st", points: 980 },
-                { uid: "AFI104", name: "Sneha Reddy", gender: "Female", dob: "2003-11-05", dist: "Ranga Reddy", event: "100m", perf: "11.85", meas: "Electronic", comp: "State Athletics Championships", venue: "Hanumakonda", date: "Mar 2026", pos: "1st", points: 1090 },
-                { uid: "AFI105", name: "Priya Rao", gender: "Female", dob: "1998-09-10", dist: "Hyderabad", event: "Long Jump", perf: "6.12", meas: "N/A", comp: "National Inter-State", venue: "Delhi", date: "Dec 2025", pos: "3rd", points: 1045 },
-                { uid: "AFI106", name: "Karthik Raj", gender: "Male", dob: "1999-03-22", dist: "Karimnagar", event: "Long Jump", perf: "7.85", meas: "N/A", comp: "State Athletics Championships", venue: "Hanumakonda", date: "Mar 2026", pos: "1st", points: 1105 }
-            ];
+            const mockAthletes = []; // no sample athletes: only real, recorded performances are shown
 
             let allAthletes = [...mockAthletes];
 
@@ -311,6 +309,7 @@
             // carry the performance fields below anyway).
             window.cloudUsers.forEach(u => {
                 if(u.role === "Athlete") {
+                    if (!(parseFloat(u.pb || u.sb) > 0)) return; // athletes without a recorded performance are not ranked
                     if(!allAthletes.find(ma => ma.uid === u.afi_uid)) {
                         allAthletes.push({
                             uid: u.afi_uid || "PENDING",
@@ -442,10 +441,7 @@
                 });
             });
 
-            const mockCoaches = [
-                { name: "Ramesh Babu", uid: "AFI-C-901", academy: "Sports Authority of Telangana", score: 8450, athletes: 12 },
-                { name: "Sunil Kumar", uid: "AFI-C-882", academy: "GMC Balayogi Stadium", score: 7200, athletes: 8 }
-            ];
+            const mockCoaches = [];
 
             leaderboardData = [...leaderboardData, ...mockCoaches]
                 .filter(c => c.score > 0)
