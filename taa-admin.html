@@ -619,7 +619,7 @@
                     <div class="form-grid" style="margin-top:15px;">
                         <div class="form-group" style="grid-column: span 2;">
                             <label>Event numbers for this meet <span id="emmMapStatus" style="font-weight:400; color:#64748b;"></span></label>
-                            <textarea id="emmEventMap" class="form-control" rows="6" placeholder="One event per line:  event number, age category, event&#10;101, U18 Boys, 100m&#10;102, U18 Girls, 100m&#10;Paste straight from Excel if you like (tab separated)."></textarea>
+                            <textarea id="emmEventMap" class="form-control" rows="6" placeholder="One event per line:  event number, age category, event&#10;101, U18 Boys, 100m&#10;102, U18 Girls, 100m&#10;A combined event takes its own number, then one line per part:&#10;1, U14 Boys, Triathlon (A)&#10;2, U14 Boys, Triathlon (A) - 60m&#10;3, U14 Boys, Triathlon (A) - Long Jump&#10;Paste straight from Excel if you like (tab separated)."></textarea>
                             <small style="color:#64748b;">Use the same numbers as your EMM event order. Every meet has its own numbers. The age category and event name must match how the district secretaries' entries are saved.</small>
                         </div>
                         <div class="form-group">
@@ -2378,7 +2378,7 @@
                 if (opts.suffixClashes) list.forEach((d, i) => { if (i > 0) suffixFor.set(emmIdOf(d), ` (${i + 1})`); });
             });
             const lookup = new Map(eventMap.map(e => [emmNorm(e.category) + '|' + emmNorm(e.event), e.no]));
-            const rows = [], report = { athletes: 0, individualRows: 0, relayRows: 0, unmapped: [], guessedInitials: new Set(), noCategory: [], clashes: clashText, suffixed: suffixFor.size, bibs: window.bibProblems(entries) };
+            const rows = [], report = { athletes: 0, individualRows: 0, relayRows: 0, unmapped: [], guessedInitials: new Set(), noCategory: [], clashes: clashText, suffixed: suffixFor.size, combinedAthletes: 0, combinedNoParts: [], bibs: window.bibProblems(entries) };
             const initialsFor = (team) => {
                 const k = emmNorm(team);
                 if (initialsMap[k]) return initialsMap[k];
@@ -2409,13 +2409,23 @@
                     if (!cat) { report.noCategory.push(who); return; }
                     const no = lookup.get(emmNorm(cat) + '|' + emmNorm(ev.event));
                     if (!no) { report.unmapped.push(`${who} (${team}): ${cat} ${ev.event}`); return; }
-                    const r = new Array(22).fill('');
-                    r[0] = window.emmClean(team); r[1] = window.emmClean(initialsFor(team));
-                    r[2] = window.emmClean(d.father_name || d.fatherName);
-                    r[3] = window.emmClean(first); r[4] = window.emmClean(last) + (suffixFor.get(emmIdOf(d)) || '');
-                    r[5] = window.emmDob(d.dob, dobFormat); r[7] = window.emmSex(d.gender);
-                    r[8] = emmBibOf(d) ? String(emmBibOf(d)) : ''; r[9] = no; r[10] = window.emmMark(ev.mark);
-                    rows.push(r); report.individualRows++;
+                    const mk = (eventNo, mark) => {
+                        const r = new Array(22).fill('');
+                        r[0] = window.emmClean(team); r[1] = window.emmClean(initialsFor(team));
+                        r[2] = window.emmClean(d.father_name || d.fatherName);
+                        r[3] = window.emmClean(first); r[4] = window.emmClean(last) + (suffixFor.get(emmIdOf(d)) || '');
+                        r[5] = window.emmDob(d.dob, dobFormat); r[7] = window.emmSex(d.gender);
+                        r[8] = emmBibOf(d) ? String(emmBibOf(d)) : ''; r[9] = eventNo; r[10] = window.emmMark(mark);
+                        rows.push(r); report.individualRows++;
+                    };
+                    mk(no, ev.mark);
+                    // A combined (umbrella) event: EMM numbers each part too ("Triathlon (A) - 60m"), so the
+                    // athlete also gets a row, without a mark, for every part listed under the umbrella.
+                    const prefix = emmNorm(ev.event) + ' - ', catKey = emmNorm(cat);
+                    const parts = eventMap.filter(e => emmNorm(e.category) === catKey && emmNorm(e.event).startsWith(prefix));
+                    parts.forEach(pt => mk(pt.no, ''));
+                    if (parts.length) report.combinedAthletes++;
+                    else if (/triathlon|tetrathlon|pentathlon|heptathlon|decathlon/i.test(ev.event) && !report.combinedNoParts.includes(`${cat} ${ev.event}`)) report.combinedNoParts.push(`${cat} ${ev.event}`);
                 });
             });
             rows.sort((a, b) => a[0].localeCompare(b[0]) || a[4].localeCompare(b[4]) || a[3].localeCompare(b[3]) || Number(a[8] || 0) - Number(b[8] || 0) || Number(a[9]) - Number(b[9]));
@@ -2548,6 +2558,7 @@
             if (report.bibs.shared.length) notes.push(`<b style="color:#b91c1c;">Two athletes share a bib:</b><br>${report.bibs.shared.slice(0, 10).map(esc).join('<br>')}<br>Use Renumber all bibs, then download again.`);
             if (report.bibs.missing.length) notes.push(`<b style="color:#b45309;">${report.bibs.missing.length} athlete${report.bibs.missing.length > 1 ? 's have' : ' has'} no bib yet</b> - use Give bibs to athletes without one, then download again.`);
             if (report.unmapped.length) notes.push(`<b style="color:#b91c1c;">${report.unmapped.length} entr${report.unmapped.length > 1 ? 'ies have' : 'y has'} no event number and ${report.unmapped.length > 1 ? 'were' : 'was'} left out:</b><br>${report.unmapped.slice(0, 15).map(esc).join('<br>')}${report.unmapped.length > 15 ? `<br>...and ${report.unmapped.length - 15} more` : ''}`);
+            if (report.combinedNoParts.length) notes.push(`<b style="color:#b45309;">No numbers saved for the parts of:</b> ${report.combinedNoParts.map(esc).join(', ')}. Add one line per part, e.g. "Triathlon (A) - 60m", then download again.`);
             if (report.noCategory.length) notes.push(`<b style="color:#b91c1c;">No age category saved for:</b> ${[...new Set(report.noCategory)].slice(0, 15).map(esc).join(', ')}`);
             if (report.guessedInitials.length) notes.push(`<b style="color:#b45309;">Team initials guessed for:</b> ${report.guessedInitials.map(esc).join(', ')}. Add them under Team Initials and download again.`);
             box.innerHTML = `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;"><b>${report.athletes}</b> athletes &middot; <b>${report.individualRows}</b> individual rows &middot; <b>${report.relayRows}</b> relay rows${notes.length ? '<br><br>' + notes.join('<br><br>') : ''}</div>`;
